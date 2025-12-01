@@ -2,6 +2,8 @@ import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import MatrixBackground from './MatrixBackground';
 import BenchmarkStatusBanner from './BenchmarkStatusBanner';
+import NanoTuneStatusBanner from './NanoTuneStatusBanner';
+import AutoTuneStatusBanner from './AutoTuneStatusBanner';
 import { api, formatUptime } from '@/lib/api';
 
 interface LayoutProps {
@@ -46,8 +48,10 @@ export default function Layout({ children }: LayoutProps) {
       {/* Matrix Background */}
       <MatrixBackground />
 
-      {/* Benchmark Status Banner - Shows across all pages */}
+      {/* Status Banners - Show across all pages when operations are running */}
       <BenchmarkStatusBanner />
+      <NanoTuneStatusBanner />
+      <AutoTuneStatusBanner />
 
       {/* Main Content */}
       <div className="relative z-20">
