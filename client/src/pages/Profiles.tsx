@@ -3,7 +3,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Zap, Check } from 'lucide-react';
@@ -17,6 +17,10 @@ export default function Profiles() {
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<string>('');
+  const [editVoltage, setEditVoltage] = useState('');
+  const [editFrequency, setEditFrequency] = useState('');
   
   // Quick Apply state
   const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
@@ -88,19 +92,31 @@ export default function Profiles() {
 
   const handleSaveCurrent = () => {
     if (!selectedDevice) return;
-    setNewProfileName('');
+    setNewProfileName('custom');
     setShowSaveDialog(true);
   };
 
   const handleConfirmSave = async () => {
-    console.log('[Profiles] handleConfirmSave called for device:', selectedDevice);
-    if (!selectedDevice) return;
+    console.log('[Profiles] handleConfirmSave called for device:', selectedDevice, 'name:', newProfileName);
+    if (!selectedDevice || !newProfileName.trim()) {
+      toast.error('Please enter a profile name');
+      return;
+    }
 
     try {
-      const result = await api.profiles.saveCustom(selectedDevice);
+      // Get current device settings
+      const deviceInfo = await api.devices.get(selectedDevice);
+      const profileData = {
+        voltage: deviceInfo.voltage,
+        frequency: deviceInfo.frequency,
+        description: `Saved on ${new Date().toLocaleString()}`
+      };
+      
+      const result = await api.profiles.update(selectedDevice, newProfileName.trim(), profileData);
       console.log('[Profiles] Save result:', result);
-      toast.success('Current settings saved as "custom" profile');
+      toast.success(`Profile "${newProfileName}" saved successfully`);
       setShowSaveDialog(false);
+      setNewProfileName('');
       loadProfiles();
     } catch (error: any) {
       toast.error(error.message || 'Failed to save profile');
@@ -379,6 +395,18 @@ export default function Profiles() {
                       >
                         🔬 TUNE
                       </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setEditingProfile(name);
+                          setEditVoltage(profile.voltage?.toString() || '');
+                          setEditFrequency(profile.frequency?.toString() || '');
+                          setShowEditDialog(true);
+                        }}
+                        className="bg-[var(--warning-amber)] hover:bg-[var(--warning-amber)]/80 text-black text-xs"
+                      >
+                        ✏️ EDIT
+                      </Button>
                       {!profile?.is_best && (
                         <Button
                           size="sm"
@@ -446,11 +474,19 @@ export default function Profiles() {
             <DialogTitle className="text-glow-cyan">💾 SAVE_CURRENT_PROFILE</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-[var(--text-secondary)]">
-              Save the current device settings as a profile named <strong className="text-[var(--text-primary)]">"custom"</strong>?
-            </p>
+            <div>
+              <label className="text-[var(--text-secondary)] text-sm mb-2 block">Profile Name</label>
+              <input
+                type="text"
+                value={newProfileName}
+                onChange={(e) => setNewProfileName(e.target.value)}
+                className="w-full px-3 py-2 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded text-[var(--text-primary)] focus:border-[var(--matrix-green)] focus:outline-none"
+                placeholder="Enter profile name..."
+                autoFocus
+              />
+            </div>
             <p className="text-xs text-[var(--text-muted)]">
-              This will create or overwrite the "custom" profile with the device's current voltage, frequency, and other settings.
+              This will save the device's current voltage, frequency, and other settings.
             </p>
           </div>
           <DialogFooter>
@@ -459,6 +495,60 @@ export default function Profiles() {
             </Button>
             <Button className="btn-matrix" onClick={handleConfirmSave}>
               ✅ CONFIRM_SAVE
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="matrix-card">
+          <DialogHeader>
+            <DialogTitle className="text-glow-cyan">✏️ EDIT_PROFILE: {editingProfile.toUpperCase()}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-[var(--text-secondary)] text-sm mb-2 block">Voltage (mV)</label>
+              <input
+                type="number"
+                value={editVoltage}
+                onChange={(e) => setEditVoltage(e.target.value)}
+                className="w-full px-3 py-2 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded text-[var(--text-primary)] focus:border-[var(--matrix-green)] focus:outline-none"
+                placeholder="e.g., 1200"
+              />
+            </div>
+            <div>
+              <label className="text-[var(--text-secondary)] text-sm mb-2 block">Frequency (MHz)</label>
+              <input
+                type="number"
+                value={editFrequency}
+                onChange={(e) => setEditFrequency(e.target.value)}
+                className="w-full px-3 py-2 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded text-[var(--text-primary)] focus:border-[var(--matrix-green)] focus:outline-none"
+                placeholder="e.g., 500"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+              ❌ CANCEL
+            </Button>
+            <Button className="btn-matrix" onClick={async () => {
+              if (!selectedDevice || !editingProfile) return;
+              try {
+                const profileData = {
+                  voltage: parseInt(editVoltage),
+                  frequency: parseInt(editFrequency),
+                  description: `Edited on ${new Date().toLocaleString()}`
+                };
+                await api.profiles.update(selectedDevice, editingProfile, profileData);
+                toast.success(`Profile "${editingProfile}" updated`);
+                setShowEditDialog(false);
+                loadProfiles();
+              } catch (error: any) {
+                toast.error(error.message || 'Failed to update profile');
+              }
+            }}>
+              ✅ SAVE_CHANGES
             </Button>
           </DialogFooter>
         </DialogContent>

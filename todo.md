@@ -511,10 +511,10 @@
 - [ ] Benchmark: Show Advanced Options checkboxes (Restart Between Tests, Enable Plots, Export CSV)
 - [ ] Nano Tune: Fix modal auto-submit behavior
 
-- [ ] Profiles: Add custom name input field in save dialog (not hardcoded "custom")
-- [ ] Profiles: Fix hashrate and efficiency not showing in profile cards
-- [ ] Profiles: Add edit button to manually change voltage/frequency
-- [ ] Profiles: Fix Quick Apply profile dropdown not selectable
+- [x] Profiles: Add custom name input field in save dialog (not hardcoded "custom")
+- [x] Profiles: Add edit button to manually change voltage/frequency
+- [ ] Profiles: Fix hashrate and efficiency not showing in profile cards (backend data issue)
+- [ ] Profiles: Fix Quick Apply profile dropdown not selectable (needs testing)
 
 - [x] Create difficulty formatting utility (formatDifficulty) to display M/G/T units
 - [x] Dashboard: Format Best Difficulty and Best Since Boot with M/G/T
