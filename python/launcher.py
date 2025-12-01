@@ -23,6 +23,7 @@ import time
 import signal
 import logging
 import webbrowser
+import subprocess
 from pathlib import Path
 from threading import Thread
 from multiprocessing import Process
@@ -88,6 +89,20 @@ def start_axepool():
         logger.error(f"AxePool failed to start: {e}")
         sys.exit(1)
 
+def start_frontend():
+    """Start Vite frontend dev server"""
+    try:
+        logger.info("Starting Vite frontend on port 5173...")
+        project_root = Path(__file__).parent.parent
+        subprocess.run(
+            ['npm', 'run', 'dev'],
+            cwd=str(project_root),
+            check=False
+        )
+    except Exception as e:
+        logger.error(f"Frontend failed to start: {e}")
+        sys.exit(1)
+
 def signal_handler(sig, frame):
     """Handle Ctrl+C gracefully"""
     logger.info("\nShutting down all services...")
@@ -122,8 +137,9 @@ def main():
     axebench_process = Process(target=start_axebench, name='AxeBench')
     axeshed_process = Process(target=start_axeshed, name='AxeShed')
     axepool_process = Process(target=start_axepool, name='AxePool')
+    frontend_process = Process(target=start_frontend, name='Frontend')
     
-    processes = [axebench_process, axeshed_process, axepool_process]
+    processes = [axebench_process, axeshed_process, axepool_process, frontend_process]
     
     # Start all processes
     for process in processes:
@@ -136,10 +152,10 @@ def main():
     # Wait a moment for services to fully initialize
     time.sleep(2)
     
-    # Open browser to AxeBench (port 5000)
-    logger.info("Opening AxeBench in browser...")
+    # Open browser to frontend (port 5173)
+    logger.info("Opening AxeBench Matrix UI in browser...")
     try:
-        webbrowser.open('http://localhost:5000')
+        webbrowser.open('http://localhost:5173')
     except Exception as e:
         logger.warning(f"Could not open browser automatically: {e}")
         logger.info("Please open http://localhost:5000 in your browser manually")
