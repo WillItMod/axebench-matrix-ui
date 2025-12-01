@@ -37,10 +37,20 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Poll status on mount and every 2 seconds
+  // Force clear any stuck benchmark state on app startup
   useEffect(() => {
-    // Initial status check - if backend says not running, clear any stale state
-    refreshStatus();
+    const clearStuckState = async () => {
+      try {
+        // Call stop endpoint to clear any crashed/stuck benchmarks
+        await api.benchmark.stop();
+      } catch (error) {
+        // Ignore errors - benchmark might not be running
+      }
+      // Then refresh to get clean state
+      refreshStatus();
+    };
+    
+    clearStuckState();
     
     const interval = setInterval(() => {
       if (status.running) {
