@@ -102,10 +102,32 @@ export default function Dashboard() {
   // Calculate fleet efficiency (J/TH = W / (GH/s / 1000))
   const fleetEfficiency = totalHashrate > 0 ? (totalPower / (totalHashrate / 1000)) : 0;
   
+  // Parse difficulty string (e.g., "4.29G" -> 4290000000)
+  const parseDifficulty = (diffStr: string | number): number => {
+    if (typeof diffStr === 'number') return diffStr;
+    if (!diffStr || diffStr === '0') return 0;
+    
+    const str = String(diffStr).toUpperCase();
+    const multipliers: Record<string, number> = {
+      'K': 1000,
+      'M': 1000000,
+      'G': 1000000000,
+      'T': 1000000000000,
+    };
+    
+    const match = str.match(/^([0-9.]+)([KMGT])?$/);
+    if (!match) return 0;
+    
+    const value = parseFloat(match[1]);
+    const suffix = match[2];
+    return suffix ? value * multipliers[suffix] : value;
+  };
+  
   // Find device with highest difficulty
   const highestDiffDevice = onlineDevices.reduce((max, d) => {
-    const diff = d.status?.difficulty || 0;
-    return diff > (max.status?.difficulty || 0) ? d : max;
+    const diff = parseDifficulty(d.status?.difficulty || 0);
+    const maxDiff = max ? parseDifficulty(max.status?.difficulty || 0) : 0;
+    return diff > maxDiff ? d : max;
   }, onlineDevices[0] || null);
   
   const fleetStats = {

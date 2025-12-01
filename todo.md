@@ -220,3 +220,8 @@
 - [ ] AUTO_MODE should be visible in ADVANCED mode only
 - [ ] Add proper START BENCHMARK button styling and placement
 - [ ] Ensure preset mode works in EASY mode
+
+## Dashboard - Difficulty Display Fix
+- [x] Parse bestDiff string format ("4.29G", "3.83M", etc.) to numeric value for comparison
+- [x] Find device with highest numeric difficulty
+- [x] Display difficulty with original suffix format
