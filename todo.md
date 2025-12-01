@@ -271,9 +271,23 @@
 - [ ] Add dismiss/minimize button
 - [ ] Support both benchmark and nano-tune status
 
-## Benchmark Console
+## Benchmark Console & Live Monitoring
 - [ ] Add console/log viewer to Benchmark page
 - [ ] Fetch logs from /api/benchmark/status or session logs
 - [ ] Auto-scroll to bottom as new logs appear
 - [ ] Show timestamp, log level, and message
 - [ ] Add clear logs button
+- [ ] Add live monitoring panel with real-time device stats
+- [ ] Show charts for hashrate, power, voltage, frequency, temperature
+
+## Operations (AxeShed Scheduler) Page
+- [x] Import ShedPage from v3.0
+- [x] Add profile scheduling interface
+- [x] Allow time-based profile switching
+- [x] Add navigation tab for Operations
+
+## Pool Management (AxePool) Page
+- [x] Import PoolPage from v3.0
+- [x] Add pool configuration interface
+- [x] Add pool failover management
+- [x] Add navigation tab for Pool

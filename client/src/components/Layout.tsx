@@ -36,6 +36,8 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/benchmark', label: 'BENCHMARK', icon: '🔬' },
     { path: '/profiles', label: 'PROFILES', icon: '📋' },
     { path: '/sessions', label: 'SESSIONS', icon: '📊' },
+    { path: '/pool', label: 'POOL', icon: '🌐' },
+    { path: '/operations', label: 'OPERATIONS', icon: '⏰' },
   ];
 
   return (
