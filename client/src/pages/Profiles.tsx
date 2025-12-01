@@ -407,6 +407,23 @@ export default function Profiles() {
                       >
                         ✏️ EDIT
                       </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const json = JSON.stringify(profile, null, 2);
+                          const blob = new Blob([json], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${selectedDevice}_${name}_profile.json`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          toast.success('Profile exported');
+                        }}
+                        className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                      >
+                        📄 JSON
+                      </Button>
                       {!profile?.is_best && (
                         <Button
                           size="sm"

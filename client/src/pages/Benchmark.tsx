@@ -14,6 +14,15 @@ export default function Benchmark() {
   const { status: benchmarkStatus, refreshStatus } = useBenchmark();
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevice, setSelectedDevice] = useState('');
+  
+  // Read device from URL params (for pre-selection from Dashboard)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const deviceParam = params.get('device');
+    if (deviceParam) {
+      setSelectedDevice(decodeURIComponent(deviceParam));
+    }
+  }, []);
   const [status, setStatus] = useState<any>(null);
   const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
   const [preset, setPreset] = useState('standard'); // For EASY mode
@@ -100,6 +109,16 @@ export default function Benchmark() {
     try {
       const data = await api.devices.list();
       setDevices(data);
+      
+      // If device was pre-selected from URL but not yet in state, set it now
+      const params = new URLSearchParams(window.location.search);
+      const deviceParam = params.get('device');
+      if (deviceParam && !selectedDevice) {
+        const deviceName = decodeURIComponent(deviceParam);
+        if (data.some((d: any) => d.name === deviceName)) {
+          setSelectedDevice(deviceName);
+        }
+      }
     } catch (error) {
       console.error('Failed to load devices:', error);
     }
@@ -609,9 +628,16 @@ export default function Benchmark() {
           </div>
 
           {/* Live Monitoring Panel */}
-          {benchmarkStatus.running && selectedDevice && (
-            <LiveMonitoringPanel deviceName={selectedDevice} />
-          )}
+          {(() => {
+            console.log('[Benchmark] LiveMonitoring check:', { 
+              running: benchmarkStatus.running, 
+              selectedDevice, 
+              willShow: benchmarkStatus.running && selectedDevice 
+            });
+            return benchmarkStatus.running && selectedDevice ? (
+              <LiveMonitoringPanel deviceName={selectedDevice} />
+            ) : null;
+          })()}
 
           {/* Live Status */}
           {benchmarkStatus.running && status && (

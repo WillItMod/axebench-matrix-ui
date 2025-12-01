@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -16,25 +15,7 @@ interface PsuModalProps {
 export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
   const [name, setName] = useState('');
   const [wattage, setWattage] = useState(25);
-  const [type, setType] = useState<'shared' | 'independent'>('independent');
-  const [devices, setDevices] = useState<any[]>([]);
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      loadDevices();
-    }
-  }, [open]);
-
-  const loadDevices = async () => {
-    try {
-      const deviceList = await api.devices.list();
-      setDevices(deviceList);
-    } catch (error: any) {
-      toast.error('Failed to load devices');
-    }
-  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -47,24 +28,17 @@ export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
       return;
     }
 
-    if (type === 'shared' && selectedDevices.length === 0) {
-      toast.error('Select at least one device for shared PSU');
-      return;
-    }
-
     try {
       setLoading(true);
       await api.psus.create({
         name: name.trim(),
         wattage,
-        type,
-        devices: type === 'shared' ? selectedDevices : [],
       });
-      toast.success('PSU configuration saved');
+      toast.success('PSU created successfully');
       onSave();
       handleClose();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save PSU');
+      toast.error(error.message || 'Failed to create PSU');
     } finally {
       setLoading(false);
     }
@@ -73,24 +47,14 @@ export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
   const handleClose = () => {
     setName('');
     setWattage(25);
-    setType('independent');
-    setSelectedDevices([]);
     onClose();
-  };
-
-  const toggleDevice = (deviceName: string) => {
-    setSelectedDevices(prev =>
-      prev.includes(deviceName)
-        ? prev.filter(d => d !== deviceName)
-        : [...prev, deviceName]
-    );
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)] text-[var(--text-primary)] max-w-2xl">
+      <DialogContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)] text-[var(--text-primary)] max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-glow-green">⚡ PSU_CONFIGURATION</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-glow-green">⚡ CREATE_PSU</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -100,7 +64,7 @@ export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Main PSU, Backup PSU"
+              placeholder="e.g., Main PSU, Backup PSU, Rack PSU 1"
               className="mt-1 bg-[var(--bg-primary)] border-[var(--grid-gray)] text-[var(--text-primary)]"
             />
           </div>
@@ -121,44 +85,16 @@ export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
             </p>
           </div>
 
-          {/* PSU Type */}
-          <div>
-            <Label className="text-[var(--text-secondary)]">PSU Mode</Label>
-            <Select value={type} onValueChange={(v: any) => setType(v)}>
-              <SelectTrigger className="mt-1 bg-[var(--bg-primary)] border-[var(--grid-gray)]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
-                <SelectItem value="independent">Independent (Each device has own PSU)</SelectItem>
-                <SelectItem value="shared">Shared (Multiple devices share this PSU)</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Info Box */}
+          <div className="bg-[var(--bg-primary)] border-l-4 border-[var(--neon-cyan)] p-3 rounded">
+            <p className="text-sm text-[var(--text-secondary)]">
+              <strong className="text-[var(--neon-cyan)]">ℹ️ Next Step:</strong>
+            </p>
+            <p className="text-xs text-[var(--text-muted)] mt-2">
+              After creating the PSU, assign devices to it using the device CONFIG button. 
+              Devices can be set to "Standalone" (own PSU) or assigned to a shared PSU.
+            </p>
           </div>
-
-          {/* Device Selection (Shared Mode) */}
-          {type === 'shared' && (
-            <div>
-              <Label className="text-[var(--text-secondary)] mb-2 block">Select Devices</Label>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 bg-[var(--bg-primary)] border border-[var(--grid-gray)] rounded">
-                {devices.map((device) => (
-                  <button
-                    key={device.name}
-                    onClick={() => toggleDevice(device.name)}
-                    className={`px-3 py-2 rounded text-sm font-mono transition-colors ${
-                      selectedDevices.includes(device.name)
-                        ? 'bg-[var(--matrix-green)] text-black'
-                        : 'bg-[var(--dark-gray)] text-[var(--text-secondary)] hover:bg-[var(--grid-gray)]'
-                    }`}
-                  >
-                    {device.name}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-[var(--text-muted)] mt-1">
-                Selected: {selectedDevices.length} device(s)
-              </p>
-            </div>
-          )}
 
           {/* Safety Warnings */}
           <div className="bg-[var(--bg-primary)] border-l-4 border-yellow-500 p-3 rounded">
@@ -187,7 +123,7 @@ export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
             disabled={loading}
             className="btn-matrix"
           >
-            {loading ? 'SAVING...' : 'SAVE_PSU'}
+            {loading ? 'CREATING...' : 'CREATE_PSU'}
           </Button>
         </DialogFooter>
       </DialogContent>

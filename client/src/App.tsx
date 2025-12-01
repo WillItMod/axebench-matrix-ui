@@ -5,7 +5,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { BenchmarkProvider } from "./contexts/BenchmarkContext";
 import Layout from "./components/Layout";
-import BenchmarkStatusBanner from "./components/BenchmarkStatusBanner";
 import Dashboard from "./pages/Dashboard";
 import Benchmark from "./pages/Benchmark";
 import Profiles from "./pages/Profiles";
@@ -17,7 +16,6 @@ import NotFound from "./pages/NotFound";
 function Router() {
   return (
     <>
-      <BenchmarkStatusBanner />
       <Layout>
         <Switch>
           <Route path="/" component={Dashboard} />

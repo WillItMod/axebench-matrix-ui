@@ -14,6 +14,7 @@ interface Device {
   ip: string;
   model: string;
   online: boolean;
+  psu_id?: string;
   status?: {
     hashrate: number;
     temp: number;
@@ -116,15 +117,10 @@ export default function Dashboard() {
       const psuList = await api.psus.list();
       setPsus(psuList);
       
-      // Calculate total fleet power and PSU warnings
-      const totalPower = devices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
-      
       // Check each PSU for load warnings
       psuList.forEach((psu: any) => {
-        const psuLoad = psu.type === 'shared' 
-          ? devices.filter(d => psu.devices?.includes(d.name)).reduce((sum, d) => sum + (d.status?.power || 0), 0)
-          : totalPower / devices.length; // Average for independent
-        
+        const assignedDevices = devices.filter(d => d.psu_id === psu.id);
+        const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
         const loadPercent = (psuLoad / psu.wattage) * 100;
         
         if (loadPercent >= 80) {
@@ -286,6 +282,65 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* PSU Cards */}
+      {psus.length > 0 && (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-glow-cyan">PSU_MANAGEMENT</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {psus.map((psu: any) => {
+              // Find devices assigned to this PSU
+              const assignedDevices = devices.filter(d => d.psu_id === psu.id);
+              const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
+              const loadPercent = (psuLoad / psu.wattage) * 100;
+              const loadColor = loadPercent >= 80 ? 'var(--error-red)' : loadPercent >= 70 ? 'var(--warning-amber)' : 'var(--matrix-green)';
+              
+              return (
+                <div key={psu.id} className="hud-panel">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-bold text-glow-cyan">⚡ {psu.name}</h3>
+                    <span className="text-xs text-[var(--text-muted)]">{assignedDevices.length} DEVICE{assignedDevices.length !== 1 ? 'S' : ''}</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[var(--text-secondary)]">Capacity</span>
+                      <span className="text-[var(--text-primary)] font-bold">{psu.wattage}W</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[var(--text-secondary)]">Current Load</span>
+                      <span className="font-bold" style={{ color: loadColor }}>{psuLoad.toFixed(1)}W ({loadPercent.toFixed(0)}%)</span>
+                    </div>
+                    {assignedDevices.length > 0 && (
+                      <div className="text-xs text-[var(--text-muted)] mt-2 space-y-1">
+                        <div className="font-bold text-[var(--text-secondary)]">Assigned Devices:</div>
+                        {assignedDevices.map(d => (
+                          <div key={d.name} className="flex justify-between">
+                            <span>{d.name}</span>
+                            <span className="text-[var(--neon-cyan)]">{(d.status?.power || 0).toFixed(1)}W</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {assignedDevices.length === 0 && (
+                      <div className="text-xs text-[var(--text-muted)] italic mt-2">
+                        No devices assigned
+                      </div>
+                    )}
+                    <div className="w-full bg-[var(--grid-gray)] h-2 rounded mt-2">
+                      <div
+                        className="h-2 rounded transition-all"
+                        style={{ width: `${Math.min(loadPercent, 100)}%`, backgroundColor: loadColor }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Actions Bar */}

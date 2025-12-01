@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -29,6 +30,27 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
   const [fanAuto, setFanAuto] = useState(true);
   const [targetTemp, setTargetTemp] = useState(60);
   const [applying, setApplying] = useState(false);
+  const [psus, setPsus] = useState<any[]>([]);
+  const [selectedPsu, setSelectedPsu] = useState<string>('standalone');
+  
+  // Load PSUs and current device PSU assignment
+  useEffect(() => {
+    const loadPsus = async () => {
+      try {
+        const psuList = await api.psus.list();
+        setPsus(psuList);
+        
+        // Get current device PSU assignment
+        const deviceData = await api.devices.get(device.name);
+        setSelectedPsu(deviceData.psu_id || 'standalone');
+      } catch (error) {
+        console.error('Failed to load PSUs:', error);
+      }
+    };
+    if (open) {
+      loadPsus();
+    }
+  }, [open, device.name]);
 
   const handleApplySettings = async () => {
     try {
@@ -39,6 +61,11 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
       
       // Apply fan settings
       await api.devices.setFan(device.name, fanAuto, fanAuto ? targetTemp : undefined);
+      
+      // Update PSU assignment
+      await api.devices.update(device.name, {
+        psu_id: selectedPsu === 'standalone' ? null : selectedPsu
+      });
       
       toast.success('Settings applied successfully');
       onSuccess?.();
@@ -114,6 +141,27 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
             />
             <div className="text-xs text-[var(--text-muted)] mt-1">
               Range: 300-700 MHz (recommended: 400-600)
+            </div>
+          </div>
+
+          {/* PSU Assignment */}
+          <div>
+            <Label className="text-[var(--text-secondary)]">PSU Assignment</Label>
+            <Select value={selectedPsu} onValueChange={setSelectedPsu}>
+              <SelectTrigger className="mt-1 bg-[var(--bg-primary)] border-[var(--grid-gray)]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
+                <SelectItem value="standalone">Standalone (Own PSU)</SelectItem>
+                {psus.map((psu: any) => (
+                  <SelectItem key={psu.id} value={psu.id}>
+                    {psu.name} ({psu.wattage}W)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-xs text-[var(--text-muted)] mt-1">
+              Assign device to a shared PSU or mark as standalone
             </div>
           </div>
 

@@ -555,3 +555,23 @@
   - [x] Show 80% load warning (red)
   - [x] Support independent PSU mode (each device has own PSU)
   - [x] Support shared PSU mode (all devices share one PSU)
+
+## Next Features
+- [x] Device pre-selection - BENCHMARK button on device cards should pre-select device on Benchmark page
+- [x] Profile JSON export - Add button to view/export raw profile data
+- [ ] Operations page redesign - Replace dropdowns with multi-select toggle buttons
+
+## Bugs
+- [x] Fix duplicate benchmark status banners appearing on page
+- [ ] Fix live monitoring panel not showing during benchmark (added debug logging)
+- [x] Remove console height limit (increased to h-96, 50% taller)
+- [ ] Save benchmark console output to sessions log
+- [ ] Fix PSU modal dropdown appearing open by default (z-index issue)
+- [x] Display saved PSUs as cards on Dashboard
+
+## PSU System Redesign
+- [x] Simplify PSU modal - only create PSU with name + wattage (no device selection)
+- [x] Add PSU assignment dropdown to device ConfigModal (Standalone or select PSU)
+- [x] Calculate PSU power from devices assigned to it
+- [x] Show assigned devices in PSU cards
+- [ ] Fix Best Difficulty and Best Since Boot still showing 0 (device info API not returning data)

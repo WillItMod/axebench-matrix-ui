@@ -64,7 +64,7 @@ export default function BenchmarkConsole() {
       {/* Console Content */}
       <div
         ref={consoleRef}
-        className="h-64 overflow-y-auto p-4 font-mono text-sm space-y-1"
+        className="h-96 overflow-y-auto p-4 font-mono text-sm space-y-1"
       >
         {logs.length === 0 ? (
           <div className="text-[var(--text-muted)] italic">
