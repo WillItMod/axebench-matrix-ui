@@ -563,10 +563,8 @@
 
 ## Bugs
 - [x] Fix duplicate benchmark status banners appearing on page
-- [ ] Fix live monitoring panel not showing during benchmark (added debug logging)
+- [x] Fix live monitoring panel not showing during benchmark (now uses benchmarkStatus.device)
 - [x] Remove console height limit (increased to h-96, 50% taller)
-- [ ] Save benchmark console output to sessions log
-- [ ] Fix PSU modal dropdown appearing open by default (z-index issue)
 - [x] Display saved PSUs as cards on Dashboard
 
 ## PSU System Redesign
@@ -574,4 +572,9 @@
 - [x] Add PSU assignment dropdown to device ConfigModal (Standalone or select PSU)
 - [x] Calculate PSU power from devices assigned to it
 - [x] Show assigned devices in PSU cards
-- [ ] Fix Best Difficulty and Best Since Boot still showing 0 (device info API not returning data)
+## Backend Requirements (Outside Frontend Scope)
+- [ ] Implement `/api/devices/{name}/info` endpoint to return bestDiff and bestSessionDiff
+- [ ] Create sessions table in database for benchmark history
+- [ ] Save benchmark console logs to sessions table with session_id
+- [ ] Implement `/api/sessions` endpoint to list past benchmark runs
+- [ ] Implement `/api/sessions/{id}` endpoint to get session details and logs

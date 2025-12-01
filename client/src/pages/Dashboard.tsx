@@ -23,6 +23,8 @@ interface Device {
     frequency: number;
     fan_speed: number;
     difficulty?: number;
+    bestDiff?: number;
+    bestSessionDiff?: number;
   };
 }
 
@@ -56,7 +58,7 @@ export default function Dashboard() {
             const status = await api.devices.status(device.name);
             logger.info('Dashboard', `Status received for ${device.name}`, { status });
             
-            // Fetch device info for bestSessionDiff and bestDiff
+                    // Fetch device system info for bestSessionDiff and bestDiff
             let deviceInfo = null;
             try {
               deviceInfo = await api.devices.info(device.name);

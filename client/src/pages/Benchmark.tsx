@@ -629,13 +629,16 @@ export default function Benchmark() {
 
           {/* Live Monitoring Panel */}
           {(() => {
+            const deviceName = benchmarkStatus.device || selectedDevice;
             console.log('[Benchmark] LiveMonitoring check:', { 
               running: benchmarkStatus.running, 
+              contextDevice: benchmarkStatus.device,
               selectedDevice, 
-              willShow: benchmarkStatus.running && selectedDevice 
+              deviceName,
+              willShow: benchmarkStatus.running && deviceName 
             });
-            return benchmarkStatus.running && selectedDevice ? (
-              <LiveMonitoringPanel deviceName={selectedDevice} />
+            return benchmarkStatus.running && deviceName ? (
+              <LiveMonitoringPanel deviceName={deviceName} />
             ) : null;
           })()}
 
