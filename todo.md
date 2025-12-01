@@ -493,3 +493,8 @@
 - [ ] Final theme generation and visual refinements
 - [ ] Ensure consistent styling across all pages
 - [ ] Polish animations and transitions
+
+### Live Monitor Panel
+- [ ] Add graphs/charts to Live Monitoring panel (reference HTML 1.2 / 2.12)
+- [ ] Show real-time hashrate, temperature, voltage, frequency graphs
+- [ ] Implement chart.js or similar for live data visualization
