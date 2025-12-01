@@ -578,3 +578,10 @@
 - [ ] Save benchmark console logs to sessions table with session_id
 - [ ] Implement `/api/sessions` endpoint to list past benchmark runs
 - [ ] Implement `/api/sessions/{id}` endpoint to get session details and logs
+
+## Current Work
+- [x] Redesign Operations page - replace pool/device dropdowns with multi-select toggle buttons
+- [ ] Add PSU edit button to modify PSU name and wattage (shows toast, full modal TODO)
+- [x] Add PSU delete button with confirmation
+- [x] Enable plots by default in benchmark configuration
+- [x] Enable CSV export by default in benchmark configuration

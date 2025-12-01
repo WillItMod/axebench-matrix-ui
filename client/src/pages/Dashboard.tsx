@@ -107,13 +107,30 @@ export default function Dashboard() {
       setRefreshing(false);
     }
   };
-
-  const handleConfig = (device: Device) => {
+  const handleConfigClick = (device: Device) => {
     setSelectedDevice(device);
     setShowConfigModal(true);
   };
   
-  // Load PSUs and check for warnings
+  const handleEditPsu = (psu: any) => {
+    // TODO: Open edit modal with pre-filled PSU data
+    toast.info('PSU edit modal coming soon');
+  };
+  
+  const handleDeletePsu = async (psuId: string, psuName: string) => {
+    if (!confirm(`Delete PSU "${psuName}"?\n\nDevices assigned to this PSU will be set to Standalone mode.`)) {
+      return;
+    }
+    
+    try {
+      await api.psus.delete(psuId);
+      toast.success(`PSU "${psuName}" deleted`);
+      loadPsus();
+      loadDevices(); // Refresh to update device PSU assignments
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete PSU');
+    }
+  };  // Load PSUs and check for warnings
   const loadPsus = async () => {
     try {
       const psuList = await api.psus.list();
@@ -304,7 +321,25 @@ export default function Dashboard() {
                 <div key={psu.id} className="hud-panel">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-bold text-glow-cyan">⚡ {psu.name}</h3>
-                    <span className="text-xs text-[var(--text-muted)]">{assignedDevices.length} DEVICE{assignedDevices.length !== 1 ? 'S' : ''}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[var(--text-muted)]">{assignedDevices.length} DEVICE{assignedDevices.length !== 1 ? 'S' : ''}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleEditPsu(psu)}
+                        className="h-6 px-2 text-xs text-[var(--neon-cyan)] hover:bg-[var(--neon-cyan)]/10"
+                      >
+                        EDIT
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeletePsu(psu.id, psu.name)}
+                        className="h-6 px-2 text-xs text-[var(--error-red)] hover:bg-[var(--error-red)]/10"
+                      >
+                        DELETE
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
@@ -378,7 +413,7 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {devices.map((device) => (
-            <DeviceCard key={device.name} device={device} onRefresh={loadDevices} onConfig={handleConfig} />
+            <DeviceCard key={device.name} device={device} onRefresh={loadDevices} onConfig={handleConfigClick} />
           ))}
         </div>
       )}

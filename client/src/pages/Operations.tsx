@@ -351,19 +351,23 @@ export default function Operations() {
 
       {/* Device Selection */}
       <Card className="p-6 bg-black/80 border-neon-cyan">
-        <Label htmlFor="device-select">SELECT_DEVICE</Label>
-        <Select value={selectedDevice} onValueChange={setSelectedDevice}>
-          <SelectTrigger id="device-select" className="w-full mt-2">
-            <SelectValue placeholder="Select device..." />
-          </SelectTrigger>
-          <SelectContent>
-            {devices.map((device) => (
-              <SelectItem key={device.name} value={device.name}>
-                {device.name} ({device.model})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label>SELECT_DEVICE</Label>
+        <div className="flex flex-wrap gap-2 mt-3">
+          {devices.map((device) => (
+            <Button
+              key={device.name}
+              onClick={() => setSelectedDevice(device.name)}
+              variant={selectedDevice === device.name ? 'default' : 'outline'}
+              className={selectedDevice === device.name 
+                ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80 border-[var(--neon-cyan)]'
+                : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--neon-cyan)] hover:text-[var(--neon-cyan)]'
+              }
+            >
+              {device.name}
+              <span className="ml-2 text-xs opacity-60">({device.model})</span>
+            </Button>
+          ))}
+        </div>
       </Card>
 
       {selectedDevice && (
@@ -407,39 +411,45 @@ export default function Operations() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <Label htmlFor="main-pool-select">MAIN POOL</Label>
-                <Select value={selectedPool} onValueChange={setSelectedPool}>
-                  <SelectTrigger id="main-pool-select" className="w-full mt-2">
-                    <SelectValue placeholder="Select main pool..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(pools).map(([id, pool]) => (
-                      <SelectItem key={id} value={id}>
-                        {pool.name} ({pool.url}:{pool.port})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button onClick={handleApplyPool} className="w-full mt-2" disabled={!selectedPool}>
+                <Label>MAIN POOL</Label>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {Object.entries(pools).map(([id, pool]) => (
+                    <Button
+                      key={id}
+                      onClick={() => setSelectedPool(id)}
+                      variant={selectedPool === id ? 'default' : 'outline'}
+                      className={selectedPool === id 
+                        ? 'bg-[var(--matrix-green)] text-black hover:bg-[var(--matrix-green)]/80'
+                        : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--matrix-green)]'
+                      }
+                    >
+                      {pool.name}
+                    </Button>
+                  ))}
+                </div>
+                <Button onClick={handleApplyPool} className="w-full mt-3 btn-matrix" disabled={!selectedPool}>
                   APPLY_MAIN_POOL
                 </Button>
               </div>
 
               <div>
-                <Label htmlFor="fallback-pool-select">FALLBACK POOL</Label>
-                <Select value={selectedFallbackPool} onValueChange={setSelectedFallbackPool}>
-                  <SelectTrigger id="fallback-pool-select" className="w-full mt-2">
-                    <SelectValue placeholder="Select fallback pool..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(pools).map(([id, pool]) => (
-                      <SelectItem key={id} value={id}>
-                        {pool.name} ({pool.url}:{pool.port})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button onClick={handleApplyFallbackPool} className="w-full mt-2" disabled={!selectedFallbackPool}>
+                <Label>FALLBACK POOL</Label>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {Object.entries(pools).map(([id, pool]) => (
+                    <Button
+                      key={id}
+                      onClick={() => setSelectedFallbackPool(id)}
+                      variant={selectedFallbackPool === id ? 'default' : 'outline'}
+                      className={selectedFallbackPool === id 
+                        ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80'
+                        : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--neon-cyan)]'
+                      }
+                    >
+                      {pool.name}
+                    </Button>
+                  ))}
+                </div>
+                <Button onClick={handleApplyFallbackPool} className="w-full mt-3 bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80" disabled={!selectedFallbackPool}>
                   APPLY_FALLBACK_POOL
                 </Button>
               </div>

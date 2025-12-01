@@ -62,8 +62,8 @@ export default function Benchmark() {
     
     // Advanced options
     restart_between_tests: false,
-    enable_plots: false,
-    export_csv: false,
+    enable_plots: true,
+    export_csv: true,
     
     // Auto-recovery
     auto_recovery: true,
