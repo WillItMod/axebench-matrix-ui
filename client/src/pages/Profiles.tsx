@@ -579,6 +579,14 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
     goal: 'balanced',
   });
   const [running, setRunning] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  // Reset interaction flag when modal opens
+  useEffect(() => {
+    if (open) {
+      setHasInteracted(false);
+    }
+  }, [open]);
 
   const handleStart = async () => {
     try {
@@ -621,7 +629,13 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
 
           <div>
             <Label className="text-[var(--text-secondary)]">Optimization Goal</Label>
-            <Select value={config.goal} onValueChange={(v) => setConfig({...config, goal: v})}>
+            <Select 
+              value={config.goal} 
+              onValueChange={(v) => {
+                setConfig({...config, goal: v});
+                setHasInteracted(true);
+              }}
+            >
               <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
                 <SelectValue />
               </SelectTrigger>
@@ -641,9 +655,13 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
 
           <div className="flex gap-2 pt-4">
             <Button
-              onClick={handleStart}
+              onClick={(e) => {
+                e.preventDefault();
+                handleStart();
+              }}
               disabled={running}
               className="flex-1 btn-matrix"
+              type="button"
             >
               {running ? 'STARTING...' : '▶ START_NANO_TUNE'}
             </Button>

@@ -508,8 +508,8 @@
 
 - [x] Profiles: Add multi-device Quick Profile Apply with toggle buttons and main/fallback slider
 - [ ] Live Monitor: Add real-time graphs for hashrate/temp/voltage/frequency
-- [ ] Benchmark: Show Advanced Options checkboxes (Restart Between Tests, Enable Plots, Export CSV)
-- [ ] Nano Tune: Fix modal auto-submit behavior
+- [x] Benchmark: Show Advanced Options checkboxes (already visible in ADVANCED mode)
+- [x] Nano Tune: Fix modal auto-submit behavior (added preventDefault safeguard)
 
 - [x] Profiles: Add custom name input field in save dialog (not hardcoded "custom")
 - [x] Profiles: Add edit button to manually change voltage/frequency
