@@ -439,6 +439,72 @@ def api_apply_profile(device_name, profile_name):
         return jsonify({'error': 'Failed to apply profile'}), 500
 
 
+@app.route('/api/profiles/<device_name>/custom', methods=['POST'])
+@require_patreon_auth
+@require_feature('axeshed')
+def api_save_custom_profile(device_name):
+    """Save current device settings as a custom profile"""
+    devices = load_devices()
+    device = next((d for d in devices if d['name'] == device_name), None)
+    
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+    
+    # Fetch current device settings
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    try:
+        import aiohttp
+        
+        async def get_current_settings():
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                try:
+                    async with session.get(f"http://{device['ip_address']}/api/system/info") as resp:
+                        if resp.status != 200:
+                            return None
+                        data = await resp.json()
+                        return {
+                            'voltage': int(data.get('coreVoltage', 0)),
+                            'frequency': int(data.get('frequency', 0)),
+                            'fan_target': int(data.get('fanspeed', 0))
+                        }
+                except Exception as e:
+                    logger.error(f"{device_name}: Error fetching settings: {e}")
+                    return None
+        
+        settings = loop.run_until_complete(get_current_settings())
+    finally:
+        loop.close()
+    
+    if not settings:
+        return jsonify({'error': 'Failed to fetch current device settings'}), 500
+    
+    # Generate profile name
+    from datetime import datetime
+    profile_name = f"Custom_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    
+    # Load existing profiles
+    profiles = load_device_profiles(device_name) or {'device': device_name, 'profiles': {}}
+    
+    # Add new profile
+    profiles['profiles'][profile_name] = {
+        'voltage': settings['voltage'],
+        'frequency': settings['frequency'],
+        'fan_target': settings['fan_target'],
+        'description': f"Saved on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    }
+    
+    # Save profiles
+    save_device_profiles(device_name, profiles)
+    
+    return jsonify({
+        'status': 'saved',
+        'profile_name': profile_name,
+        'settings': settings
+    })
+
+
 @app.route('/api/scheduler/status')
 @require_patreon_auth
 @require_feature('axeshed')

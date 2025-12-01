@@ -1013,13 +1013,20 @@ def get_device_status(device_name):
                         return {
                             'hashrate': float(data.get('hashRate', 0)),
                             'temperature': float(data.get('temp', 0)),
+                            'temp': float(data.get('temp', 0)),
+                            'chipTemp': float(data.get('temp', 0)),
                             'vr_temp': float(data.get('vrTemp', 0)) if 'vrTemp' in data else 0,
+                            'vrTemp': float(data.get('vrTemp', 0)) if 'vrTemp' in data else 0,
                             'power': float(data.get('power', 0)),
                             'voltage': int(data.get('coreVoltage', 0)),
                             'frequency': int(data.get('frequency', 0)),
                             'input_voltage': float(data.get('voltage', 0)),
                             'fan_speed': float(data.get('fanspeed', 0)),
-                            'error_percentage': float(data.get('errorPercentage', 0))
+                            'error_percentage': float(data.get('errorPercentage', 0)),
+                            'asic_errors': int(data.get('asicErrors', 0)),
+                            'errors': int(data.get('asicErrors', 0)),
+                            'bestDiff': data.get('bestDiff', '0'),
+                            'bestSessionDiff': data.get('bestSessionDiff', '0')
                         }
                 except Exception as e:
                     logger.error(f"{device_name}: Error in get_info: {e}")
@@ -1028,6 +1035,51 @@ def get_device_status(device_name):
         info = loop.run_until_complete(get_info())
     except Exception as e:
         logger.error(f"{device_name}: Error getting system info: {e}")
+        info = None
+    finally:
+        loop.close()
+    
+    if not info:
+        return jsonify({'error': 'Failed to get device info'}), 500
+    
+    return jsonify(info)
+
+
+@app.route('/api/devices/<device_name>/info')
+@require_patreon_auth
+def get_device_info(device_name):
+    """Get device info including best difficulty"""
+    device = device_manager.get_device(device_name)
+    if not device:
+        return jsonify({'error': 'Device not found'}), 404
+    
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    try:
+        import aiohttp
+        
+        async def get_info():
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                try:
+                    async with session.get(f"http://{device.ip_address}/api/system/info") as resp:
+                        if resp.status != 200:
+                            return None
+                        data = await resp.json()
+                        return {
+                            'bestDiff': data.get('bestDiff', '0'),
+                            'bestSessionDiff': data.get('bestSessionDiff', '0'),
+                            'hashrate': float(data.get('hashRate', 0)),
+                            'power': float(data.get('power', 0)),
+                            'temp': float(data.get('temp', 0))
+                        }
+                except Exception as e:
+                    logger.error(f"{device_name}: Error in get_info: {e}")
+                    return None
+        
+        info = loop.run_until_complete(get_info())
+    except Exception as e:
+        logger.error(f"{device_name}: Error getting device info: {e}")
         info = None
     finally:
         loop.close()
@@ -1658,6 +1710,17 @@ def get_sessions():
             if session_data.get('device_configs'):
                 device_name = session_data['device_configs'][0].get('name', 'Unknown')
             
+            # Calculate duration
+            duration = 0
+            if session_data.get('end_time') and session_data.get('start_time'):
+                try:
+                    from datetime import datetime
+                    start = datetime.fromisoformat(session_data['start_time'].replace('Z', '+00:00'))
+                    end = datetime.fromisoformat(session_data['end_time'].replace('Z', '+00:00'))
+                    duration = int((end - start).total_seconds())
+                except:
+                    pass
+            
             sessions.append({
                 'id': session_data['session_id'],
                 'device': device_name,
@@ -1665,8 +1728,14 @@ def get_sessions():
                 'end_time': session_data.get('end_time'),
                 'status': session_data['status'],
                 'tests': len(session_data.get('results', [])),
+                'tests_completed': len(session_data.get('results', [])),
+                'tests_total': session_data.get('total_tests', len(session_data.get('results', []))),
+                'duration': duration,
+                'tune_type': session_data.get('mode', 'benchmark'),
+                'mode': session_data.get('mode', 'benchmark'),
                 'stop_reason': session_data.get('stop_reason'),
-                'has_logs': bool(session_data.get('logs'))
+                'has_logs': bool(session_data.get('logs')),
+                'config': session_data.get('config')
             })
         except Exception as e:
             logger.error(f"Error loading session {session_file}: {e}")
