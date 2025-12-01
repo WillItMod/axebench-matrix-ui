@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import BenchmarkConsole from '@/components/BenchmarkConsole';
 import { useBenchmark } from '@/contexts/BenchmarkContext';
+import LiveMonitoringPanel from '@/components/LiveMonitoringPanel';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -606,6 +607,11 @@ export default function Benchmark() {
               </Button>
             )}
           </div>
+
+          {/* Live Monitoring Panel */}
+          {benchmarkStatus.running && selectedDevice && (
+            <LiveMonitoringPanel deviceName={selectedDevice} />
+          )}
 
           {/* Live Status */}
           {benchmarkStatus.running && status && (
