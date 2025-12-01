@@ -51,7 +51,9 @@ export default function Pool() {
         api.pool.presets(),
         api.devices.list(),
       ]);
-      setPools(poolsData || []);
+      // Ensure poolsData is an array
+      const poolsArray = Array.isArray(poolsData) ? poolsData : [];
+      setPools(poolsArray);
       setPresets(presetsData || []);
       setDevices(devicesData || []);
     } catch (error) {
