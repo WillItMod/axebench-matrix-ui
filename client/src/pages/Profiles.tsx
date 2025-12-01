@@ -134,7 +134,11 @@ export default function Profiles() {
             </div>
           ) : (
             <div className="space-y-3">
-              {profileList.map(([name, profile]: [string, any]) => (
+              {profileList.map(([name, profile]: [string, any]) => {
+                // Skip null or invalid profiles
+                if (!profile || typeof profile !== 'object') return null;
+                
+                return (
                 <div key={name} className="matrix-card">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -142,7 +146,7 @@ export default function Profiles() {
                         <h3 className="text-lg font-bold text-[var(--text-primary)] text-glow-green">
                           {name.toUpperCase()}
                         </h3>
-                        {profile.is_best && (
+                        {profile?.is_best && (
                           <span className="px-2 py-0.5 bg-[var(--success-green)] text-black text-xs font-bold rounded">
                             BEST
                           </span>
@@ -201,7 +205,7 @@ export default function Profiles() {
                       >
                         🔬 TUNE
                       </Button>
-                      {!profile.is_best && (
+                      {!profile?.is_best && (
                         <Button
                           size="sm"
                           onClick={() => handleDelete(name)}
@@ -213,7 +217,8 @@ export default function Profiles() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

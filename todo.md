@@ -321,3 +321,12 @@
 - [ ] Add device limit enforcement (Free: 5, Premium: 25, Ultimate: 250)
 - [ ] Add nag banner for free users (every 15 minutes)
 - [ ] Add thank you banner for Premium/Ultimate users
+
+## BUG - Profiles Page Error
+- [x] Fix TypeError: Cannot read properties of null (reading 'is_best') in Profiles.tsx
+- [x] Error occurs when selecting a device on Profiles page
+- [x] Multiple locations affected: Canonious frame, Array.map, Profiles component
+- [x] Issue: profiles data structure doesn't match expected format
+- [x] Added null checks and handle missing profile data gracefully
+- [x] Added optional chaining (?.) for is_best property access
+- [x] Filter out null/invalid profiles before rendering
