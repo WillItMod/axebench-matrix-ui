@@ -18,6 +18,7 @@ interface Device {
     voltage: number;
     frequency: number;
     fan_speed: number;
+    difficulty?: number;
   };
 }
 
@@ -54,6 +55,7 @@ export default function Dashboard() {
                 voltage: status.voltage || 0,
                 frequency: status.frequency || 0,
                 fan_speed: status.fan_speed || 0,
+                difficulty: status.difficulty || 0,
               },
             };
           } catch (error) {
@@ -93,15 +95,26 @@ export default function Dashboard() {
   }, []);
 
   // Calculate fleet stats
+  const onlineDevices = devices.filter(d => d.online && d.status);
+  const totalHashrate = onlineDevices.reduce((sum, d) => sum + (d.status?.hashrate || 0), 0);
+  const totalPower = onlineDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
+  
+  // Calculate fleet efficiency (J/TH = W / (GH/s / 1000))
+  const fleetEfficiency = totalHashrate > 0 ? (totalPower / (totalHashrate / 1000)) : 0;
+  
+  // Find device with highest difficulty
+  const highestDiffDevice = onlineDevices.reduce((max, d) => {
+    const diff = d.status?.difficulty || 0;
+    return diff > (max.status?.difficulty || 0) ? d : max;
+  }, onlineDevices[0] || null);
+  
   const fleetStats = {
     total: devices.length,
-    online: devices.filter(d => d.online).length,
-    totalHashrate: devices
-      .filter(d => d.online && d.status)
-      .reduce((sum, d) => sum + (d.status?.hashrate || 0), 0),
-    totalPower: devices
-      .filter(d => d.online && d.status)
-      .reduce((sum, d) => sum + (d.status?.power || 0), 0),
+    online: onlineDevices.length,
+    totalHashrate,
+    totalPower,
+    fleetEfficiency,
+    highestDiffDevice,
   };
 
   // Debug logging
@@ -130,12 +143,10 @@ export default function Dashboard() {
       {/* Fleet Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="hud-panel">
-          <div className="data-label">TOTAL DEVICES</div>
-          <div className="data-value">{fleetStats.total}</div>
-        </div>
-        <div className="hud-panel">
-          <div className="data-label">ONLINE</div>
-          <div className="data-value text-[var(--success-green)]">{fleetStats.online}</div>
+          <div className="data-label">DEVICES ONLINE</div>
+          <div className="data-value text-[var(--success-green)]">
+            {fleetStats.online}/{fleetStats.total}
+          </div>
         </div>
         <div className="hud-panel">
           <div className="data-label">FLEET HASHRATE</div>
@@ -145,7 +156,30 @@ export default function Dashboard() {
           <div className="data-label">TOTAL POWER</div>
           <div className="data-value text-[var(--warning-amber)]">{formatPower(fleetStats.totalPower)}</div>
         </div>
+        <div className="hud-panel">
+          <div className="data-label">FLEET EFFICIENCY</div>
+          <div className="data-value text-[var(--neon-cyan)]">
+            {fleetStats.fleetEfficiency > 0 ? `${fleetStats.fleetEfficiency.toFixed(2)} J/TH` : 'N/A'}
+          </div>
+        </div>
       </div>
+
+      {/* Highest Difficulty */}
+      {fleetStats.highestDiffDevice && (
+        <div className="hud-panel">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="data-label">HIGHEST DIFFICULTY</div>
+              <div className="text-[var(--text-secondary)] text-sm mt-1">
+                {fleetStats.highestDiffDevice.name}
+              </div>
+            </div>
+            <div className="data-value text-[var(--matrix-green)]">
+              {(fleetStats.highestDiffDevice.status?.difficulty || 0).toLocaleString()}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Actions Bar */}
       <div className="flex items-center justify-between">

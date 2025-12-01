@@ -168,3 +168,35 @@
 - [x] TROUBLESHOOTING.md - Comprehensive troubleshooting guide
 - [x] Logger utility with localStorage persistence
 - [x] window.axebenchLogger.downloadLogs() - Download logs as file
+
+## WSL Networking Fix
+- [x] Identified WSL localhost issue - Flask accessible at WSL IP but not localhost from Windows
+- [x] Created .env with VITE_API_BASE_URL=http://127.0.0.1:5000
+- [x] Verified Flask runs on 0.0.0.0:5000
+- [x] Updated CORS to support credentials
+- [x] Added credentials: 'include' to API fetch calls
+- [ ] Debug why devices still show OFFLINE after .env configuration
+- [ ] Test device status API calls in browser Network tab
+
+## Device Card Button Fixes
+- [ ] Fix BENCHMARK button to navigate to Benchmark page with device pre-selected
+- [ ] Fix CONFIG button to open device configuration modal/page
+- [ ] Add click handlers to device card buttons
+- [ ] Pass device name/data to target pages
+
+## Uptime Tracking Implementation
+- [x] Added /api/uptime endpoint to Flask backend (web_interface.py)
+- [x] Added system.uptime() API method to client/src/lib/api.ts
+- [x] Added formatUptime() utility function to format seconds as human-readable
+- [x] Updated Layout.tsx to fetch and display real backend uptime
+- [x] Replaced infinity symbol (∞) with live uptime display
+- [x] Auto-refresh uptime every 30 seconds
+- [x] Graceful fallback to ∞ if backend is unavailable
+
+## Dashboard Fleet Stats Improvements
+- [x] Combine "TOTAL DEVICES" and "ONLINE" into single "DEVICES ONLINE: X/Y" panel
+- [x] Add "FLEET EFFICIENCY" panel showing combined efficiency (J/TH)
+- [x] Add "HIGHEST DIFFICULTY" display showing device name and difficulty value
+- [x] Fetch difficulty data from device status API
+- [x] Calculate fleet efficiency from total power and total hashrate
+- [x] Keep 4-panel grid layout: Devices Online, Fleet Hashrate, Total Power, Fleet Efficiency

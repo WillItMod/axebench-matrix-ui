@@ -56,6 +56,14 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
  */
 export const api = {
   // ============================================================================
+  // SYSTEM STATUS
+  // ============================================================================
+  
+  system: {
+    uptime: () => apiFetch<{ uptime_seconds: number }>('/api/uptime'),
+  },
+
+  // ============================================================================
   // DEVICE MANAGEMENT
   // ============================================================================
   
@@ -244,4 +252,21 @@ export function getStatusColor(online: boolean, warning?: boolean): string {
   if (!online) return 'status-error';
   if (warning) return 'status-warning';
   return 'status-online';
+}
+
+/**
+ * Format uptime in seconds to human-readable string
+ */
+export function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  } else if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  } else {
+    return `${minutes}m`;
+  }
 }

@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import MatrixBackground from './MatrixBackground';
+import { api, formatUptime } from '@/lib/api';
 
 interface LayoutProps {
   children: ReactNode;
@@ -8,6 +9,27 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
+  const [uptime, setUptime] = useState<string>('∞');
+
+  // Fetch uptime from backend
+  useEffect(() => {
+    const fetchUptime = async () => {
+      try {
+        const data = await api.system.uptime();
+        setUptime(formatUptime(data.uptime_seconds));
+      } catch (error) {
+        // If backend is down or endpoint not available, keep infinity symbol
+        console.warn('Failed to fetch uptime:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchUptime();
+
+    // Update every 30 seconds
+    const interval = setInterval(fetchUptime, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const tabs = [
     { path: '/', label: 'DASHBOARD', icon: '⚡' },
@@ -91,7 +113,7 @@ export default function Layout({ children }: LayoutProps) {
               </div>
               <div className="flex items-center gap-4">
                 <span>STATUS: <span className="text-[var(--matrix-green)]">OPERATIONAL</span></span>
-                <span>UPTIME: <span className="text-[var(--neon-cyan)]">∞</span></span>
+                <span>UPTIME: <span className="text-[var(--neon-cyan)]">{uptime}</span></span>
               </div>
             </div>
           </div>
