@@ -37,16 +37,19 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Poll status on mount and every 2 seconds if running
+  // Poll status on mount and every 2 seconds
   useEffect(() => {
+    // Initial status check - if backend says not running, clear any stale state
     refreshStatus();
     
     const interval = setInterval(() => {
-      refreshStatus();
+      if (status.running) {
+        refreshStatus();
+      }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [status.running]);
 
   return (
     <BenchmarkContext.Provider value={{ status, refreshStatus }}>
