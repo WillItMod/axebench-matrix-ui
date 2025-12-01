@@ -135,6 +135,49 @@ export default function Benchmark() {
     }
   };
 
+  const handleAutoTune = async () => {
+    if (!selectedDevice) {
+      toast.error('Select a device first');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Start Full Auto Tune?\n\n' +
+      'This will:\n' +
+      '1. Run precision benchmark\n' +
+      '2. Generate 4 profiles (Quiet, Efficient, Optimal, Max)\n' +
+      '3. Fine-tune each profile\n' +
+      '4. Apply Efficient profile\n\n' +
+      'This may take 20-30 minutes.'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Start precision benchmark with auto_mode enabled
+      const autoTuneConfig = {
+        device: selectedDevice,
+        ...config,
+        auto_mode: true,
+        goal: 'balanced',
+        voltage_start: 1100,
+        voltage_stop: 1350,
+        voltage_step: 25,
+        frequency_start: 400,
+        frequency_stop: 650,
+        frequency_step: 25,
+        benchmark_duration: 60,
+        strategy: 'adaptive_progression',
+      };
+
+      await api.benchmark.start(autoTuneConfig);
+      setRunning(true);
+      toast.success('Auto Tune started - Phase 1: Precision Benchmark');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to start Auto Tune');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="hud-panel">
@@ -532,13 +575,28 @@ export default function Benchmark() {
           <div className="hud-panel">
             <h3 className="text-xl font-bold text-glow-green mb-4">CONTROL_PANEL</h3>
             {!running ? (
-              <Button
-                onClick={handleStart}
-                disabled={!selectedDevice}
-                className="w-full btn-matrix text-lg py-6"
-              >
-                ▶ START_BENCHMARK
-              </Button>
+              <div className="space-y-3">
+                <Button
+                  onClick={handleStart}
+                  disabled={!selectedDevice}
+                  className="w-full btn-matrix text-lg py-6"
+                >
+                  ▶ START_BENCHMARK
+                </Button>
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-[var(--grid-gray)]"></div>
+                  </div>
+                  <span className="relative bg-[var(--bg-primary)] px-2 text-xs text-[var(--text-muted)]">OR</span>
+                </div>
+                <Button
+                  onClick={handleAutoTune}
+                  disabled={!selectedDevice}
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg py-6"
+                >
+                  🪄 AUTO_TUNE (FULL)
+                </Button>
+              </div>
             ) : (
               <Button
                 onClick={handleStop}
