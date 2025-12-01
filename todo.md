@@ -214,12 +214,19 @@
 - [ ] Ensure all 40+ config fields are accessible in ADVANCED mode
 - [ ] Hide complex options in EASY mode for better UX
 
+## Dashboard - CONFIG Button
+- [x] Create ConfigModal component for device settings
+- [x] Add voltage and frequency adjustment
+- [x] Add fan control (auto/manual with target temp)
+- [x] Add device restart button
+- [x] Connect CONFIG button to modal
+
 ## Benchmark Page - Critical Fixes
-- [ ] Add "AUTO TUNE (FULL)" button that runs precision benchmark, generates 4 profiles (Quiet, Efficient, Optimal, Max), fine-tunes each, and applies Efficient
-- [ ] Fix AUTO_MODE - should be a simple on/off toggle (checkbox/switch), NOT a dropdown, default ON
-- [ ] AUTO_MODE should be visible in ADVANCED mode only
-- [ ] Add proper START BENCHMARK button styling and placement
-- [ ] Ensure preset mode works in EASY mode
+- [x] Add "AUTO TUNE (FULL)" button that runs precision benchmark, generates 4 profiles (Quiet, Efficient, Optimal, Max), fine-tunes each, and applies Efficient
+- [x] Fix AUTO_MODE - should be a simple on/off toggle (checkbox/switch), NOT a dropdown, default ON
+- [x] AUTO_MODE should be visible in ADVANCED mode only
+- [x] Add proper START BENCHMARK button styling and placement
+- [x] Ensure preset mode works in EASY mode
 
 ## Missing Flask API Endpoints
 - [ ] Add /api/uptime endpoint to Flask backend (currently causes footer uptime to fail)
