@@ -52,7 +52,9 @@ def print_banner():
 ║   ⚡ AxeBench:  http://localhost:5000  (Benchmark/Tune)   ║
 ║   🏠 AxeShed:   http://localhost:5001  (Profile Sched)    ║
 ║   🎱 AxePool:   http://localhost:5002  (Pool Manager)     ║
+║   🌐 Frontend:  http://localhost:3000  (Matrix UI)        ║
 ║                                                           ║
+║   Open http://localhost:3000 in your browser              ║
 ║   Press Ctrl+C to stop all services                       ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -86,6 +88,25 @@ def start_axepool():
         run_axepool(host='localhost', port=5002)
     except Exception as e:
         logger.error(f"AxePool failed to start: {e}")
+        sys.exit(1)
+
+def start_frontend():
+    """Start React frontend with pnpm dev"""
+    import subprocess
+    import os
+    try:
+        logger.info("Starting React frontend on port 3000...")
+        # Get the project root (parent of python folder)
+        project_root = Path(__file__).parent.parent
+        # Run pnpm dev in the project root
+        subprocess.run(
+            ['pnpm', 'dev'],
+            cwd=str(project_root),
+            env={**os.environ, 'VITE_API_BASE_URL': ''},  # Ensure proxy is used
+            check=False
+        )
+    except Exception as e:
+        logger.error(f"Frontend failed to start: {e}")
         sys.exit(1)
 
 def signal_handler(sig, frame):
@@ -122,8 +143,9 @@ def main():
     axebench_process = Process(target=start_axebench, name='AxeBench')
     axeshed_process = Process(target=start_axeshed, name='AxeShed')
     axepool_process = Process(target=start_axepool, name='AxePool')
+    frontend_process = Process(target=start_frontend, name='Frontend')
     
-    processes = [axebench_process, axeshed_process, axepool_process]
+    processes = [axebench_process, axeshed_process, axepool_process, frontend_process]
     
     # Start all processes
     for process in processes:
