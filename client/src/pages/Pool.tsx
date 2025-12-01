@@ -80,7 +80,26 @@ export default function Pool() {
     }
 
     try {
-      await api.pool.create(newPool);
+      // Parse URL to extract host and port
+      let url = newPool.url;
+      let port = 3333; // default stratum port
+      
+      // Handle full URL format (http://host:port or stratum+tcp://host:port)
+      const urlMatch = url.match(/^(?:https?:\/\/|stratum\+tcp:\/\/)?([^:\/]+)(?::(\d+))?/);
+      if (urlMatch) {
+        url = urlMatch[1]; // host only
+        if (urlMatch[2]) {
+          port = parseInt(urlMatch[2]); // extracted port
+        }
+      }
+      
+      // Create pool with separated URL and port
+      await api.pool.create({
+        ...newPool,
+        url,
+        port
+      });
+      
       toast.success(`Pool "${newPool.name}" created`);
       setNewPool({ name: '', url: '', user: '', password: '' });
       loadData();

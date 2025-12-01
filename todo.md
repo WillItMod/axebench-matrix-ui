@@ -362,3 +362,22 @@
 - [ ] Configure Vite proxy routing for multiple backends (if needed)
 - [ ] Test Pool page with AxePool backend running
 - [ ] Test Operations page with AxeShed backend running
+
+
+## ConfigModal Enhancements - CRITICAL
+- [ ] Add lower voltage limit input (currently only has upper)
+- [ ] Add lower frequency limit input (currently only has upper)
+- [ ] Add power limit configuration
+- [ ] Add PSU type selector (Standalone vs Shared)
+- [ ] Add standalone PSU settings (voltage, amps, capacity, safe watts, warning watts)
+- [ ] Add shared PSU selector dropdown
+- [ ] Create Shared PSU management page/modal
+- [ ] Show shared PSU load calculations (total devices, current load, available capacity)
+- [ ] Add shared PSU CRUD operations (Create, Read, Update, Delete)
+- [ ] Persist PSU configurations to backend
+
+## BUG - Duplicate Benchmark Banners
+- [ ] Two identical banners show when benchmark running
+- [ ] Investigate if backend is setting mode field correctly
+- [ ] Verify BenchmarkStatusBanner conditional logic
+- [ ] Test with actual benchmark to confirm fix
