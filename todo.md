@@ -602,4 +602,6 @@
 - [x] Multi-device colors + legend (4 color palettes, legend squares on buttons)
 - [x] Profile Save Current - 405 error (changed to saveCustom endpoint)
 - [x] Sessions JSON button (already exists, visible in modal)
-- [ ] Pool save doesn't persist (backend saves correctly, frontend may need refresh)
+- [x] Pool save doesn't persist (backend saves correctly, auto-refresh already implemented)
+- [x] Session tune type and tests display (added to modal)
+- [x] Backend requirements documented (BACKEND_REQUIREMENTS.md)

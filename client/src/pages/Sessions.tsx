@@ -287,9 +287,23 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
               <div className="font-bold text-[var(--success-green)]">{session.status}</div>
             </div>
             <div>
+              <div className="text-[var(--text-secondary)]">Tune Type</div>
+              <div className="font-bold text-[var(--text-primary)]">
+                {session.tune_type || session.mode || 'Benchmark'}
+              </div>
+            </div>
+            <div>
               <div className="text-[var(--text-secondary)]">Duration</div>
               <div className="font-bold text-[var(--text-primary)]">
                 {session.duration ? `${Math.round(session.duration / 60)} minutes` : 'N/A'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">Tests</div>
+              <div className="font-bold text-[var(--text-primary)]">
+                {session.tests_completed && session.tests_total 
+                  ? `${session.tests_completed}/${session.tests_total}` 
+                  : 'N/A'}
               </div>
             </div>
           </div>
