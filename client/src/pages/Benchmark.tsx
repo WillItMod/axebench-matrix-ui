@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import BenchmarkConsole from '@/components/BenchmarkConsole';
+import { useBenchmark } from '@/contexts/BenchmarkContext';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,9 +10,9 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 export default function Benchmark() {
+  const { status: benchmarkStatus, refreshStatus } = useBenchmark();
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevice, setSelectedDevice] = useState('');
-  const [running, setRunning] = useState(false);
   const [status, setStatus] = useState<any>(null);
   const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
   const [preset, setPreset] = useState('standard'); // For EASY mode
@@ -76,25 +77,23 @@ export default function Benchmark() {
     }
   }, [selectedDevice, devices]);
 
-  // Poll benchmark status
+   // Poll benchmark status
   useEffect(() => {
-    if (!running) return;
+    if (!benchmarkStatus.running) return;
     
     const interval = setInterval(async () => {
       try {
         const statusData = await api.benchmark.status();
         setStatus(statusData);
         
-        if (!statusData.running) {
-          setRunning(false);
-        }
+        // BenchmarkContext will handle state updates
+        await refreshStatus();
       } catch (error) {
         console.error('Failed to fetch status:', error);
       }
     }, 1000);
-
     return () => clearInterval(interval);
-  }, [running]);
+  }, [benchmarkStatus.running, refreshStatus]);
 
   const loadDevices = async () => {
     try {
@@ -119,7 +118,7 @@ export default function Benchmark() {
       };
 
       await api.benchmark.start(benchmarkConfig);
-      setRunning(true);
+      await refreshStatus(); // Update global benchmark state
       toast.success('Benchmark started');
     } catch (error: any) {
       toast.error(error.message || 'Failed to start benchmark');
@@ -129,7 +128,7 @@ export default function Benchmark() {
   const handleStop = async () => {
     try {
       await api.benchmark.stop();
-      setRunning(false);
+      await refreshStatus(); // Update global benchmark state
       toast.success('Benchmark stopped');
     } catch (error: any) {
       toast.error(error.message || 'Failed to stop benchmark');
@@ -172,7 +171,7 @@ export default function Benchmark() {
       };
 
       await api.benchmark.start(autoTuneConfig);
-      setRunning(true);
+      await refreshStatus(); // Update global benchmark state
       toast.success('Auto Tune started - Phase 1: Precision Benchmark');
     } catch (error: any) {
       toast.error(error.message || 'Failed to start Auto Tune');
@@ -575,7 +574,7 @@ export default function Benchmark() {
           {/* Control Panel */}
           <div className="hud-panel">
             <h3 className="text-xl font-bold text-glow-green mb-4">CONTROL_PANEL</h3>
-            {!running ? (
+            {!benchmarkStatus.running ? (
               <div className="space-y-3">
                 <Button
                   onClick={handleStart}
@@ -609,7 +608,7 @@ export default function Benchmark() {
           </div>
 
           {/* Live Status */}
-          {running && status && (
+          {benchmarkStatus.running && status && (
             <>
               <div className="matrix-card">
                 <h3 className="text-lg font-bold text-glow-cyan mb-3">PROGRESS</h3>
@@ -665,7 +664,7 @@ export default function Benchmark() {
       </div>
 
       {/* Benchmark Console */}
-      {running && (
+      {benchmarkStatus.running && (
         <div className="mt-6">
           <BenchmarkConsole />
         </div>
