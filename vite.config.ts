@@ -41,35 +41,8 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      // AxePool - Pool Management (port 5002)
-      '/api/pools': {
-        target: 'http://localhost:5002',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/api/devices/.*/pool': {
-        target: 'http://localhost:5002',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/api/devices/.*/schedule': {
-        target: 'http://localhost:5002',
-        changeOrigin: true,
-        secure: false,
-      },
-      '/api/scheduler': {
-        target: 'http://localhost:5002',
-        changeOrigin: true,
-        secure: false,
-      },
-      
-      // AxeShed - Profile Scheduling (port 5001)
-      // Note: AxeShed also has /api/devices/<name>/schedule and /api/scheduler
-      // These will be caught by AxePool proxy above since it's defined first
-      // If you need AxeShed scheduler, use a different endpoint path
-      
-      // AxeBench - Main backend (port 5000)
-      // This catches all other /api requests (devices, benchmark, profiles, sessions, etc.)
+      // All /api requests go to AxeBench (port 5000)
+      // AxeBench web_interface.py acts as the main hub and can forward to AxePool/AxeShed
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
