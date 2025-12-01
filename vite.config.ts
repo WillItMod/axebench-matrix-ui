@@ -29,7 +29,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    host: true,
+    host: '0.0.0.0',
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",

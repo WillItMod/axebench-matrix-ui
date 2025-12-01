@@ -498,3 +498,7 @@
 - [ ] Add graphs/charts to Live Monitoring panel (reference HTML 1.2 / 2.12)
 - [ ] Show real-time hashrate, temperature, voltage, frequency graphs
 - [ ] Implement chart.js or similar for live data visualization
+
+## Network Access - External Devices
+- [x] CRITICAL: Fixed Vite host binding - changed from 'true' to '0.0.0.0' for IPv4 compatibility
+- [x] Server now binds to all network interfaces for external device access
