@@ -1,0 +1,19 @@
+[Unit]
+Description=Bitaxe Benchmark Pro Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/mnt/user-data/outputs/bitaxe-benchmark-pro
+ExecStart=/usr/bin/python3 /mnt/user-data/outputs/bitaxe-benchmark-pro/web_interface.py
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bitaxe-web
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+{
+  "Gamma-601": {
+    "asic_error_target": 0.2,
+    "fan_target": 60,
+    "voltage_start": 1100,
+    "voltage_stop": 1150,
+    "frequency_start": 475,
+    "frequency_stop": 550
+  }
+}
