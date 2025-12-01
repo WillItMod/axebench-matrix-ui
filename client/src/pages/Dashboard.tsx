@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { api, formatHashrate, formatPower, formatTemp, MODEL_COLORS, MODEL_NAMES } from '@/lib/api';
+import { formatDifficulty } from '@/lib/formatDifficulty';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AddDeviceModal from '@/components/AddDeviceModal';
@@ -207,13 +208,30 @@ export default function Dashboard() {
         <div className="hud-panel">
           <div className="flex items-center justify-between">
             <div>
-              <div className="data-label">HIGHEST DIFFICULTY</div>
+              <div className="data-label">BEST DIFFICULTY</div>
               <div className="text-[var(--text-secondary)] text-sm mt-1">
                 {fleetStats.highestDiffDevice.name}
               </div>
             </div>
             <div className="data-value text-[var(--matrix-green)]">
-              {(fleetStats.highestDiffDevice.status?.difficulty || 0).toLocaleString()}
+              {formatDifficulty(fleetStats.highestDiffDevice.status?.difficulty || 0)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Best Since Boot */}
+      {fleetStats.highestDiffDevice && (
+        <div className="hud-panel">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="data-label">BEST SINCE BOOT</div>
+              <div className="text-[var(--text-secondary)] text-sm mt-1">
+                {fleetStats.highestDiffDevice.name}
+              </div>
+            </div>
+            <div className="data-value text-[var(--neon-cyan)]">
+              {formatDifficulty((fleetStats.highestDiffDevice.status as any)?.bestSessionDiff || 0)}
             </div>
           </div>
         </div>
@@ -315,30 +333,72 @@ function DeviceCard({ device, onRefresh, onConfig }: { device: Device; onRefresh
 
       {/* Stats */}
       {device.online && device.status && (
-        <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
-          <div>
-            <div className="text-[var(--text-secondary)]">Hashrate</div>
-            <div className="font-bold text-[var(--matrix-green)]">
-              {formatHashrate(device.status.hashrate)}
+        <>
+          <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+            <div>
+              <div className="text-[var(--text-secondary)]">Hashrate</div>
+              <div className="font-bold text-[var(--matrix-green)]">
+                {formatHashrate(device.status.hashrate)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">Temp</div>
+              <div className="font-bold text-[var(--warning-amber)]">
+                {formatTemp(device.status.temp)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">Power</div>
+              <div className="font-bold text-[var(--neon-cyan)]">
+                {formatPower(device.status.power)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">Fan</div>
+              <div className="font-bold">{device.status.fan_speed}%</div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">RV Temp</div>
+              <div className="font-bold text-[var(--warning-amber)]">
+                {formatTemp((device.status as any).vrTemp || 0)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">Efficiency</div>
+              <div className="font-bold text-[var(--neon-cyan)]">
+                {((device.status as any).efficiency || 0).toFixed(2)} J/TH
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">Best Diff</div>
+              <div className="font-bold text-[var(--matrix-green)]">
+                {formatDifficulty((device.status as any).bestDiff || 0)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">Best Since Boot</div>
+              <div className="font-bold text-[var(--neon-cyan)]">
+                {formatDifficulty((device.status as any).bestSessionDiff || 0)}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="text-[var(--text-secondary)]">Temp</div>
-            <div className="font-bold text-[var(--warning-amber)]">
-              {formatTemp(device.status.temp)}
+          
+          {/* Profile and Pool Info */}
+          <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+            <div>
+              <div className="text-[var(--text-secondary)]">Profile</div>
+              <div className="font-bold text-[var(--text-primary)] truncate">
+                {(device.status as any).profile || 'N/A'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">Pool</div>
+              <div className="font-bold text-[var(--text-primary)] truncate">
+                {(device.status as any).poolName || 'N/A'}
+              </div>
             </div>
           </div>
-          <div>
-            <div className="text-[var(--text-secondary)]">Power</div>
-            <div className="font-bold text-[var(--neon-cyan)]">
-              {formatPower(device.status.power)}
-            </div>
-          </div>
-          <div>
-            <div className="text-[var(--text-secondary)]">Fan</div>
-            <div className="font-bold">{device.status.fan_speed}%</div>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Actions */}

@@ -503,10 +503,20 @@
 - [x] CRITICAL: Fixed Vite host binding - changed from 'true' to '0.0.0.0' for IPv4 compatibility
 - [x] Server now binds to all network interfaces for external device access
 
-- [ ] Add difficulty formatting utility to display values with M/G/T units (e.g., 292280191 → 292M)
-- [ ] Apply difficulty formatting to bestDiff and bestSessionDiff displays
+- [x] Dashboard: Renamed "Highest Difficulty" to "Best Difficulty"
+- [x] Dashboard: Added "Best Since Boot" metric (bestSessionDiff from API)
 
 - [x] Profiles: Add multi-device Quick Profile Apply with toggle buttons and main/fallback slider
 - [ ] Live Monitor: Add real-time graphs for hashrate/temp/voltage/frequency
 - [ ] Benchmark: Show Advanced Options checkboxes (Restart Between Tests, Enable Plots, Export CSV)
 - [ ] Nano Tune: Fix modal auto-submit behavior
+
+- [ ] Profiles: Add custom name input field in save dialog (not hardcoded "custom")
+- [ ] Profiles: Fix hashrate and efficiency not showing in profile cards
+- [ ] Profiles: Add edit button to manually change voltage/frequency
+- [ ] Profiles: Fix Quick Apply profile dropdown not selectable
+
+- [x] Create difficulty formatting utility (formatDifficulty) to display M/G/T units
+- [x] Dashboard: Format Best Difficulty and Best Since Boot with M/G/T
+- [x] Dashboard: Add Best Since Boot to each device card
+- [x] Dashboard: Add RV Temp, Efficiency (J/TH), Best Diff, Profile Name, Pool Name to device cards
