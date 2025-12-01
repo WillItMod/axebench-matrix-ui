@@ -381,3 +381,21 @@
 - [ ] Investigate if backend is setting mode field correctly
 - [ ] Verify BenchmarkStatusBanner conditional logic
 - [ ] Test with actual benchmark to confirm fix
+
+## Backend Logging & Session Persistence (User Request)
+- [x] CRITICAL: Fix launcher.py JSON corruption error (added error handling)
+- [ ] CRITICAL: Backend not sending logs to frontend console panel
+- [ ] Implement file-based logging system for benchmark operations
+- [ ] Log all benchmark events to timestamped log files
+- [ ] Auto-save benchmark state periodically during operation
+- [ ] Save complete session data when benchmark completes
+- [ ] Save session data when benchmark is stopped/interrupted
+- [ ] Ensure session files are written to ~/.bitaxe-benchmark/sessions/
+- [ ] Add session metadata (start time, end time, device, results)
+
+## Frontend Issues - Duplicate Banners
+- [ ] CRITICAL: Fix duplicate benchmark banners (2 identical banners showing)
+- [ ] Investigate why both BenchmarkStatusBanner and AutoTuneStatusBanner render
+- [ ] Verify backend sets 'mode' field in /api/benchmark/status response
+- [ ] Add default mode='benchmark' if backend doesn't set mode
+- [ ] Ensure only ONE banner shows at a time based on operation mode

@@ -5,13 +5,20 @@ from pathlib import Path
 # Clear stale benchmark state if no engine is running
 state_file = Path.home() / ".bitaxe-benchmark" / "benchmark_state.json"
 if state_file.exists():
-    with open(state_file, "r") as f:
-        state = json.load(f)
-    if state.get("running") is True:
-        state["running"] = False
-        state["config"] = None
+    try:
+        with open(state_file, "r") as f:
+            state = json.load(f)
+        if state.get("running") is True:
+            state["running"] = False
+            state["config"] = None
+            with open(state_file, "w") as f:
+                json.dump(state, f, indent=2)
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Warning: Corrupted benchmark state file, recreating: {e}")
+        # Create fresh state file
+        state_file.parent.mkdir(parents=True, exist_ok=True)
         with open(state_file, "w") as f:
-            json.dump(state, f, indent=2)
+            json.dump({"running": False, "config": None}, f, indent=2)
 
 """
 AxeBench Suite Launcher
