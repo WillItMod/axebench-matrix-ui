@@ -29,12 +29,12 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
       setStatus({
         running: data.running || false,
         mode: data.mode || 'benchmark',
-        device: data.device_name,
+        device: data.device_name || data.device,
         progress: data.progress,
         currentTest: data.current_test,
         phase: data.phase,
         goal: data.goal,
-        logs: data.logs || [],
+        logs: data.session_logs || data.logs || [],
         sessionId: data.session_id,
       });
     } catch (error) {
