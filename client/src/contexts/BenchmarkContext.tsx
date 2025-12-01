@@ -57,7 +57,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Force clear any stuck benchmark state on app startup
+  // Force clear any stuck benchmark state ONLY on initial app startup
   useEffect(() => {
     const clearStuckState = async () => {
       try {
@@ -71,7 +71,11 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     };
     
     clearStuckState();
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps = run ONCE on mount
+
+  // Separate effect for polling
+  useEffect(() => {
     const interval = setInterval(() => {
       if (status.running) {
         refreshStatus();
@@ -79,7 +83,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [status.running]);
+  }, [status.running, refreshStatus]);
 
   return (
     <BenchmarkContext.Provider value={{ status, refreshStatus, clearLogs }}>

@@ -540,4 +540,4 @@
 - [ ] Benchmark: Pre-select device when navigating from Dashboard device card
 
 - [x] Benchmark: Add CLEAR button to console to flush logs
-- [ ] Benchmark: Fix auto-stop bug - UI is calling /api/benchmark/stop 1 second after start
+- [x] Benchmark: Fix auto-stop bug - BenchmarkContext was calling stop on every render
