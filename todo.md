@@ -426,3 +426,8 @@
 - [ ] Benchmark state not persisting across status polls
 - [ ] Need to debug /api/benchmark/status endpoint
 - [ ] Status should remain true while benchmark is actually running
+
+## Dashboard - Display Bugs
+- [x] CRITICAL: Added debug logging for difficulty values (shows raw and parsed)
+- [ ] Need to check if backend returns difficulty in device status
+- [ ] Frontend may not be calculating/displaying max difficulty correctly

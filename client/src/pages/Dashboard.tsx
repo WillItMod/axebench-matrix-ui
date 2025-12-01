@@ -137,8 +137,14 @@ export default function Dashboard() {
   const highestDiffDevice = onlineDevices.reduce((max, d) => {
     const diff = parseDifficulty(d.status?.difficulty || 0);
     const maxDiff = max ? parseDifficulty(max.status?.difficulty || 0) : 0;
+    console.log('[Dashboard] Difficulty check:', { device: d.name, raw: d.status?.difficulty, parsed: diff });
     return diff > maxDiff ? d : max;
   }, onlineDevices[0] || null);
+  
+  console.log('[Dashboard] Highest difficulty device:', { 
+    name: highestDiffDevice?.name, 
+    difficulty: highestDiffDevice?.status?.difficulty 
+  });
   
   const fleetStats = {
     total: devices.length,
