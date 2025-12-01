@@ -56,11 +56,21 @@ export default function BenchmarkConsole() {
             No benchmark activity. Start a benchmark to see logs here.
           </div>
         ) : (
-          logs.map((log: string, index: number) => (
-            <div key={index} className="flex gap-2">
-              <span className="text-[var(--text-primary)]">{log}</span>
-            </div>
-          ))
+          logs.map((log: any, index: number) => {
+            // Handle both string logs and object logs {message, time, type}
+            const logText = typeof log === 'string' ? log : log.message || JSON.stringify(log);
+            const logLevel = typeof log === 'object' ? log.type || 'info' : 'info';
+            const timestamp = typeof log === 'object' && log.time ? formatTimestamp(log.time) : '';
+            
+            return (
+              <div key={index} className="flex gap-2">
+                {timestamp && (
+                  <span className="text-[var(--text-muted)] text-xs">[{timestamp}]</span>
+                )}
+                <span className={getLogColor(logLevel)}>{logText}</span>
+              </div>
+            );
+          })
         )}
       </div>
     </div>

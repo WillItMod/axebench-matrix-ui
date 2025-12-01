@@ -456,3 +456,24 @@
 ### Dashboard
 - [x] Devices loading correctly (console shows 3 devices)
 - [ ] Highest Difficulty still shows 0 (need console logs from user)
+
+## NEW CRITICAL BUGS (Dec 1, 2025)
+
+### Benchmark Page - CRASH
+- [x] CRITICAL: Fixed benchmark crash - BenchmarkConsole now handles both string and object logs
+- [x] Root cause: BenchmarkConsole was trying to render log objects directly, now extracts message/time/type fields
+- [ ] After crash, reload shows no benchmark running (but backend is still running it)
+
+### Dashboard -> Benchmark Navigation
+- [ ] CRITICAL: Clicking "Benchmark" button on device card goes to Benchmark page but doesn't pre-select device or load profile
+- [ ] Should auto-select the device and populate form
+
+### Profiles - Save Current
+- [ ] Missing: No prompt for profile name when saving current settings
+- [ ] Missing: No way to edit profile fields after creation
+- [ ] Backend returns correct data but UI doesn't allow naming or editing
+
+### Sessions Page - View Session
+- [ ] CRITICAL: Clicking VIEW on session shows "No logs available" (backend not returning logs)
+- [ ] CRITICAL: No JSON data from session (backend not returning session data)
+- [ ] Sessions show N/A duration and 0/0 tests (backend not populating fields)
