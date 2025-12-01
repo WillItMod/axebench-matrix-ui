@@ -228,7 +228,7 @@ export default function Operations() {
 
       {/* Scheduler Status */}
       {schedulerStatus && (
-        <Card className="p-4 bg-black/40 border-matrix-green">
+        <Card className="p-4 bg-black/80 border-matrix-green">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-gray-400">SCHEDULER_STATUS</div>
@@ -247,7 +247,7 @@ export default function Operations() {
       )}
 
       {/* Device Selection */}
-      <Card className="p-6 bg-black/40 border-neon-cyan">
+      <Card className="p-6 bg-black/80 border-neon-cyan">
         <Label htmlFor="device-select">SELECT_DEVICE</Label>
         <Select value={selectedDevice} onValueChange={setSelectedDevice}>
           <SelectTrigger id="device-select" className="w-full mt-2">
@@ -266,7 +266,7 @@ export default function Operations() {
       {selectedDevice && (
         <>
           {/* Quick Profile Apply */}
-          <Card className="p-6 bg-black/40 border-matrix-green">
+          <Card className="p-6 bg-black/80 border-matrix-green">
             <h2 className="text-xl font-bold text-matrix-green mb-4">QUICK_PROFILE_APPLY</h2>
             {profiles.length === 0 ? (
               <div className="text-center py-4 text-gray-500">
@@ -294,7 +294,7 @@ export default function Operations() {
           </Card>
 
           {/* Schedule Configuration */}
-          <Card className="p-6 bg-black/40 border-neon-cyan">
+          <Card className="p-6 bg-black/80 border-neon-cyan">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-neon-cyan">PROFILE_SCHEDULE</h2>
               <Button
@@ -307,7 +307,7 @@ export default function Operations() {
             </div>
 
             {/* Add Schedule Entry */}
-            <Card className="p-4 bg-black/60 border-gray-700 mb-4">
+            <Card className="p-4 bg-black/90 border-gray-700 mb-4">
               <h3 className="font-bold text-matrix-green mb-3">ADD_SCHEDULE_ENTRY</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -349,7 +349,7 @@ export default function Operations() {
             {schedule && schedule.entries.length > 0 ? (
               <div className="space-y-3">
                 {schedule.entries.map((entry, index) => (
-                  <Card key={index} className="p-4 bg-black/60 border-gray-700">
+                  <Card key={index} className="p-4 bg-black/90 border-gray-700">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <Clock className="w-5 h-5 text-neon-cyan" />

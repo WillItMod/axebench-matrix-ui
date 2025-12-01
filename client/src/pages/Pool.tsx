@@ -180,7 +180,7 @@ export default function Pool() {
 
       {/* Scheduler Status */}
       {schedulerStatus && (
-        <Card className="p-4 bg-black/40 border-matrix-green">
+        <Card className="p-4 bg-black/80 border-matrix-green">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-gray-400">SCHEDULER_STATUS</div>
@@ -199,7 +199,7 @@ export default function Pool() {
       )}
 
       {/* Create New Pool */}
-      <Card className="p-6 bg-black/40 border-matrix-green">
+      <Card className="p-6 bg-black/80 border-matrix-green">
         <h2 className="text-xl font-bold text-matrix-green mb-4">CREATE_NEW_POOL</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -248,11 +248,11 @@ export default function Pool() {
 
       {/* Pool Presets */}
       {presets.length > 0 && (
-        <Card className="p-6 bg-black/40 border-neon-cyan">
+        <Card className="p-6 bg-black/80 border-neon-cyan">
           <h2 className="text-xl font-bold text-neon-cyan mb-4">POOL_PRESETS</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {presets.map((preset, idx) => (
-              <Card key={idx} className="p-4 bg-black/60 border-gray-700">
+              <Card key={idx} className="p-4 bg-black/90 border-gray-700">
                 <div className="font-bold text-matrix-green">{preset.name}</div>
                 <div className="text-sm text-gray-400 mt-1">{preset.url}</div>
                 {preset.description && (
@@ -265,7 +265,7 @@ export default function Pool() {
       )}
 
       {/* Existing Pools */}
-      <Card className="p-6 bg-black/40 border-matrix-green">
+      <Card className="p-6 bg-black/80 border-matrix-green">
         <h2 className="text-xl font-bold text-matrix-green mb-4">CONFIGURED_POOLS</h2>
         {pools.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -274,7 +274,7 @@ export default function Pool() {
         ) : (
           <div className="space-y-4">
             {pools.map((pool) => (
-              <Card key={pool.id} className="p-4 bg-black/60 border-gray-700">
+              <Card key={pool.id} className="p-4 bg-black/90 border-gray-700">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -305,11 +305,11 @@ export default function Pool() {
 
       {/* Device Pool Assignment */}
       {devices.length > 0 && (
-        <Card className="p-6 bg-black/40 border-neon-cyan">
+        <Card className="p-6 bg-black/80 border-neon-cyan">
           <h2 className="text-xl font-bold text-neon-cyan mb-4">DEVICE_POOL_ASSIGNMENT</h2>
           <div className="space-y-4">
             {devices.map((device) => (
-              <Card key={device.name} className="p-4 bg-black/60 border-gray-700">
+              <Card key={device.name} className="p-4 bg-black/90 border-gray-700">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-bold text-matrix-green">{device.name}</div>
