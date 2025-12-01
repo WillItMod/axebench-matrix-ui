@@ -4,6 +4,7 @@ import { api, formatHashrate, formatPower, formatTemp, MODEL_COLORS, MODEL_NAMES
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AddDeviceModal from '@/components/AddDeviceModal';
+import ConfigModal from '@/components/ConfigModal';
 import { logger } from '@/lib/logger';
 
 interface Device {
@@ -27,6 +28,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
   // Load devices with status
   const loadDevices = async () => {
@@ -81,6 +84,11 @@ export default function Dashboard() {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const handleConfig = (device: Device) => {
+    setSelectedDevice(device);
+    setShowConfigModal(true);
   };
 
   useEffect(() => {
@@ -233,7 +241,7 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {devices.map((device) => (
-            <DeviceCard key={device.name} device={device} onRefresh={loadDevices} />
+            <DeviceCard key={device.name} device={device} onRefresh={loadDevices} onConfig={handleConfig} />
           ))}
         </div>
       )}
@@ -244,11 +252,20 @@ export default function Dashboard() {
         onClose={() => setShowAddModal(false)}
         onSuccess={loadDevices}
       />
+      
+      {selectedDevice && (
+        <ConfigModal
+          open={showConfigModal}
+          onClose={() => setShowConfigModal(false)}
+          device={selectedDevice}
+          onSuccess={loadDevices}
+        />
+      )}
     </div>
   );
 }
 
-function DeviceCard({ device, onRefresh }: { device: Device; onRefresh: () => void }) {
+function DeviceCard({ device, onRefresh, onConfig }: { device: Device; onRefresh: () => void; onConfig: (device: Device) => void }) {
   const [, setLocation] = useLocation();
   const modelColor = MODEL_COLORS[device.model?.toLowerCase()] || '#666';
   const modelName = MODEL_NAMES[device.model?.toLowerCase()] || device.model?.toUpperCase() || 'UNKNOWN';
@@ -256,11 +273,6 @@ function DeviceCard({ device, onRefresh }: { device: Device; onRefresh: () => vo
   const handleBenchmark = () => {
     // Navigate to benchmark page with device pre-selected
     setLocation('/benchmark?device=' + encodeURIComponent(device.name));
-  };
-
-  const handleConfig = () => {
-    // Show config toast for now (can be expanded to modal later)
-    toast.info(`Config panel for ${device.name} - Coming soon!`);
   };
 
   return (
@@ -334,7 +346,7 @@ function DeviceCard({ device, onRefresh }: { device: Device; onRefresh: () => vo
         <Button 
           size="sm" 
           className="flex-1 btn-cyan text-xs"
-          onClick={handleConfig}
+          onClick={() => onConfig(device)}
           disabled={!device.online}
         >
           ⚙️ CONFIG

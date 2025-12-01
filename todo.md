@@ -221,7 +221,32 @@
 - [ ] Add proper START BENCHMARK button styling and placement
 - [ ] Ensure preset mode works in EASY mode
 
+## Missing Flask API Endpoints
+- [ ] Add /api/uptime endpoint to Flask backend (currently causes footer uptime to fail)
+
 ## Dashboard - Difficulty Display Fix
 - [x] Parse bestDiff string format ("4.29G", "3.83M", etc.) to numeric value for comparison
 - [x] Find device with highest numeric difficulty
 - [x] Display difficulty with original suffix format
+
+## Profiles Page
+- [ ] Create Profiles.tsx page component
+- [ ] List all device profiles with voltage/frequency/power settings
+- [ ] Add profile CRUD operations (Create, Read, Update, Delete)
+- [ ] Add "Apply Profile" button to set device to profile settings
+- [ ] Add "Nano Tune" button for fine-tuning profiles
+- [ ] Connect to /api/profiles endpoints
+
+## Sessions Page
+- [ ] Create Sessions.tsx page component
+- [ ] List benchmark session history with results
+- [ ] Show session details (voltage/frequency ranges, duration, best results)
+- [ ] Add session filtering and sorting
+- [ ] Add "View Logs" and "View Plots" buttons
+- [ ] Connect to /api/sessions endpoints
+
+## Virtual/Mock Device API
+- [ ] Create mock device data generator with realistic BitAxe values
+- [ ] Add virtual device endpoints (devices, status, profiles, sessions)
+- [ ] Add toggle to switch between real Flask API and mock API
+- [ ] Test all UI features with mock data
