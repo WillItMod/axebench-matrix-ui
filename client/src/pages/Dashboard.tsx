@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AddDeviceModal from '@/components/AddDeviceModal';
 import ConfigModal from '@/components/ConfigModal';
+import PsuModal from '@/components/PsuModal';
 import { logger } from '@/lib/logger';
 
 interface Device {
@@ -33,6 +34,8 @@ export default function Dashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [showPsuModal, setShowPsuModal] = useState(false);
+  const [psus, setPsus] = useState<any[]>([]);
 
   // Load devices with status
   const loadDevices = async () => {
@@ -51,6 +54,16 @@ export default function Dashboard() {
           try {
             const status = await api.devices.status(device.name);
             logger.info('Dashboard', `Status received for ${device.name}`, { status });
+            
+            // Fetch device info for bestSessionDiff and bestDiff
+            let deviceInfo = null;
+            try {
+              deviceInfo = await api.devices.info(device.name);
+              logger.info('Dashboard', `Device info received for ${device.name}`, { deviceInfo });
+            } catch (infoError) {
+              logger.warn('Dashboard', `Failed to fetch device info for ${device.name}`, { infoError });
+            }
+            
             return {
               ...device,
               online: true, // If we got status, device is online
@@ -61,7 +74,10 @@ export default function Dashboard() {
                 voltage: status.voltage || 0,
                 frequency: status.frequency || 0,
                 fan_speed: status.fan_speed || 0,
-                difficulty: status.difficulty || 0,
+                difficulty: status.difficulty || deviceInfo?.poolDifficulty || 0,
+                bestDiff: deviceInfo?.bestDiff || 0,
+                bestSessionDiff: deviceInfo?.bestSessionDiff || 0,
+                efficiency: status.power > 0 ? (status.power / (status.hashrate / 1000)) : 0,
               },
             };
           } catch (error) {
@@ -93,6 +109,34 @@ export default function Dashboard() {
     setSelectedDevice(device);
     setShowConfigModal(true);
   };
+  
+  // Load PSUs and check for warnings
+  const loadPsus = async () => {
+    try {
+      const psuList = await api.psus.list();
+      setPsus(psuList);
+      
+      // Calculate total fleet power and PSU warnings
+      const totalPower = devices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
+      
+      // Check each PSU for load warnings
+      psuList.forEach((psu: any) => {
+        const psuLoad = psu.type === 'shared' 
+          ? devices.filter(d => psu.devices?.includes(d.name)).reduce((sum, d) => sum + (d.status?.power || 0), 0)
+          : totalPower / devices.length; // Average for independent
+        
+        const loadPercent = (psuLoad / psu.wattage) * 100;
+        
+        if (loadPercent >= 80) {
+          toast.error(`PSU "${psu.name}" at ${loadPercent.toFixed(0)}% load (DANGER)`, { duration: 10000 });
+        } else if (loadPercent >= 70) {
+          toast.warning(`PSU "${psu.name}" at ${loadPercent.toFixed(0)}% load (WARNING)`, { duration: 5000 });
+        }
+      });
+    } catch (error) {
+      logger.warn('Dashboard', 'Failed to load PSUs', { error });
+    }
+  };
 
   useEffect(() => {
     logger.info('Dashboard', 'Component mounted, starting initial load');
@@ -104,6 +148,13 @@ export default function Dashboard() {
       clearInterval(interval);
     };
   }, []);
+  
+  // Load PSUs when devices change
+  useEffect(() => {
+    if (devices.length > 0) {
+      loadPsus();
+    }
+  }, [devices]);
 
   // Calculate fleet stats
   const onlineDevices = devices.filter(d => d.online && d.status);
@@ -251,6 +302,9 @@ export default function Dashboard() {
           <Button onClick={() => setShowAddModal(true)} className="btn-matrix">
             ➕ ADD_DEVICE
           </Button>
+          <Button onClick={() => setShowPsuModal(true)} className="bg-yellow-600 hover:bg-yellow-700 text-white">
+            ⚡ PSU_CONFIG
+          </Button>
         </div>
       </div>
 
@@ -287,6 +341,13 @@ export default function Dashboard() {
           onSuccess={loadDevices}
         />
       )}
+      
+      {/* PSU Modal */}
+      <PsuModal
+        open={showPsuModal}
+        onClose={() => setShowPsuModal(false)}
+        onSave={loadPsus}
+      />
     </div>
   );
 }

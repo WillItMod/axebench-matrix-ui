@@ -189,8 +189,8 @@ export default function Benchmark() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Configuration Panel */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Left Sidebar - Device Selection & Gauges */}
+        <div className="lg:col-span-1 space-y-6">
           {/* Device Selection */}
           <div className="matrix-card">
             <h3 className="text-xl font-bold text-glow-cyan mb-4">DEVICE_SELECT</h3>
@@ -570,8 +570,8 @@ export default function Benchmark() {
           )}
         </div>
 
-        {/* Status Panel */}
-        <div className="space-y-6">
+        {/* Right Panel - Control + Live Monitoring (70% width) */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Control Panel */}
           <div className="hud-panel">
             <h3 className="text-xl font-bold text-glow-green mb-4">CONTROL_PANEL</h3>

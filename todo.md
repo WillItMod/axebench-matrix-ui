@@ -541,3 +541,17 @@
 
 - [x] Benchmark: Add CLEAR button to console to flush logs
 - [x] Benchmark: Fix auto-stop bug - BenchmarkContext was calling stop on every render
+
+## Layout Improvements
+- [ ] Redesign Benchmark page layout - control panel and live monitoring should take majority of screen width, compress device selection/gauges on left
+
+## URGENT - Current Sprint
+- [x] Fix Benchmark page layout - control panel and live monitoring should take 70% of screen, device selection 30%
+- [x] Fix Best Difficulty panels showing 0 - fetch from device /api/system/info endpoint using bestSessionDiff field
+- [x] Implement PSU management system:
+  - [x] Add PSU configuration modal (manual wattage input)
+  - [x] Track total fleet power consumption
+  - [x] Show 70% load warning (yellow)
+  - [x] Show 80% load warning (red)
+  - [x] Support independent PSU mode (each device has own PSU)
+  - [x] Support shared PSU mode (all devices share one PSU)

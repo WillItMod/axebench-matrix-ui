@@ -81,6 +81,8 @@ export const api = {
     detect: (ip: string) =>
       apiFetch<any>('/api/devices/detect', { method: 'POST', body: JSON.stringify({ ip }) }),
     status: (name: string) => apiFetch<any>(`/api/devices/${name}/status`),
+    // Fetch device system info (includes bestSessionDiff, bestDiff, poolDifficulty)
+    info: (name: string) => apiFetch<any>(`/api/devices/${name}/info`),
     restart: (name: string) =>
       apiFetch<any>(`/api/device/${name}/restart`, { method: 'POST' }),
     setFan: (name: string, auto: boolean, targetTemp?: number) =>
