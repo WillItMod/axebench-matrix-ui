@@ -12,6 +12,7 @@ import Profiles from "./pages/Profiles";
 import Sessions from "./pages/Sessions";
 import Pool from "./pages/Pool";
 import Operations from "./pages/Operations";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
           <Route path="/sessions" component={Sessions} />
           <Route path="/pool" component={Pool} />
           <Route path="/operations" component={Operations} />
+          <Route path="/settings" component={Settings} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>
@@ -37,7 +39,7 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider>
         <BenchmarkProvider>
           <TooltipProvider>
             <Toaster />

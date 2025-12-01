@@ -42,6 +42,7 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/sessions', label: 'SESSIONS', icon: '📁' },
     { path: '/pool', label: 'POOL', icon: '🌐' },
     { path: '/operations', label: 'OPERATIONS', icon: '⏰' },
+    { path: '/settings', label: 'SETTINGS', icon: '⚙️' },
   ];
 
   return (
