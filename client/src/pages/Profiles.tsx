@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
 export default function Profiles() {
@@ -13,7 +13,9 @@ export default function Profiles() {
   const [profiles, setProfiles] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [showNanoTune, setShowNanoTune] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState('');
+  const [selectedProfile, setSelectedProfile] = useState<string>('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [newProfileName, setNewProfileName] = useState('');
 
   useEffect(() => {
     loadDevices();
@@ -78,17 +80,24 @@ export default function Profiles() {
     }
   };
 
-  const handleSaveCurrent = async () => {
-    console.log('[Profiles] handleSaveCurrent called for device:', selectedDevice);
+  const handleSaveCurrent = () => {
+    if (!selectedDevice) return;
+    setNewProfileName('');
+    setShowSaveDialog(true);
+  };
+
+  const handleConfirmSave = async () => {
+    console.log('[Profiles] handleConfirmSave called for device:', selectedDevice);
     if (!selectedDevice) return;
 
     try {
       const result = await api.profiles.saveCustom(selectedDevice);
       console.log('[Profiles] Save result:', result);
-      toast.success('Current settings saved as Custom profile');
+      toast.success('Current settings saved as "custom" profile');
+      setShowSaveDialog(false);
       loadProfiles();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save current settings');
+      toast.error(error.message || 'Failed to save profile');
     }
   };
 
@@ -270,6 +279,31 @@ export default function Profiles() {
           </div>
         </div>
       </div>
+
+      {/* Save Profile Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="matrix-card">
+          <DialogHeader>
+            <DialogTitle className="text-glow-cyan">💾 SAVE_CURRENT_PROFILE</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-[var(--text-secondary)]">
+              Save the current device settings as a profile named <strong className="text-[var(--text-primary)]">"custom"</strong>?
+            </p>
+            <p className="text-xs text-[var(--text-muted)]">
+              This will create or overwrite the "custom" profile with the device's current voltage, frequency, and other settings.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              ❌ CANCEL
+            </Button>
+            <Button className="btn-matrix" onClick={handleConfirmSave}>
+              ✅ CONFIRM_SAVE
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Nano Tune Modal */}
       <NanoTuneModal

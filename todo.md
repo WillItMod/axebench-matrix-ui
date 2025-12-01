@@ -466,12 +466,9 @@
 
 ### Dashboard -> Benchmark Navigation
 - [ ] CRITICAL: Clicking "Benchmark" button on device card goes to Benchmark page but doesn't pre-select device or load profile
-- [ ] Should auto-select the device and populate form
-
-### Profiles - Save Current
-- [ ] Missing: No prompt for profile name when saving current settings
-- [ ] Missing: No way to edit profile fields after creation
-- [ ] Backend returns correct data but UI doesn't allow naming or editing
+- [ ] Should auto-select the device and populate ### Profiles Page - Save Current
+- [x] CRITICAL: Added confirmation dialog for saving current settings as "custom" profile
+- [ ] CRITICAL: No way to edit profile fields after creation (backend limitation)- [ ] Backend returns correct data but UI doesn't allow naming or editing
 
 ### Sessions Page - View Session
 - [ ] CRITICAL: Clicking VIEW on session shows "No logs available" (backend not returning logs)
