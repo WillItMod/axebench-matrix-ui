@@ -257,3 +257,23 @@
 - [ ] Add virtual device endpoints (devices, status, profiles, sessions)
 - [ ] Add toggle to switch between real Flask API and mock API
 - [ ] Test all UI features with mock data
+
+## Benchmark State Persistence
+- [ ] Poll /api/benchmark/status on app mount to check if benchmark is running
+- [ ] Restore benchmark state from backend status after page refresh
+- [ ] Keep polling while benchmark is active to update progress
+- [ ] Store benchmark state in React Context for global access
+
+## Global Status Banner
+- [ ] Create BenchmarkStatusBanner component that shows when benchmark is running
+- [ ] Show progress, device name, current test parameters
+- [ ] Display on all pages (add to Layout component)
+- [ ] Add dismiss/minimize button
+- [ ] Support both benchmark and nano-tune status
+
+## Benchmark Console
+- [ ] Add console/log viewer to Benchmark page
+- [ ] Fetch logs from /api/benchmark/status or session logs
+- [ ] Auto-scroll to bottom as new logs appear
+- [ ] Show timestamp, log level, and message
+- [ ] Add clear logs button
