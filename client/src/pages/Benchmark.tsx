@@ -12,6 +12,8 @@ export default function Benchmark() {
   const [selectedDevice, setSelectedDevice] = useState('');
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState<any>(null);
+  const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
+  const [preset, setPreset] = useState('standard'); // For EASY mode
   
   // Configuration state
   const [config, setConfig] = useState({
@@ -183,8 +185,73 @@ export default function Benchmark() {
             </div>
           </div>
 
-          {/* Auto Mode */}
+          {/* EASY/ADVANCED Mode Toggle */}
           <div className="matrix-card">
+            <div className="flex items-center justify-between">
+              <Label className="text-[var(--text-secondary)]">TUNING MODE</Label>
+              <div className="flex bg-[var(--dark-gray)] rounded p-1">
+                <button
+                  onClick={() => setTuningMode('auto')}
+                  className={`px-4 py-2 text-sm font-bold rounded transition-colors ${
+                    tuningMode === 'auto'
+                      ? 'bg-[var(--matrix-green)] text-black'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  EASY (PRESET)
+                </button>
+                <button
+                  onClick={() => setTuningMode('manual')}
+                  className={`px-4 py-2 text-sm font-bold rounded transition-colors ${
+                    tuningMode === 'manual'
+                      ? 'bg-[var(--neon-cyan)] text-black'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  ADVANCED
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* EASY Mode: Preset Selection */}
+          {tuningMode === 'auto' && (
+            <div className="matrix-card space-y-4">
+              <h3 className="text-xl font-bold text-glow-cyan">⚡ PRESET_PROFILE</h3>
+              <div>
+                <Label className="text-[var(--text-secondary)]">Select Preset</Label>
+                <Select value={preset} onValueChange={setPreset}>
+                  <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
+                    <SelectItem value="quick">⚡ Quick Scan (Fast)</SelectItem>
+                    <SelectItem value="standard">⚖️ Standard (Balanced)</SelectItem>
+                    <SelectItem value="deep">🔬 Deep Dive (Thorough)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[var(--text-secondary)]">Optimization Goal</Label>
+                <Select value={config.goal} onValueChange={(v) => setConfig({...config, goal: v})}>
+                  <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
+                    <SelectItem value="max_hashrate">🚀 Max Hashrate</SelectItem>
+                    <SelectItem value="max_efficiency">🌱 Max Efficiency</SelectItem>
+                    <SelectItem value="balanced">⚖️ Balanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* ADVANCED Mode: Full Configuration */}
+          {tuningMode === 'manual' && (
+            <>
+              {/* Auto Mode */}
+              <div className="matrix-card">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold text-glow-cyan">🤖 AUTO_MODE</h3>
@@ -455,6 +522,8 @@ export default function Benchmark() {
               </div>
             </div>
           </div>
+            </>
+          )}
         </div>
 
         {/* Status Panel */}

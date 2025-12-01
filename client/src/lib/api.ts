@@ -178,10 +178,6 @@ export const api = {
   // LICENSE
   // ============================================================================
   
-  system: {
-    uptime: () => apiFetch<{ uptime_seconds: number }>('/api/uptime'),
-  },
-
   license: {
     status: () => apiFetch<any>('/api/license/status'),
     logout: () => apiFetch<any>('/api/license/logout', { method: 'POST' }),

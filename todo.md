@@ -200,3 +200,16 @@
 - [x] Fetch difficulty data from device status API
 - [x] Calculate fleet efficiency from total power and total hashrate
 - [x] Keep 4-panel grid layout: Devices Online, Fleet Hashrate, Total Power, Fleet Efficiency
+
+## Benchmark Page - Missing Features (from v1.12)
+- [x] Add EASY/ADVANCED toggle at top of page
+- [x] EASY mode: Simple interface with just device select, preset dropdown, and Start button
+- [x] ADVANCED mode: Full configuration panel with all options
+- [x] Move Auto Mode toggle to ADVANCED mode only
+- [ ] Add Profile/Preset dropdown (Quick Test, Conservative, Aggressive, Efficiency, Max Performance, Paranoid, Custom)
+- [ ] Add Search Strategy dropdown (Adaptive Grid, Linear, Binary)
+- [ ] Add Optimization Goal dropdown (Balanced, Max Hashrate, Max Efficiency)
+- [ ] Add advanced checkboxes (Restart between tests, Enable plots, Export CSV)
+- [ ] Add Hardware Preset buttons (Stock, Quick Tune, Upgraded PSU, etc.)
+- [ ] Ensure all 40+ config fields are accessible in ADVANCED mode
+- [ ] Hide complex options in EASY mode for better UX
