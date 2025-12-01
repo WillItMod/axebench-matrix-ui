@@ -162,6 +162,8 @@ export const api = {
     getLogs: (id: string) => apiFetch<string>(`/api/sessions/${id}/logs`),
     getPlot: (id: string, plotType: string) =>
       `${API_BASE_URL}/api/sessions/${id}/plot/${plotType}`,
+    generateProfiles: (id: string) =>
+      apiFetch<any>(`/api/sessions/${id}/generate_profiles`, { method: 'POST' }),
   },
 
   // ============================================================================

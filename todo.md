@@ -399,3 +399,30 @@
 - [ ] Verify backend sets 'mode' field in /api/benchmark/status response
 - [ ] Add default mode='benchmark' if backend doesn't set mode
 - [ ] Ensure only ONE banner shows at a time based on operation mode
+
+## Profiles Page - Critical Bugs
+- [x] CRITICAL: Added debug logging to "Save Current Profile"
+- [x] CRITICAL: Added debug logging to Delete button
+- [x] CRITICAL: Fixed Nano Tune modal - removed editable fields (voltage/freq/duration)
+- [ ] Nano Tune should auto-pull profile ranges from backend and submit directly
+- [ ] Nano Tune should only show: base profile selector, optimization goal dropdown, START button
+- [ ] Remove voltage range, frequency range, and test duration inputs from Nano Tune modal
+
+## Pool Page - Critical Bugs
+- [x] CRITICAL: Added debug logging and delayed refresh for pool creation
+- [ ] CRITICAL: Pool not appearing in pool selection dropdown
+- [ ] Pool creation API succeeds but UI doesn't refresh/update
+- [ ] Need to reload pools after successful creation
+
+## Sessions Page - Missing Features
+- [x] CRITICAL: Added "Generate Profiles" button for completed sessions
+- [ ] Generate Profiles should analyze session results and create 4 profiles (Quiet, Efficient, Optimal, Max)
+- [ ] Button should only appear for COMPLETED sessions with valid results
+- [ ] Should call /api/sessions/{id}/generate_profiles endpoint
+
+## Benchmark Status - CRITICAL BUG
+- [ ] CRITICAL: Benchmark starts but status banner disappears after 1 second
+- [ ] Backend returns running:true initially, then immediately running:false
+- [ ] Benchmark state not persisting across status polls
+- [ ] Need to debug /api/benchmark/status endpoint
+- [ ] Status should remain true while benchmark is actually running

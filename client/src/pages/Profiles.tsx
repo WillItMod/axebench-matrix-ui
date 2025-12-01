@@ -61,10 +61,12 @@ export default function Profiles() {
   };
 
   const handleDelete = async (profileName: string) => {
+    console.log('[Profiles] handleDelete called with:', { profileName, selectedDevice });
     if (!selectedDevice) return;
     if (!confirm(`Delete profile "${profileName}"?`)) return;
 
     try {
+      console.log('[Profiles] Calling API delete:', { device: selectedDevice, profile: profileName });
       await api.profiles.delete(selectedDevice, profileName);
       toast.success('Profile deleted');
       loadProfiles();
@@ -74,10 +76,12 @@ export default function Profiles() {
   };
 
   const handleSaveCurrent = async () => {
+    console.log('[Profiles] handleSaveCurrent called for device:', selectedDevice);
     if (!selectedDevice) return;
 
     try {
-      await api.profiles.saveCustom(selectedDevice);
+      const result = await api.profiles.saveCustom(selectedDevice);
+      console.log('[Profiles] Save result:', result);
       toast.success('Current settings saved as Custom profile');
       loadProfiles();
     } catch (error: any) {
@@ -285,9 +289,6 @@ interface NanoTuneModalProps {
 function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneModalProps) {
   const [config, setConfig] = useState({
     goal: 'balanced',
-    voltage_range: 25,
-    frequency_range: 25,
-    test_duration: 60,
   });
   const [running, setRunning] = useState(false);
 
@@ -295,12 +296,12 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
     try {
       setRunning(true);
       
-      // Start Nano Tune benchmark
+      // Start Nano Tune benchmark - backend auto-determines ranges from profile
       await api.benchmark.start({
         device,
         mode: 'nano_tune',
         base_profile: profile,
-        ...config,
+        goal: config.goal,
       });
 
       toast.success('Nano Tune started');
@@ -345,34 +346,9 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
             </Select>
           </div>
 
-          <div>
-            <Label className="text-[var(--text-secondary)]">Voltage Range (±mV)</Label>
-            <Input
-              type="number"
-              value={config.voltage_range}
-              onChange={(e) => setConfig({...config, voltage_range: parseInt(e.target.value)})}
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label className="text-[var(--text-secondary)]">Frequency Range (±MHz)</Label>
-            <Input
-              type="number"
-              value={config.frequency_range}
-              onChange={(e) => setConfig({...config, frequency_range: parseInt(e.target.value)})}
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label className="text-[var(--text-secondary)]">Test Duration (s)</Label>
-            <Input
-              type="number"
-              value={config.test_duration}
-              onChange={(e) => setConfig({...config, test_duration: parseInt(e.target.value)})}
-              className="mt-1"
-            />
+          <div className="bg-[var(--grid-gray)]/50 border border-[var(--text-muted)] rounded p-3 text-xs text-[var(--text-secondary)]">
+            <div className="font-bold text-[var(--text-primary)] mb-1">Auto-Configuration</div>
+            Nano Tune will automatically determine optimal voltage and frequency ranges based on the selected profile.
           </div>
 
           <div className="flex gap-2 pt-4">

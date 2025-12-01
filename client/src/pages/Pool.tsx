@@ -53,6 +53,7 @@ export default function Pool() {
       ]);
       // Ensure poolsData is an array
       const poolsArray = Array.isArray(poolsData) ? poolsData : [];
+      console.log('[Pool] Loaded pools:', poolsArray);
       setPools(poolsArray);
       setPresets(presetsData || []);
       setDevices(devicesData || []);
@@ -94,15 +95,21 @@ export default function Pool() {
       }
       
       // Create pool with separated URL and port
-      await api.pool.create({
+      const result = await api.pool.create({
         ...newPool,
         url,
         port
       });
       
+      console.log('[Pool] Created pool:', result);
       toast.success(`Pool "${newPool.name}" created`);
       setNewPool({ name: '', url: '', user: '', password: '' });
-      loadData();
+      
+      // Reload pools after short delay to ensure backend has persisted
+      setTimeout(() => {
+        console.log('[Pool] Reloading pools after creation');
+        loadData();
+      }, 500);
     } catch (error) {
       console.error('Failed to create pool:', error);
       toast.error('Failed to create pool');

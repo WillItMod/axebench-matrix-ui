@@ -49,6 +49,17 @@ export default function Sessions() {
     }
   };
 
+  const handleGenerateProfiles = async (sessionId: string) => {
+    if (!confirm('Generate profiles from this session? This will create 4 optimized profiles (Quiet, Efficient, Optimal, Max).')) return;
+
+    try {
+      await api.sessions.generateProfiles(sessionId);
+      toast.success('Profiles generated successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to generate profiles');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -92,6 +103,7 @@ export default function Sessions() {
               session={session}
               onView={() => handleViewDetails(session.id)}
               onDelete={() => handleDelete(session.id)}
+              onGenerateProfiles={() => handleGenerateProfiles(session.id)}
             />
           ))}
         </div>
@@ -107,7 +119,7 @@ export default function Sessions() {
   );
 }
 
-function SessionCard({ session, onView, onDelete }: any) {
+function SessionCard({ session, onView, onDelete, onGenerateProfiles }: any) {
   const formatDate = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -195,6 +207,15 @@ function SessionCard({ session, onView, onDelete }: any) {
           >
             📊 VIEW
           </Button>
+          {session.status?.toLowerCase() === 'completed' && (
+            <Button
+              size="sm"
+              onClick={onGenerateProfiles}
+              className="btn-matrix text-xs"
+            >
+              🔬 GENERATE_PROFILES
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={onDelete}

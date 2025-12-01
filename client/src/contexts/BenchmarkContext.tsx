@@ -26,6 +26,15 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
   const refreshStatus = async () => {
     try {
       const data = await api.benchmark.status();
+      console.log('[BenchmarkContext] Status poll result:', {
+        running: data.running,
+        mode: data.mode,
+        device: data.device_name || data.device,
+        progress: data.progress,
+        phase: data.phase,
+        session_id: data.session_id,
+        logs_count: (data.session_logs || data.logs || []).length
+      });
       setStatus({
         running: data.running || false,
         mode: data.mode || 'benchmark',

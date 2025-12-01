@@ -26,6 +26,8 @@ interface Device {
 export default function Dashboard() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  console.log('[Dashboard] Render - devices:', devices.length, 'loading:', loading);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
