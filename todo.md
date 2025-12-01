@@ -349,3 +349,16 @@
 - [ ] NanoTuneStatusBanner should only show when mode: 'nano_tune'
 - [ ] Check if backend is returning incorrect status or missing mode field
 - [ ] Investigate why duplicate banners appear (Layout only has one of each)
+
+
+## PRIORITY - AxeShed & AxePool Integration
+- [x] Extract all API endpoints from axeshed.py
+- [x] Extract all API endpoints from axepool.py
+- [x] Add AxeShed endpoints to API client (client/src/lib/api.ts)
+- [x] Add AxePool endpoints to API client (client/src/lib/api.ts)
+- [x] Create Pool page UI for AxePool functionality
+- [x] Create Operations page UI for AxeShed functionality
+- [x] Update App.tsx with Pool and Operations routes
+- [ ] Configure Vite proxy routing for multiple backends (if needed)
+- [ ] Test Pool page with AxePool backend running
+- [ ] Test Operations page with AxeShed backend running

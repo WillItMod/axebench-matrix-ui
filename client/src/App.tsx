@@ -10,8 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import Benchmark from "./pages/Benchmark";
 import Profiles from "./pages/Profiles";
 import Sessions from "./pages/Sessions";
-import PoolPage from "./pages/PoolPage";
-import ShedPage from "./pages/ShedPage";
+import Pool from "./pages/Pool";
+import Operations from "./pages/Operations";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -24,8 +24,8 @@ function Router() {
           <Route path="/benchmark" component={Benchmark} />
           <Route path="/profiles" component={Profiles} />
           <Route path="/sessions" component={Sessions} />
-          <Route path="/pool" component={PoolPage} />
-          <Route path="/operations" component={ShedPage} />
+          <Route path="/pool" component={Pool} />
+          <Route path="/operations" component={Operations} />
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>

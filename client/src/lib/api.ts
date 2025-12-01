@@ -186,6 +186,81 @@ export const api = {
     refresh: () => apiFetch<any>('/api/license/refresh', { method: 'POST' }),
     tierInfo: () => apiFetch<any>('/api/tier-info'),
   },
+
+  // ============================================================================
+  // AXEPOOL - Pool Management (port 5002)
+  // ============================================================================
+  
+  pool: {
+    // Pool CRUD
+    list: () => apiFetch<any[]>('/api/pools'),
+    create: (data: any) =>
+      apiFetch<any>('/api/pools', { method: 'POST', body: JSON.stringify(data) }),
+    get: (poolId: string) => apiFetch<any>(`/api/pools/${poolId}`),
+    update: (poolId: string, data: any) =>
+      apiFetch<any>(`/api/pools/${poolId}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (poolId: string) =>
+      apiFetch<any>(`/api/pools/${poolId}`, { method: 'DELETE' }),
+    
+    // Pool presets
+    presets: () => apiFetch<any>('/api/pools/presets'),
+    
+    // Device pool operations
+    getDevicePool: (deviceName: string) => apiFetch<any>(`/api/devices/${deviceName}/pool`),
+    setDevicePool: (deviceName: string, poolId: string) =>
+      apiFetch<any>(`/api/devices/${deviceName}/pool`, { 
+        method: 'POST', 
+        body: JSON.stringify({ pool_id: poolId }) 
+      }),
+    applyPool: (deviceName: string, poolId: string) =>
+      apiFetch<any>(`/api/devices/${deviceName}/pool/apply/${poolId}`, { method: 'POST' }),
+    applyFallback: (deviceName: string, poolId: string) =>
+      apiFetch<any>(`/api/devices/${deviceName}/pool/apply-fallback/${poolId}`, { method: 'POST' }),
+    swapPool: (deviceName: string) =>
+      apiFetch<any>(`/api/devices/${deviceName}/pool/swap`, { method: 'POST' }),
+    importPool: (deviceName: string, poolData: any) =>
+      apiFetch<any>(`/api/devices/${deviceName}/pool/import`, { 
+        method: 'POST', 
+        body: JSON.stringify(poolData) 
+      }),
+    
+    // Pool scheduling
+    getSchedule: (deviceName: string) => apiFetch<any>(`/api/devices/${deviceName}/schedule`),
+    setSchedule: (deviceName: string, schedule: any) =>
+      apiFetch<any>(`/api/devices/${deviceName}/schedule`, { 
+        method: 'POST', 
+        body: JSON.stringify(schedule) 
+      }),
+    
+    // Scheduler control
+    schedulerStatus: () => apiFetch<any>('/api/scheduler/status'),
+    startScheduler: () => apiFetch<any>('/api/scheduler/start', { method: 'POST' }),
+    stopScheduler: () => apiFetch<any>('/api/scheduler/stop', { method: 'POST' }),
+  },
+
+  // ============================================================================
+  // AXESHED - Profile Scheduling (port 5001)
+  // ============================================================================
+  
+  shed: {
+    // Profile scheduling
+    getSchedule: (deviceName: string) => apiFetch<any>(`/api/devices/${deviceName}/schedule`),
+    setSchedule: (deviceName: string, schedule: any) =>
+      apiFetch<any>(`/api/devices/${deviceName}/schedule`, { 
+        method: 'POST', 
+        body: JSON.stringify(schedule) 
+      }),
+    
+    // Profile operations
+    getProfiles: (deviceName: string) => apiFetch<any>(`/api/devices/${deviceName}/profiles`),
+    applyProfile: (deviceName: string, profileName: string) =>
+      apiFetch<any>(`/api/devices/${deviceName}/apply/${profileName}`, { method: 'POST' }),
+    
+    // Scheduler control
+    schedulerStatus: () => apiFetch<any>('/api/scheduler/status'),
+    startScheduler: () => apiFetch<any>('/api/scheduler/start', { method: 'POST' }),
+    stopScheduler: () => apiFetch<any>('/api/scheduler/stop', { method: 'POST' }),
+  },
 };
 
 /**
