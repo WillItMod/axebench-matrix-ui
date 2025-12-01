@@ -41,19 +41,15 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      // Proxy all /api requests to AxePool backend (port 5002)
+      // Proxy all /api requests to AxeBench web_interface.py (port 5000)
+      // This is the main backend with device management, benchmarking, profiles, etc.
       '/api': {
-        target: 'http://localhost:5002',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
       },
-      // If you need AxeShed (port 5001), add separate routes:
-      // '/api/shed': {
-      //   target: 'http://localhost:5001',
-      //   changeOrigin: true,
-      //   secure: false,
-      //   rewrite: (path) => path.replace(/^\/api\/shed/, '/api'),
-      // },
+      // AxeShed (port 5001) and AxePool (port 5002) can be accessed via web_interface.py
+      // which acts as the main hub for all three services
     },
   },
 });
