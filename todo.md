@@ -474,3 +474,22 @@
 - [ ] CRITICAL: Clicking VIEW on session shows "No logs available" (backend not returning logs)
 - [ ] CRITICAL: No JSON data from session (backend not returning session data)
 - [ ] Sessions show N/A duration and 0/0 tests (backend not populating fields)
+
+## FINAL FEATURES - Operations & Quick Apply
+
+### Operations Page (Missing)
+- [ ] Build Operations page with Pool Scheduler
+- [ ] Add Pool Failover functionality (from v3.0)
+- [ ] Reference uploaded HTML for original implementation
+
+### Quick Profile Apply Enhancement
+- [ ] Replace device dropdown with multi-select toggle buttons (hot buttons on/off for each device)
+- [ ] Add main/fallback toggle or slider
+- [ ] Allow selecting multiple devices and applying profile to all at once
+- [ ] Visual: Small hot buttons for each device, not dropdown
+- [ ] Toggle button or slider for main vs fallback mode
+
+### Theme & Polish
+- [ ] Final theme generation and visual refinements
+- [ ] Ensure consistent styling across all pages
+- [ ] Polish animations and transitions
