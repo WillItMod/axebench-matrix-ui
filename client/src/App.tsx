@@ -7,6 +7,7 @@ import { BenchmarkProvider } from "./contexts/BenchmarkContext";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Benchmark from "./pages/Benchmark";
+import Monitoring from "./pages/Monitoring";
 import Profiles from "./pages/Profiles";
 import Sessions from "./pages/Sessions";
 import Pool from "./pages/Pool";
@@ -20,6 +21,7 @@ function Router() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/benchmark" component={Benchmark} />
+          <Route path="/monitoring" component={Monitoring} />
           <Route path="/profiles" component={Profiles} />
           <Route path="/sessions" component={Sessions} />
           <Route path="/pool" component={Pool} />

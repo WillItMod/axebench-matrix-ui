@@ -394,9 +394,28 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
             )}
           </div>
 
-          <Button onClick={onClose} className="w-full btn-cyan">
-            CLOSE
-          </Button>
+          {/* Export Buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => {
+                const jsonData = JSON.stringify(session, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `session_${session.id}_${session.device}_${new Date(session.start_time).toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success('JSON exported');
+              }}
+              className="btn-matrix"
+            >
+              📥 EXPORT_JSON
+            </Button>
+            <Button onClick={onClose} className="btn-cyan">
+              CLOSE
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

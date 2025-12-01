@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showPsuModal, setShowPsuModal] = useState(false);
+  const [editingPsu, setEditingPsu] = useState<{id: string; name: string; wattage: number} | null>(null);
   const [psus, setPsus] = useState<any[]>([]);
 
   // Load devices with status
@@ -113,8 +114,8 @@ export default function Dashboard() {
   };
   
   const handleEditPsu = (psu: any) => {
-    // TODO: Open edit modal with pre-filled PSU data
-    toast.info('PSU edit modal coming soon');
+    setEditingPsu(psu);
+    setShowPsuModal(true);
   };
   
   const handleDeletePsu = async (psuId: string, psuName: string) => {
@@ -437,8 +438,16 @@ export default function Dashboard() {
       {/* PSU Modal */}
       <PsuModal
         open={showPsuModal}
-        onClose={() => setShowPsuModal(false)}
-        onSave={loadPsus}
+        onClose={() => {
+          setShowPsuModal(false);
+          setEditingPsu(null);
+        }}
+        onSave={() => {
+          loadPsus();
+          setShowPsuModal(false);
+          setEditingPsu(null);
+        }}
+        editPsu={editingPsu}
       />
     </div>
   );

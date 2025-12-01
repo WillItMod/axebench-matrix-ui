@@ -31,6 +31,8 @@ interface LiveStats {
   power: number;
   chipTemp: number;
   vrTemp: number;
+  asicErrors: number;
+  efficiency: number; // J/TH
   timestamp: string;
 }
 
@@ -50,13 +52,19 @@ export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelP
     const fetchStats = async () => {
       try {
         const status = await api.devices.status(deviceName);
+        const hashrate = status.hashrate || 0;
+        const power = status.power || 0;
+        const efficiency = hashrate > 0 ? (power / hashrate) * 1000 : 0; // J/TH = (W / GH/s) * 1000
+        
         const newStats: LiveStats = {
           voltage: status.voltage || 0,
           frequency: status.frequency || 0,
-          hashrate: status.hashrate || 0,
-          power: status.power || 0,
+          hashrate,
+          power,
           chipTemp: status.temp || 0,
           vrTemp: status.vrTemp || 0,
+          asicErrors: status.asic_errors || status.errors || 0,
+          efficiency,
           timestamp: new Date().toLocaleTimeString(),
         };
         
@@ -239,6 +247,42 @@ export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelP
     ],
   };
 
+  // ASIC Errors chart
+  const asicErrorsData = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: 'ASIC Errors',
+        data: history.map(h => h.asicErrors),
+        borderColor: '#ff0000',
+        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#ff0000',
+      },
+    ],
+  };
+
+  // Efficiency chart (J/TH)
+  const efficiencyData = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: 'Efficiency (J/TH)',
+        data: history.map(h => h.efficiency),
+        borderColor: '#00d4ff',
+        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#00d4ff',
+      },
+    ],
+  };
+
   // Power chart
   const powerData = {
     labels: timestamps,
@@ -275,18 +319,25 @@ export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelP
 
       {/* Real-time Charts */}
       {history.length > 5 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Hashrate Graph */}
+        <div className="space-y-4">
+          {/* Graph 1: ASIC Errors + Hashrate */}
           <div className="matrix-card p-4">
-            <h4 className="text-sm font-bold text-[var(--neon-cyan)] mb-3">HASHRATE_TREND</h4>
-            <div className="h-48">
-              <Line data={hashrateData} options={commonOptions} />
+            <h4 className="text-sm font-bold text-[var(--neon-cyan)] mb-3">ASIC_ERRORS & HASHRATE</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="h-48">
+                <div className="text-xs text-[var(--error-red)] mb-2">ASIC Errors</div>
+                <Line data={asicErrorsData} options={commonOptions} />
+              </div>
+              <div className="h-48">
+                <div className="text-xs text-[var(--neon-cyan)] mb-2">Hashrate (GH/s)</div>
+                <Line data={hashrateData} options={commonOptions} />
+              </div>
             </div>
           </div>
 
-          {/* Temperature Graph */}
+          {/* Graph 2: VR Temp + ASIC Temp */}
           <div className="matrix-card p-4">
-            <h4 className="text-sm font-bold text-[var(--warning-amber)] mb-3">TEMPERATURE_TREND</h4>
+            <h4 className="text-sm font-bold text-[var(--warning-amber)] mb-3">VR_TEMP & ASIC_TEMP</h4>
             <div className="h-48">
               <Line data={tempData} options={{
                 ...commonOptions,
@@ -310,27 +361,18 @@ export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelP
             </div>
           </div>
 
-          {/* Voltage Graph */}
+          {/* Graph 3: Power + Efficiency (J/TH) */}
           <div className="matrix-card p-4">
-            <h4 className="text-sm font-bold text-[var(--matrix-green)] mb-3">VOLTAGE_TREND</h4>
-            <div className="h-48">
-              <Line data={voltageData} options={commonOptions} />
-            </div>
-          </div>
-
-          {/* Frequency Graph */}
-          <div className="matrix-card p-4">
-            <h4 className="text-sm font-bold text-[var(--neon-magenta)] mb-3">FREQUENCY_TREND</h4>
-            <div className="h-48">
-              <Line data={frequencyData} options={commonOptions} />
-            </div>
-          </div>
-
-          {/* Power Graph */}
-          <div className="matrix-card p-4 lg:col-span-2">
-            <h4 className="text-sm font-bold text-[var(--warning-yellow)] mb-3">POWER_TREND</h4>
-            <div className="h-48">
-              <Line data={powerData} options={commonOptions} />
+            <h4 className="text-sm font-bold text-[var(--warning-yellow)] mb-3">POWER & EFFICIENCY</h4>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="h-48">
+                <div className="text-xs text-[var(--warning-yellow)] mb-2">Power (W)</div>
+                <Line data={powerData} options={commonOptions} />
+              </div>
+              <div className="h-48">
+                <div className="text-xs text-[var(--neon-cyan)] mb-2">Efficiency (J/TH)</div>
+                <Line data={efficiencyData} options={commonOptions} />
+              </div>
             </div>
           </div>
         </div>

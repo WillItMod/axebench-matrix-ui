@@ -427,9 +427,28 @@ export default function Operations() {
                     </Button>
                   ))}
                 </div>
-                <Button onClick={handleApplyPool} className="w-full mt-3 btn-matrix" disabled={!selectedPool}>
-                  APPLY_MAIN_POOL
-                </Button>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <Button onClick={handleApplyPool} className="btn-matrix" disabled={!selectedPool}>
+                    APPLY
+                  </Button>
+                  <Button 
+                    onClick={async () => {
+                      if (!selectedPool) return;
+                      if (!confirm(`Apply pool "${pools[selectedPool]?.name}" to ALL devices?`)) return;
+                      try {
+                        await Promise.all(devices.map(d => api.pool.applyPool(d.name, selectedPool)));
+                        toast.success('Pool applied to all devices');
+                        loadPoolInfo();
+                      } catch (error: any) {
+                        toast.error(error.message || 'Failed to apply pool to all devices');
+                      }
+                    }}
+                    className="btn-matrix bg-yellow-600 hover:bg-yellow-700"
+                    disabled={!selectedPool}
+                  >
+                    APPLY_TO_ALL
+                  </Button>
+                </div>
               </div>
 
               <div>
@@ -449,9 +468,28 @@ export default function Operations() {
                     </Button>
                   ))}
                 </div>
-                <Button onClick={handleApplyFallbackPool} className="w-full mt-3 bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80" disabled={!selectedFallbackPool}>
-                  APPLY_FALLBACK_POOL
-                </Button>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <Button onClick={handleApplyFallbackPool} className="bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80" disabled={!selectedFallbackPool}>
+                    APPLY
+                  </Button>
+                  <Button 
+                    onClick={async () => {
+                      if (!selectedFallbackPool) return;
+                      if (!confirm(`Apply fallback pool "${pools[selectedFallbackPool]?.name}" to ALL devices?`)) return;
+                      try {
+                        await Promise.all(devices.map(d => api.pool.applyFallback(d.name, selectedFallbackPool)));
+                        toast.success('Fallback pool applied to all devices');
+                        loadPoolInfo();
+                      } catch (error: any) {
+                        toast.error(error.message || 'Failed to apply fallback pool to all devices');
+                      }
+                    }}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    disabled={!selectedFallbackPool}
+                  >
+                    APPLY_TO_ALL
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -467,7 +505,10 @@ export default function Operations() {
 
           {/* Quick Profile Apply */}
           <Card className="p-6 bg-black/80 border-matrix-green">
-            <h2 className="text-xl font-bold text-matrix-green mb-4">QUICK_PROFILE_APPLY</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-matrix-green">QUICK_PROFILE_APPLY</h2>
+              <div className="text-xs text-gray-400">Click profile to apply to selected device</div>
+            </div>
             {profiles.length === 0 ? (
               <div className="text-center py-4 text-gray-500">
                 NO_PROFILES_AVAILABLE
@@ -475,19 +516,35 @@ export default function Operations() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {profiles.map((profile) => (
-                  <Button
-                    key={profile.name}
-                    onClick={() => handleApplyProfile(profile.name)}
-                    variant="outline"
-                    className="h-auto py-3 flex flex-col items-start"
-                  >
-                    <div className="font-bold text-matrix-green">{profile.name}</div>
-                    {profile.voltage && profile.frequency && (
-                      <div className="text-xs text-gray-400 mt-1">
-                        {profile.voltage}mV @ {profile.frequency}MHz
-                      </div>
-                    )}
-                  </Button>
+                  <div key={profile.name} className="space-y-2">
+                    <Button
+                      onClick={() => handleApplyProfile(profile.name)}
+                      variant="outline"
+                      className="w-full h-auto py-3 flex flex-col items-start"
+                    >
+                      <div className="font-bold text-matrix-green">{profile.name}</div>
+                      {profile.voltage && profile.frequency && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          {profile.voltage}mV @ {profile.frequency}MHz
+                        </div>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (!confirm(`Apply profile "${profile.name}" to ALL devices?`)) return;
+                        try {
+                          await Promise.all(devices.map(d => api.shed.applyProfile(d.name, profile.name)));
+                          toast.success(`Profile "${profile.name}" applied to all devices`);
+                        } catch (error: any) {
+                          toast.error(error.message || 'Failed to apply profile to all devices');
+                        }
+                      }}
+                      size="sm"
+                      className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-xs"
+                    >
+                      APPLY_TO_ALL
+                    </Button>
+                  </div>
                 ))}
               </div>
             )}

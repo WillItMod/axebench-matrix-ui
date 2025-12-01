@@ -37,8 +37,9 @@ export default function Layout({ children }: LayoutProps) {
   const tabs = [
     { path: '/', label: 'DASHBOARD', icon: '⚡' },
     { path: '/benchmark', label: 'BENCHMARK', icon: '🔬' },
+    { path: '/monitoring', label: 'MONITORING', icon: '📊' },
     { path: '/profiles', label: 'PROFILES', icon: '📋' },
-    { path: '/sessions', label: 'SESSIONS', icon: '📊' },
+    { path: '/sessions', label: 'SESSIONS', icon: '📁' },
     { path: '/pool', label: 'POOL', icon: '🌐' },
     { path: '/operations', label: 'OPERATIONS', icon: '⏰' },
   ];

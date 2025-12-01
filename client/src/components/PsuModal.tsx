@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -10,12 +10,24 @@ interface PsuModalProps {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
+  editPsu?: { id: string; name: string; wattage: number } | null;
 }
 
-export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
+export default function PsuModal({ open, onClose, onSave, editPsu }: PsuModalProps) {
   const [name, setName] = useState('');
   const [wattage, setWattage] = useState(25);
   const [loading, setLoading] = useState(false);
+  
+  // Update form when editPsu changes
+  useEffect(() => {
+    if (editPsu) {
+      setName(editPsu.name);
+      setWattage(editPsu.wattage);
+    } else {
+      setName('');
+      setWattage(25);
+    }
+  }, [editPsu, open]);
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -30,11 +42,19 @@ export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
 
     try {
       setLoading(true);
-      await api.psus.create({
-        name: name.trim(),
-        wattage,
-      });
-      toast.success('PSU created successfully');
+      if (editPsu) {
+        await api.psus.update(editPsu.id, {
+          name: name.trim(),
+          wattage,
+        });
+        toast.success('PSU updated successfully');
+      } else {
+        await api.psus.create({
+          name: name.trim(),
+          wattage,
+        });
+        toast.success('PSU created successfully');
+      }
       onSave();
       handleClose();
     } catch (error: any) {
@@ -54,7 +74,7 @@ export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)] text-[var(--text-primary)] max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-glow-green">⚡ CREATE_PSU</DialogTitle>
+          <DialogTitle className="text-2xl font-bold text-glow-green">⚡ {editPsu ? 'EDIT_PSU' : 'CREATE_PSU'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -123,7 +143,7 @@ export default function PsuModal({ open, onClose, onSave }: PsuModalProps) {
             disabled={loading}
             className="btn-matrix"
           >
-            {loading ? 'CREATING...' : 'CREATE_PSU'}
+            {loading ? (editPsu ? 'UPDATING...' : 'CREATING...') : (editPsu ? 'UPDATE_PSU' : 'CREATE_PSU')}
           </Button>
         </DialogFooter>
       </DialogContent>

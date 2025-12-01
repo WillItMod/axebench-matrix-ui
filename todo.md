@@ -585,3 +585,13 @@
 - [x] Add PSU delete button with confirmation
 - [x] Enable plots by default in benchmark configuration
 - [x] Enable CSV export by default in benchmark configuration
+
+## Live Monitoring Improvements
+- [ ] Reorder LiveMonitoringPanel graphs:
+  - [ ] Graph 1: ASIC errors + Hashrate
+  - [ ] Graph 2: VR temp + ASIC temp  
+  - [ ] Graph 3: Power + J/TH (efficiency)
+- [ ] Create dedicated "Monitoring" tab in navigation
+- [ ] Monitoring tab shows same graph layout for all devices
+- [ ] Add additional monitoring metrics (voltage, frequency, fan speed, pool stats)
+- [ ] Multi-device monitoring view (select multiple devices to compare)
