@@ -63,6 +63,16 @@ export default function Benchmark() {
     loadDevices();
   }, []);
 
+  // Auto-select device model when device is selected
+  useEffect(() => {
+    if (selectedDevice && devices.length > 0) {
+      const device = devices.find(d => d.name === selectedDevice);
+      if (device && device.model) {
+        setConfig(prev => ({ ...prev, device_model: device.model.toLowerCase() }));
+      }
+    }
+  }, [selectedDevice, devices]);
+
   // Poll benchmark status
   useEffect(() => {
     if (!running) return;

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 import { api, formatHashrate, formatPower, formatTemp, MODEL_COLORS, MODEL_NAMES } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -25,12 +26,37 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // Load devices
+  // Load devices with status
   const loadDevices = async () => {
     try {
       setRefreshing(true);
-      const data = await api.devices.list();
-      setDevices(data);
+      const deviceList = await api.devices.list();
+      
+      // Fetch status for each device
+      const devicesWithStatus = await Promise.all(
+        deviceList.map(async (device: any) => {
+          try {
+            const status = await api.devices.status(device.name);
+            return {
+              ...device,
+              online: true, // If we got status, device is online
+              status: {
+                hashrate: status.hashrate || 0,
+                temp: status.temperature || 0,
+                power: status.power || 0,
+                voltage: status.voltage || 0,
+                frequency: status.frequency || 0,
+                fan_speed: status.fan_speed || 0,
+              },
+            };
+          } catch (error) {
+            // Device offline or error fetching status
+            return { ...device, online: false, status: null };
+          }
+        })
+      );
+      
+      setDevices(devicesWithStatus);
     } catch (error) {
       toast.error('Failed to load devices');
       console.error(error);
@@ -137,8 +163,19 @@ export default function Dashboard() {
 }
 
 function DeviceCard({ device, onRefresh }: { device: Device; onRefresh: () => void }) {
+  const [, setLocation] = useLocation();
   const modelColor = MODEL_COLORS[device.model?.toLowerCase()] || '#666';
   const modelName = MODEL_NAMES[device.model?.toLowerCase()] || device.model?.toUpperCase() || 'UNKNOWN';
+
+  const handleBenchmark = () => {
+    // Navigate to benchmark page with device pre-selected
+    setLocation('/benchmark?device=' + encodeURIComponent(device.name));
+  };
+
+  const handleConfig = () => {
+    // Show config toast for now (can be expanded to modal later)
+    toast.info(`Config panel for ${device.name} - Coming soon!`);
+  };
 
   return (
     <div className={`matrix-card ${!device.online ? 'opacity-60' : ''}`}>
@@ -200,10 +237,20 @@ function DeviceCard({ device, onRefresh }: { device: Device; onRefresh: () => vo
 
       {/* Actions */}
       <div className="flex gap-2">
-        <Button size="sm" className="flex-1 btn-matrix text-xs">
+        <Button 
+          size="sm" 
+          className="flex-1 btn-matrix text-xs"
+          onClick={handleBenchmark}
+          disabled={!device.online}
+        >
           🔬 BENCHMARK
         </Button>
-        <Button size="sm" className="flex-1 btn-cyan text-xs">
+        <Button 
+          size="sm" 
+          className="flex-1 btn-cyan text-xs"
+          onClick={handleConfig}
+          disabled={!device.online}
+        >
           ⚙️ CONFIG
         </Button>
       </div>

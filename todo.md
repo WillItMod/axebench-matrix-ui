@@ -98,3 +98,53 @@
 - [x] Session management
 - [x] Profile system
 - [x] Device management with auto-detection
+
+## Bug Fixes - User Reported Issues
+- [ ] Fix device status not updating (showing OFFLINE when devices are online)
+- [ ] Fix BENCHMARK button not working on device cards
+- [ ] Fix CONFIG button not working on device cards
+- [ ] Fix Gamma (ONI370) device model buttons
+- [ ] Verify Flask backend API connection
+- [ ] Check CORS configuration
+- [ ] Test real-time polling intervals
+- [ ] Add Auto Tune button to Benchmark page
+- [ ] Add Easy/Expert mode toggle
+- [ ] Implement Quick Tune presets (Conservative, Balanced, Aggressive)
+- [ ] Fix "error loading profiles" issue
+- [ ] Add Hardware Preset buttons (Stock, Quick Tune, Upgraded PSU, etc.)
+- [ ] Make Auto Mode toggle more prominent
+- [ ] Verify Flask backend connection and API responses
+- [ ] Add PROFILE button to device cards
+- [ ] Fix session logs showing "No logs available"
+- [ ] Add NANO TUNE button to Profiles page for fine-tuning existing profiles
+- [ ] Implement NANO TUNE modal with 4 goals (max_hashrate, efficient, balanced, quiet)
+
+## CRITICAL: Multi-Service Architecture
+- [ ] Document that AxeBench requires 3 services running:
+  1. web_interface.py (port 5000) - Main API
+  2. axeshed.py - Device management service
+  3. axepool.py - Pool management service
+- [ ] Add service status indicators to UI
+- [ ] Add instructions for starting all 3 services
+
+## Flask Connection Issues - CHECKPOINT READY
+- [x] Fix device status parsing (Flask returns devices but UI shows OFFLINE)
+- [x] Verify API response format matches UI expectations
+- [x] Add proper error handling for missing 'online' field
+- [x] Test with real Flask API responses
+- [x] Fix device model not auto-selecting when device is chosen in Benchmark page
+- [x] Fix API endpoint (.env configured for localhost:5000)
+- [x] Device status now properly fetches from /api/devices/<name>/status
+
+## READY FOR USER TESTING
+- [ ] Refresh browser and verify devices show ONLINE
+- [ ] Test BENCHMARK button on device cards
+- [ ] Test CONFIG button on device cards
+- [ ] Test Start Benchmark functionality
+- [ ] Verify profile loading works
+
+## Missing Apps
+- [ ] Add AxeShed page (Fleet Scheduler) to navigation
+- [ ] Implement AxeShed interface for time-based profile scheduling
+- [ ] Add AxePool page (Pool Management) to navigation
+- [ ] Implement AxePool interface for pool switching
