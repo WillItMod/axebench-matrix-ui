@@ -195,7 +195,7 @@ export const api = {
   
   pool: {
     // Pool CRUD
-    list: () => apiFetch<any[]>('/api/pools'),
+    list: () => apiFetch<Record<string, any>>('/api/pools'),
     create: (data: any) =>
       apiFetch<any>('/api/pools', { method: 'POST', body: JSON.stringify(data) }),
     get: (poolId: string) => apiFetch<any>(`/api/pools/${poolId}`),

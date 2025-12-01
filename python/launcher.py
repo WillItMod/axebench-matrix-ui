@@ -5,20 +5,13 @@ from pathlib import Path
 # Clear stale benchmark state if no engine is running
 state_file = Path.home() / ".bitaxe-benchmark" / "benchmark_state.json"
 if state_file.exists():
-    try:
-        with open(state_file, "r") as f:
-            state = json.load(f)
-        if state.get("running") is True:
-            state["running"] = False
-            state["config"] = None
-            with open(state_file, "w") as f:
-                json.dump(state, f, indent=2)
-    except (json.JSONDecodeError, KeyError) as e:
-        print(f"Warning: Corrupted benchmark state file, recreating: {e}")
-        # Create fresh state file
-        state_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(state_file, "r") as f:
+        state = json.load(f)
+    if state.get("running") is True:
+        state["running"] = False
+        state["config"] = None
         with open(state_file, "w") as f:
-            json.dump({"running": False, "config": None}, f, indent=2)
+            json.dump(state, f, indent=2)
 
 """
 AxeBench Suite Launcher
@@ -59,9 +52,7 @@ def print_banner():
 ║   ⚡ AxeBench:  http://localhost:5000  (Benchmark/Tune)   ║
 ║   🏠 AxeShed:   http://localhost:5001  (Profile Sched)    ║
 ║   🎱 AxePool:   http://localhost:5002  (Pool Manager)     ║
-║   🌐 Frontend:  http://localhost:3000  (Matrix UI)        ║
 ║                                                           ║
-║   Open http://localhost:3000 in your browser              ║
 ║   Press Ctrl+C to stop all services                       ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -72,7 +63,7 @@ def start_axebench():
     try:
         logger.info("Starting AxeBench on port 5000...")
         from web_interface import run_web_server
-        run_web_server(host='localhost', port=5000)
+        run_web_server(host='0.0.0.0', port=5000)
     except Exception as e:
         logger.error(f"AxeBench failed to start: {e}")
         sys.exit(1)
@@ -82,7 +73,7 @@ def start_axeshed():
     try:
         logger.info("Starting AxeShed on port 5001...")
         from axeshed import run_axeshed
-        run_axeshed(host='localhost', port=5001)
+        run_axeshed(host='0.0.0.0', port=5001)
     except Exception as e:
         logger.error(f"AxeShed failed to start: {e}")
         sys.exit(1)
@@ -92,28 +83,9 @@ def start_axepool():
     try:
         logger.info("Starting AxePool on port 5002...")
         from axepool import run_axepool
-        run_axepool(host='localhost', port=5002)
+        run_axepool(host='0.0.0.0', port=5002)
     except Exception as e:
         logger.error(f"AxePool failed to start: {e}")
-        sys.exit(1)
-
-def start_frontend():
-    """Start React frontend with pnpm dev"""
-    import subprocess
-    import os
-    try:
-        logger.info("Starting React frontend on port 3000...")
-        # Get the project root (parent of python folder)
-        project_root = Path(__file__).parent.parent
-        # Run pnpm dev in the project root
-        subprocess.run(
-            ['pnpm', 'dev'],
-            cwd=str(project_root),
-            env={**os.environ, 'VITE_API_BASE_URL': ''},  # Ensure proxy is used
-            check=False
-        )
-    except Exception as e:
-        logger.error(f"Frontend failed to start: {e}")
         sys.exit(1)
 
 def signal_handler(sig, frame):
@@ -150,9 +122,8 @@ def main():
     axebench_process = Process(target=start_axebench, name='AxeBench')
     axeshed_process = Process(target=start_axeshed, name='AxeShed')
     axepool_process = Process(target=start_axepool, name='AxePool')
-    frontend_process = Process(target=start_frontend, name='Frontend')
     
-    processes = [axebench_process, axeshed_process, axepool_process, frontend_process]
+    processes = [axebench_process, axeshed_process, axepool_process]
     
     # Start all processes
     for process in processes:

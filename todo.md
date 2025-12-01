@@ -502,3 +502,11 @@
 ## Network Access - External Devices
 - [x] CRITICAL: Fixed Vite host binding - changed from 'true' to '0.0.0.0' for IPv4 compatibility
 - [x] Server now binds to all network interfaces for external device access
+
+- [ ] Add difficulty formatting utility to display values with M/G/T units (e.g., 292280191 → 292M)
+- [ ] Apply difficulty formatting to bestDiff and bestSessionDiff displays
+
+- [x] Profiles: Add multi-device Quick Profile Apply with toggle buttons and main/fallback slider
+- [ ] Live Monitor: Add real-time graphs for hashrate/temp/voltage/frequency
+- [ ] Benchmark: Show Advanced Options checkboxes (Restart Between Tests, Enable Plots, Export CSV)
+- [ ] Nano Tune: Fix modal auto-submit behavior

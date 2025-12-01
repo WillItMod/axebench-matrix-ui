@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { Zap, Check } from 'lucide-react';
 
 export default function Profiles() {
   const [devices, setDevices] = useState<any[]>([]);
@@ -16,6 +17,11 @@ export default function Profiles() {
   const [selectedProfile, setSelectedProfile] = useState<string>('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
+  
+  // Quick Apply state
+  const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
+  const [quickApplyProfile, setQuickApplyProfile] = useState('');
+  const [applyAsMain, setApplyAsMain] = useState(true);
 
   useEffect(() => {
     loadDevices();
@@ -101,6 +107,48 @@ export default function Profiles() {
     }
   };
 
+  const toggleDevice = (deviceName: string) => {
+    const newSelected = new Set(selectedDevices);
+    if (newSelected.has(deviceName)) {
+      newSelected.delete(deviceName);
+    } else {
+      newSelected.add(deviceName);
+    }
+    setSelectedDevices(newSelected);
+  };
+
+  const handleQuickApply = async () => {
+    if (selectedDevices.size === 0) {
+      toast.error('Please select at least one device');
+      return;
+    }
+    if (!quickApplyProfile) {
+      toast.error('Please select a profile');
+      return;
+    }
+
+    const deviceArray = Array.from(selectedDevices);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const deviceName of deviceArray) {
+      try {
+        await api.profiles.apply(deviceName, quickApplyProfile);
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to apply profile to ${deviceName}:`, error);
+        failCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Applied "${quickApplyProfile}" to ${successCount} device(s)${applyAsMain ? ' as MAIN' : ' as FALLBACK'}`);
+    }
+    if (failCount > 0) {
+      toast.error(`Failed to apply to ${failCount} device(s)`);
+    }
+  };
+
   const profileList = Object.entries(profiles);
 
   return (
@@ -110,6 +158,114 @@ export default function Profiles() {
         <p className="text-[var(--text-secondary)] text-sm">
           Manage and apply voltage/frequency profiles
         </p>
+      </div>
+
+      {/* Quick Profile Apply - Multi-Device */}
+      <div className="matrix-card border-2 border-[var(--neon-cyan)]">
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="w-6 h-6 text-[var(--neon-cyan)]" />
+          <h2 className="text-2xl font-bold text-glow-cyan">QUICK_PROFILE_APPLY</h2>
+        </div>
+
+        {/* Device Selection Grid */}
+        <div className="mb-4">
+          <Label className="text-[var(--text-secondary)] mb-2 block">SELECT_DEVICES</Label>
+          {devices.length === 0 ? (
+            <div className="text-center py-4 text-[var(--text-muted)]">
+              NO_DEVICES_AVAILABLE
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {devices.map((device) => (
+                <button
+                  key={device.name}
+                  onClick={() => toggleDevice(device.name)}
+                  className={`
+                    relative p-3 rounded border-2 transition-all text-left
+                    ${selectedDevices.has(device.name)
+                      ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/10'
+                      : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] hover:border-[var(--text-muted)]'
+                    }
+                  `}
+                >
+                  {selectedDevices.has(device.name) && (
+                    <div className="absolute top-1 right-1">
+                      <Check className="w-4 h-4 text-[var(--matrix-green)]" />
+                    </div>
+                  )}
+                  <div className="font-bold text-[var(--text-primary)] text-sm">
+                    {device.name}
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)]">
+                    {device.model}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Profile Selection & Apply Type */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <Label className="text-[var(--text-secondary)] mb-2 block">SELECT_PROFILE</Label>
+            <Select value={quickApplyProfile} onValueChange={setQuickApplyProfile}>
+              <SelectTrigger className="bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                <SelectValue placeholder="Select profile..." />
+              </SelectTrigger>
+              <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
+                {profileList.map(([name, profile]: [string, any]) => {
+                  if (!profile || typeof profile !== 'object') return null;
+                  return (
+                    <SelectItem key={name} value={name} className="text-[var(--text-primary)]">
+                      {name.toUpperCase()} - {profile.voltage}mV @ {profile.frequency}MHz
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-[var(--text-secondary)] mb-2 block">APPLY_AS</Label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setApplyAsMain(true)}
+                className={`
+                  flex-1 py-2 px-4 rounded border-2 font-bold transition-all
+                  ${applyAsMain
+                    ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/20 text-[var(--matrix-green)]'
+                    : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] text-[var(--text-secondary)]'
+                  }
+                `}
+              >
+                MAIN
+              </button>
+              <button
+                onClick={() => setApplyAsMain(false)}
+                className={`
+                  flex-1 py-2 px-4 rounded border-2 font-bold transition-all
+                  ${!applyAsMain
+                    ? 'border-[var(--neon-cyan)] bg-[var(--neon-cyan)]/20 text-[var(--neon-cyan)]'
+                    : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] text-[var(--text-secondary)]'
+                  }
+                `}
+              >
+                FALLBACK
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Apply Button */}
+        <Button
+          onClick={handleQuickApply}
+          disabled={selectedDevices.size === 0 || !quickApplyProfile}
+          className="w-full btn-matrix text-lg py-6"
+        >
+          <Zap className="w-5 h-5 mr-2" />
+          APPLY_TO_{selectedDevices.size}_DEVICE{selectedDevices.size !== 1 ? 'S' : ''}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -135,7 +291,7 @@ export default function Profiles() {
           {/* Profiles */}
           {loading ? (
             <div className="matrix-card text-center py-12">
-              <div className="text-[var(--matrix-green)] text-glow-green flicker">
+              <div className="text-[var(--text-muted)] text-lg animate-pulse">
                 LOADING_PROFILES...
               </div>
             </div>
@@ -266,6 +422,9 @@ export default function Profiles() {
           <div className="matrix-card">
             <h3 className="text-lg font-bold text-glow-cyan mb-2">INFO</h3>
             <div className="text-xs text-[var(--text-secondary)] space-y-2">
+              <p>
+                <strong className="text-[var(--text-primary)]">QUICK_APPLY:</strong> Apply profile to multiple devices
+              </p>
               <p>
                 <strong className="text-[var(--text-primary)]">APPLY:</strong> Set device to profile settings
               </p>

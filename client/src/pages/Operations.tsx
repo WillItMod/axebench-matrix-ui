@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Play, Square, RefreshCw, Clock, Calendar } from 'lucide-react';
+import { Play, Square, RefreshCw, Clock, Calendar, ArrowLeftRight, Shield } from 'lucide-react';
 
 interface Schedule {
   enabled: boolean;
@@ -19,6 +19,27 @@ interface ScheduleEntry {
   days?: string[]; // ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 }
 
+interface Pool {
+  name: string;
+  url: string;
+  port: number;
+  user: string;
+  password?: string;
+}
+
+interface PoolInfo {
+  url: string;
+  port: number;
+  user: string;
+  password: string;
+  fallback_url: string;
+  fallback_port: number;
+  fallback_user: string;
+  fallback_password: string;
+  is_using_fallback: boolean;
+  pool_connected: boolean;
+}
+
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>('');
@@ -26,6 +47,12 @@ export default function Operations() {
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [schedulerStatus, setSchedulerStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Pool management state
+  const [pools, setPools] = useState<Record<string, Pool>>({});
+  const [poolInfo, setPoolInfo] = useState<PoolInfo | null>(null);
+  const [selectedPool, setSelectedPool] = useState<string>('');
+  const [selectedFallbackPool, setSelectedFallbackPool] = useState<string>('');
 
   // New schedule entry form
   const [newEntry, setNewEntry] = useState<ScheduleEntry>({
@@ -36,13 +63,20 @@ export default function Operations() {
 
   useEffect(() => {
     loadDevices();
-    const interval = setInterval(loadSchedulerStatus, 5000);
+    loadPools();
+    const interval = setInterval(() => {
+      loadSchedulerStatus();
+      if (selectedDevice) {
+        loadPoolInfo();
+      }
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (selectedDevice) {
       loadDeviceData();
+      loadPoolInfo();
     }
   }, [selectedDevice]);
 
@@ -74,6 +108,27 @@ export default function Operations() {
     } catch (error) {
       console.error('Failed to load device data:', error);
       toast.error('Failed to load device data');
+    }
+  };
+
+  const loadPools = async () => {
+    try {
+      const poolsData = await api.pool.list();
+      // API returns object, not array
+      setPools(poolsData || {});
+    } catch (error) {
+      console.error('Failed to load pools:', error);
+    }
+  };
+
+  const loadPoolInfo = async () => {
+    if (!selectedDevice) return;
+    
+    try {
+      const info = await api.pool.getDevicePool(selectedDevice);
+      setPoolInfo(info);
+    } catch (error) {
+      console.error('Failed to load pool info:', error);
     }
   };
 
@@ -181,6 +236,54 @@ export default function Operations() {
     }
   };
 
+  const handleApplyPool = async () => {
+    if (!selectedDevice || !selectedPool) {
+      toast.error('Please select a device and pool');
+      return;
+    }
+
+    try {
+      await api.pool.applyPool(selectedDevice, selectedPool);
+      toast.success(`Pool applied to ${selectedDevice}`);
+      loadPoolInfo();
+    } catch (error) {
+      console.error('Failed to apply pool:', error);
+      toast.error('Failed to apply pool');
+    }
+  };
+
+  const handleApplyFallbackPool = async () => {
+    if (!selectedDevice || !selectedFallbackPool) {
+      toast.error('Please select a device and fallback pool');
+      return;
+    }
+
+    try {
+      await api.pool.applyFallback(selectedDevice, selectedFallbackPool);
+      toast.success(`Fallback pool applied to ${selectedDevice}`);
+      loadPoolInfo();
+    } catch (error) {
+      console.error('Failed to apply fallback pool:', error);
+      toast.error('Failed to apply fallback pool');
+    }
+  };
+
+  const handleSwapPools = async () => {
+    if (!selectedDevice) {
+      toast.error('Please select a device');
+      return;
+    }
+
+    try {
+      await api.pool.swapPool(selectedDevice);
+      toast.success('Pools swapped successfully');
+      loadPoolInfo();
+    } catch (error) {
+      console.error('Failed to swap pools:', error);
+      toast.error('Failed to swap pools');
+    }
+  };
+
   const dayLabels: Record<string, string> = {
     mon: 'M',
     tue: 'T',
@@ -204,11 +307,11 @@ export default function Operations() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-matrix-green mb-2">🏠 AXESHED</h1>
-          <p className="text-neon-cyan">Profile Scheduling & Operations</p>
+          <h1 className="text-3xl font-bold text-matrix-green mb-2">⚙️ OPERATIONS</h1>
+          <p className="text-neon-cyan">Profile Scheduling, Pool Management & Failover</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={loadDeviceData} variant="outline" className="gap-2">
+          <Button onClick={() => { loadDeviceData(); loadPools(); loadPoolInfo(); }} variant="outline" className="gap-2">
             <RefreshCw className="w-4 h-4" />
             REFRESH
           </Button>
@@ -265,6 +368,93 @@ export default function Operations() {
 
       {selectedDevice && (
         <>
+          {/* Pool Failover Section */}
+          <Card className="p-6 bg-black/80 border-red-500">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-6 h-6 text-red-500" />
+              <h2 className="text-xl font-bold text-red-500">POOL FAILOVER</h2>
+            </div>
+            
+            {poolInfo && (
+              <Card className="p-4 bg-black/90 border-gray-700 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-gray-400 mb-1">MAIN POOL</div>
+                    <div className="font-mono text-matrix-green">
+                      {poolInfo.url}:{poolInfo.port}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">User: {poolInfo.user}</div>
+                    <div className={`text-xs mt-1 ${poolInfo.pool_connected && !poolInfo.is_using_fallback ? 'text-matrix-green' : 'text-gray-500'}`}>
+                      {poolInfo.pool_connected && !poolInfo.is_using_fallback ? '● ACTIVE' : '○ INACTIVE'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-400 mb-1">FALLBACK POOL</div>
+                    <div className="font-mono text-neon-cyan">
+                      {poolInfo.fallback_url || 'Not configured'}
+                      {poolInfo.fallback_port ? `:${poolInfo.fallback_port}` : ''}
+                    </div>
+                    {poolInfo.fallback_user && (
+                      <div className="text-xs text-gray-500 mt-1">User: {poolInfo.fallback_user}</div>
+                    )}
+                    <div className={`text-xs mt-1 ${poolInfo.is_using_fallback ? 'text-red-500' : 'text-gray-500'}`}>
+                      {poolInfo.is_using_fallback ? '● ACTIVE (FAILOVER)' : '○ STANDBY'}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <Label htmlFor="main-pool-select">MAIN POOL</Label>
+                <Select value={selectedPool} onValueChange={setSelectedPool}>
+                  <SelectTrigger id="main-pool-select" className="w-full mt-2">
+                    <SelectValue placeholder="Select main pool..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(pools).map(([id, pool]) => (
+                      <SelectItem key={id} value={id}>
+                        {pool.name} ({pool.url}:{pool.port})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleApplyPool} className="w-full mt-2" disabled={!selectedPool}>
+                  APPLY_MAIN_POOL
+                </Button>
+              </div>
+
+              <div>
+                <Label htmlFor="fallback-pool-select">FALLBACK POOL</Label>
+                <Select value={selectedFallbackPool} onValueChange={setSelectedFallbackPool}>
+                  <SelectTrigger id="fallback-pool-select" className="w-full mt-2">
+                    <SelectValue placeholder="Select fallback pool..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(pools).map(([id, pool]) => (
+                      <SelectItem key={id} value={id}>
+                        {pool.name} ({pool.url}:{pool.port})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleApplyFallbackPool} className="w-full mt-2" disabled={!selectedFallbackPool}>
+                  APPLY_FALLBACK_POOL
+                </Button>
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleSwapPools} 
+              variant="outline" 
+              className="w-full gap-2 border-red-500 text-red-500 hover:bg-red-500/10"
+            >
+              <ArrowLeftRight className="w-4 h-4" />
+              SWAP_MAIN_↔_FALLBACK
+            </Button>
+          </Card>
+
           {/* Quick Profile Apply */}
           <Card className="p-6 bg-black/80 border-matrix-green">
             <h2 className="text-xl font-bold text-matrix-green mb-4">QUICK_PROFILE_APPLY</h2>
