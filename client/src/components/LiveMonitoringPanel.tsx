@@ -38,11 +38,14 @@ interface LiveStats {
 
 interface LiveMonitoringPanelProps {
   deviceName: string;
+  colorPalette?: string[];
 }
 
 const MAX_HISTORY = 60; // Keep last 60 readings
 
-export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelProps) {
+const DEFAULT_COLORS = ['#ff0000', '#0000ff', '#ff8800', '#00ff00', '#ffff00', '#0088ff'];
+
+export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT_COLORS }: LiveMonitoringPanelProps) {
   const [stats, setStats] = useState<LiveStats | null>(null);
   const [history, setHistory] = useState<LiveStats[]>([]);
 
@@ -61,8 +64,8 @@ export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelP
           frequency: status.frequency || 0,
           hashrate,
           power,
-          chipTemp: status.temp || 0,
-          vrTemp: status.vrTemp || 0,
+          chipTemp: status.temp || status.chipTemp || 0,
+          vrTemp: status.vrTemp || status.vr_temp || 0,
           asicErrors: status.asic_errors || status.errors || 0,
           efficiency,
           timestamp: new Date().toLocaleTimeString(),

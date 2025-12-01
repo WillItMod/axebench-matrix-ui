@@ -112,7 +112,8 @@ export default function Profiles() {
         description: `Saved on ${new Date().toLocaleString()}`
       };
       
-      const result = await api.profiles.update(selectedDevice, newProfileName.trim(), profileData);
+      // Use saveCustom endpoint which fetches current device settings
+      const result = await api.profiles.saveCustom(selectedDevice);
       console.log('[Profiles] Save result:', result);
       toast.success(`Profile "${newProfileName}" saved successfully`);
       setShowSaveDialog(false);

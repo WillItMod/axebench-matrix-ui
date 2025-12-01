@@ -595,3 +595,11 @@
 - [ ] Monitoring tab shows same graph layout for all devices
 - [ ] Add additional monitoring metrics (voltage, frequency, fan speed, pool stats)
 - [ ] Multi-device monitoring view (select multiple devices to compare)
+
+
+## 🔥 CRITICAL - Under 1000 Credits Sprint
+- [x] Live Monitoring: VR/ASIC temps = 0, ASIC errors = 0 (added vr_temp fallback)
+- [x] Multi-device colors + legend (4 color palettes, legend squares on buttons)
+- [x] Profile Save Current - 405 error (changed to saveCustom endpoint)
+- [x] Sessions JSON button (already exists, visible in modal)
+- [ ] Pool save doesn't persist (backend saves correctly, frontend may need refresh)

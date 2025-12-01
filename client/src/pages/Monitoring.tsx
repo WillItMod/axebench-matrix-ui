@@ -4,6 +4,13 @@ import { Button } from '@/components/ui/button';
 import LiveMonitoringPanel from '@/components/LiveMonitoringPanel';
 import { RefreshCw } from 'lucide-react';
 
+const DEVICE_COLOR_PALETTES = [
+  ['#ff0000', '#0000ff', '#ff8800', '#00ff00', '#ffff00', '#0088ff'], // Device 1: RED BLUE ORANGE GREEN YELLOW LIGHTBLUE
+  ['#ff00ff', '#00ffff', '#ff0088', '#88ff00', '#8800ff', '#ffaa00'], // Device 2: MAGENTA CYAN PINK LIME PURPLE ORANGE
+  ['#ff6666', '#6666ff', '#ffaa66', '#66ff66', '#ffff66', '#66aaff'], // Device 3: Lighter variants
+  ['#aa0000', '#0000aa', '#aa5500', '#00aa00', '#aaaa00', '#0055aa'], // Device 4: Darker variants
+];
+
 export default function Monitoring() {
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -90,20 +97,28 @@ export default function Monitoring() {
         </div>
         
         <div className="flex flex-wrap gap-2">
-          {devices.map((device) => (
-            <Button
-              key={device.name}
-              onClick={() => toggleDevice(device.name)}
-              variant={selectedDevices.includes(device.name) ? 'default' : 'outline'}
-              className={selectedDevices.includes(device.name)
-                ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80 border-[var(--neon-cyan)]'
-                : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--neon-cyan)] hover:text-[var(--neon-cyan)]'
-              }
-            >
-              {device.name}
-              <span className="ml-2 text-xs opacity-60">({device.model})</span>
-            </Button>
-          ))}
+          {devices.map((device, idx) => {
+            const colorPalette = DEVICE_COLOR_PALETTES[idx % DEVICE_COLOR_PALETTES.length];
+            return (
+              <Button
+                key={device.name}
+                onClick={() => toggleDevice(device.name)}
+                variant={selectedDevices.includes(device.name) ? 'default' : 'outline'}
+                className={selectedDevices.includes(device.name)
+                  ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80 border-[var(--neon-cyan)] flex items-center gap-2'
+                  : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--neon-cyan)] hover:text-[var(--neon-cyan)] flex items-center gap-2'
+                }
+              >
+                <div className="flex gap-0.5">
+                  {colorPalette.map((color, i) => (
+                    <div key={i} className="w-2 h-2 rounded-sm" style={{ backgroundColor: color }} />
+                  ))}
+                </div>
+                {device.name}
+                <span className="ml-1 text-xs opacity-60">({device.model})</span>
+              </Button>
+            );
+          })}
         </div>
 
         {selectedDevices.length === 0 && (
@@ -116,9 +131,17 @@ export default function Monitoring() {
       {/* Monitoring Panels */}
       {selectedDevices.length > 0 && (
         <div className="space-y-6">
-          {selectedDevices.map((deviceName) => (
-            <LiveMonitoringPanel key={deviceName} deviceName={deviceName} />
-          ))}
+          {selectedDevices.map((deviceName) => {
+            const deviceIdx = devices.findIndex(d => d.name === deviceName);
+            const colorPalette = DEVICE_COLOR_PALETTES[deviceIdx % DEVICE_COLOR_PALETTES.length];
+            return (
+              <LiveMonitoringPanel 
+                key={deviceName} 
+                deviceName={deviceName}
+                colorPalette={colorPalette}
+              />
+            );
+          })}
         </div>
       )}
     </div>
