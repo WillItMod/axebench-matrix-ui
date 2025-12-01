@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import BenchmarkConsole from '@/components/BenchmarkConsole';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -662,6 +663,13 @@ export default function Benchmark() {
           )}
         </div>
       </div>
+
+      {/* Benchmark Console */}
+      {running && (
+        <div className="mt-6">
+          <BenchmarkConsole />
+        </div>
+      )}
     </div>
   );
 }

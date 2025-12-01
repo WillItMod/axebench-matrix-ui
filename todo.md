@@ -272,13 +272,18 @@
 - [ ] Support both benchmark and nano-tune status
 
 ## Benchmark Console & Live Monitoring
-- [ ] Add console/log viewer to Benchmark page
-- [ ] Fetch logs from /api/benchmark/status or session logs
-- [ ] Auto-scroll to bottom as new logs appear
-- [ ] Show timestamp, log level, and message
+- [x] Add console/log viewer to Benchmark page
+- [x] Fetch logs from /api/benchmark/status or session logs
+- [x] Auto-scroll to bottom as new logs appear
+- [x] Show timestamp, log level, and message
 - [ ] Add clear logs button
-- [ ] Add live monitoring panel with real-time device stats
+- [x] Add live monitoring panel with real-time device stats
 - [ ] Show charts for hashrate, power, voltage, frequency, temperature
+
+## Benchmark STOP Button
+- [x] Add STOP button that appears when benchmark is running
+- [x] Call /api/benchmark/stop endpoint
+- [x] Update UI state after stopping
 
 ## Operations (AxeShed Scheduler) Page
 - [x] Import ShedPage from v3.0
@@ -291,3 +296,15 @@
 - [x] Add pool configuration interface
 - [x] Add pool failover management
 - [x] Add navigation tab for Pool
+
+## Patreon Authentication & Device Limits
+- [ ] Create PatreonAuth context for authentication state
+- [ ] Add Patreon login button in header
+- [ ] Implement OAuth flow with Patreon API
+- [ ] Store user tier (Free, Premium, Ultimate) in context
+- [ ] Enforce device limits: Free (5), Premium (25), Ultimate (250)
+- [ ] Show device count warning when approaching limit
+- [ ] Block adding devices when limit reached
+- [ ] Add nag banner for free users (every 15 minutes)
+- [ ] Add thank you banner for Premium/Ultimate users
+- [ ] Persist auth state in localStorage
