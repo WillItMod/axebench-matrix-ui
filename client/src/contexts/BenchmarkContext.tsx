@@ -3,9 +3,12 @@ import { api } from '@/lib/api';
 
 interface BenchmarkStatus {
   running: boolean;
+  mode?: string; // 'benchmark', 'auto_tune', 'nano_tune'
   device?: string;
   progress?: number;
   currentTest?: string;
+  phase?: string; // For auto_tune: 'Precision Benchmark', 'Profile Generation', etc.
+  goal?: string; // For nano_tune: 'quiet', 'balanced', 'performance', 'max'
   logs?: string[];
   sessionId?: string;
 }
@@ -25,9 +28,12 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
       const data = await api.benchmark.status();
       setStatus({
         running: data.running || false,
+        mode: data.mode || 'benchmark',
         device: data.device_name,
         progress: data.progress,
         currentTest: data.current_test,
+        phase: data.phase,
+        goal: data.goal,
         logs: data.logs || [],
         sessionId: data.session_id,
       });

@@ -1,39 +1,15 @@
-import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { useBenchmark } from '@/contexts/BenchmarkContext';
 
 export default function AutoTuneStatusBanner() {
-  const [autoTuneStatus, setAutoTuneStatus] = useState<any>(null);
+  const { status } = useBenchmark();
 
-  useEffect(() => {
-    const checkAutoTuneStatus = async () => {
-      try {
-        // Check if auto tune is running via benchmark status
-        const response = await api.benchmark.status();
-        if (response.running && response.mode === 'auto_tune') {
-          setAutoTuneStatus(response);
-        } else {
-          setAutoTuneStatus(null);
-        }
-      } catch (error) {
-        // Auto tune not running or endpoint not available
-        setAutoTuneStatus(null);
-      }
-    };
+  // Only show when auto_tune is running
+  if (!status.running || status.mode !== 'auto_tune') return null;
 
-    // Initial check
-    checkAutoTuneStatus();
-
-    // Poll every 2 seconds
-    const interval = setInterval(checkAutoTuneStatus, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!autoTuneStatus) return null;
-
-  const progress = autoTuneStatus.progress || 0;
-  const device = autoTuneStatus.device_name || 'Unknown';
-  const phase = autoTuneStatus.phase || 'Initializing';
-  const currentTest = autoTuneStatus.current_test || '';
+  const progress = status.progress || 0;
+  const device = status.device || 'Unknown';
+  const phase = status.phase || 'Initializing';
+  const currentTest = status.currentTest || '';
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600/95 to-pink-600/95 backdrop-blur-sm border-b-2 border-pink-400 shadow-lg shadow-pink-500/50">

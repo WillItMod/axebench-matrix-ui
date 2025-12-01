@@ -1,39 +1,15 @@
-import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { useBenchmark } from '@/contexts/BenchmarkContext';
 
 export default function NanoTuneStatusBanner() {
-  const [nanoTuneStatus, setNanoTuneStatus] = useState<any>(null);
+  const { status } = useBenchmark();
 
-  useEffect(() => {
-    const checkNanoTuneStatus = async () => {
-      try {
-        // Check if nano tune is running via benchmark status
-        const response = await api.benchmark.status();
-        if (response.running && response.mode === 'nano_tune') {
-          setNanoTuneStatus(response);
-        } else {
-          setNanoTuneStatus(null);
-        }
-      } catch (error) {
-        // Nano tune not running or endpoint not available
-        setNanoTuneStatus(null);
-      }
-    };
+  // Only show when nano_tune is running
+  if (!status.running || status.mode !== 'nano_tune') return null;
 
-    // Initial check
-    checkNanoTuneStatus();
-
-    // Poll every 2 seconds
-    const interval = setInterval(checkNanoTuneStatus, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!nanoTuneStatus) return null;
-
-  const progress = nanoTuneStatus.progress || 0;
-  const device = nanoTuneStatus.device_name || 'Unknown';
-  const goal = nanoTuneStatus.goal || 'balanced';
-  const currentTest = nanoTuneStatus.current_test || '';
+  const progress = status.progress || 0;
+  const device = status.device || 'Unknown';
+  const goal = status.goal || 'balanced';
+  const currentTest = status.currentTest || '';
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-900/95 to-pink-900/95 backdrop-blur-sm border-b-2 border-purple-500 shadow-lg">

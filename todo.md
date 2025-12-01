@@ -330,3 +330,22 @@
 - [x] Added null checks and handle missing profile data gracefully
 - [x] Added optional chaining (?.) for is_best property access
 - [x] Filter out null/invalid profiles before rendering
+
+## BUG - STOP Button 404 Error
+- [ ] STOP button in control panel returns 404 error when clicked
+- [ ] Endpoint /api/benchmark/stop not found or URL incorrect
+- [ ] Check Flask backend has /api/benchmark/stop route
+- [ ] Verify API client is calling correct endpoint
+- [ ] Test STOP button functionality after fix
+
+## BUG - Status Banner Issues
+- [ ] Two identical "BENCHMARK_RUNNING" banners appear at top of page
+- [ ] Banners show "Progress: 0% 1150mV @ 400MHz" even when no benchmark is active
+- [ ] No benchmark TYPE shown in banner (should show: Benchmark, Auto Tune, or Nano Tune)
+- [ ] Issue: All three banners (Benchmark, AutoTune, NanoTune) might be checking same status
+- [ ] Need to add 'mode' field to distinguish benchmark types
+- [ ] BenchmarkStatusBanner should only show for regular benchmarks (mode: 'benchmark')
+- [ ] AutoTuneStatusBanner should only show when mode: 'auto_tune'
+- [ ] NanoTuneStatusBanner should only show when mode: 'nano_tune'
+- [ ] Check if backend is returning incorrect status or missing mode field
+- [ ] Investigate why duplicate banners appear (Layout only has one of each)

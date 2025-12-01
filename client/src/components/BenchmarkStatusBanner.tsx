@@ -8,7 +8,8 @@ export default function BenchmarkStatusBanner() {
   const { status, refreshStatus } = useBenchmark();
   const [stopping, setStopping] = useState(false);
 
-  if (!status.running) return null;
+  // Only show for regular benchmarks (not auto_tune or nano_tune)
+  if (!status.running || (status.mode && status.mode !== 'benchmark')) return null;
 
   const handleStop = async () => {
     if (!confirm('Stop the running benchmark?')) return;
