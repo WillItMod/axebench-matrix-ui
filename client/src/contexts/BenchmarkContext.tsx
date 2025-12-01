@@ -16,12 +16,17 @@ interface BenchmarkStatus {
 interface BenchmarkContextType {
   status: BenchmarkStatus;
   refreshStatus: () => Promise<void>;
+  clearLogs: () => void;
 }
 
 const BenchmarkContext = createContext<BenchmarkContextType | undefined>(undefined);
 
 export function BenchmarkProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<BenchmarkStatus>({ running: false });
+
+  const clearLogs = () => {
+    setStatus(prev => ({ ...prev, logs: [] }));
+  };
 
   const refreshStatus = async () => {
     try {
@@ -77,7 +82,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
   }, [status.running]);
 
   return (
-    <BenchmarkContext.Provider value={{ status, refreshStatus }}>
+    <BenchmarkContext.Provider value={{ status, refreshStatus, clearLogs }}>
       {children}
     </BenchmarkContext.Provider>
   );

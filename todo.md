@@ -525,3 +525,19 @@
 - [x] Create LiveMonitorGraphs component with real-time charts
 - [x] Add graphs for hashrate, temperature, voltage, frequency, and power
 - [x] Integrate graphs into LiveMonitoringPanel with data polling
+
+- [ ] Operations: Replace device dropdown with toggle buttons (multi-select)
+- [ ] Operations: Replace pool dropdowns with toggle buttons (multi-select)
+- [ ] Operations: Allow both Main and Failback to be selected simultaneously
+- [ ] Operations: Apply pools to all selected devices at once
+
+- [ ] Dashboard: Fix bestDiff fetching from /api/system/info endpoint
+- [ ] Dashboard: Map bestSessionDiff correctly from device API
+
+- [ ] Profiles: Add JSON button to view/export raw profile data
+
+- [ ] Benchmark: Fix Auto Mode switch to visually show on/off state
+- [ ] Benchmark: Pre-select device when navigating from Dashboard device card
+
+- [x] Benchmark: Add CLEAR button to console to flush logs
+- [ ] Benchmark: Fix auto-stop bug - UI is calling /api/benchmark/stop 1 second after start

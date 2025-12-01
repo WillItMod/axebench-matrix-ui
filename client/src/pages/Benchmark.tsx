@@ -670,11 +670,9 @@ export default function Benchmark() {
       </div>
 
       {/* Benchmark Console */}
-      {benchmarkStatus.running && (
-        <div className="mt-6">
-          <BenchmarkConsole />
-        </div>
-      )}
+      <div className="mt-6">
+        <BenchmarkConsole />
+      </div>
     </div>
   );
 }

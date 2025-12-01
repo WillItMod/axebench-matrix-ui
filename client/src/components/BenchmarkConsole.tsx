@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useBenchmark } from '@/contexts/BenchmarkContext';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 export default function BenchmarkConsole() {
-  const { status } = useBenchmark();
+  const { status, clearLogs } = useBenchmark();
   const logs = status.logs || [];
   const consoleRef = useRef<HTMLDivElement>(null);
 
@@ -40,9 +42,22 @@ export default function BenchmarkConsole() {
           <span className="text-[var(--matrix-green)] font-bold">
             [BENCHMARK_CONSOLE]
           </span>
-          <span className="text-xs text-[var(--text-muted)]">
-            {logs.length} events
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--text-muted)]">
+              {logs.length} events
+            </span>
+            {logs.length > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearLogs}
+                className="h-6 px-2 text-xs text-[var(--text-muted)] hover:text-[var(--matrix-green)] hover:bg-[var(--matrix-green)]/10"
+              >
+                <X className="w-3 h-3 mr-1" />
+                CLEAR
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
