@@ -40,5 +40,20 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    proxy: {
+      // Proxy all /api requests to AxePool backend (port 5002)
+      '/api': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        secure: false,
+      },
+      // If you need AxeShed (port 5001), add separate routes:
+      // '/api/shed': {
+      //   target: 'http://localhost:5001',
+      //   changeOrigin: true,
+      //   secure: false,
+      //   rewrite: (path) => path.replace(/^\/api\/shed/, '/api'),
+      // },
+    },
   },
 });

@@ -5,10 +5,11 @@
 
 import { logger } from './logger';
 
-// API Base URL - default to localhost:5002 (AxePool backend)
+// API Base URL - uses Vite proxy in development, direct connection in production
+// Development: Vite proxy forwards /api to localhost:5002 (AxePool)
+// Production: Set VITE_API_BASE_URL to your backend URL
 // AxePool runs on 5002, AxeShed runs on 5001
-// Can be overridden with environment variable
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 /**
  * Fetch wrapper with error handling and logging

@@ -52,34 +52,37 @@ A stunning Matrix/Gridrunner-themed frontend interface for AxeBench v3.0.0 - the
 ### Prerequisites
 - Node.js 22+ (included in sandbox)
 - pnpm (included in sandbox)
-- AxeBench Flask backend running (default: http://localhost:5000)
+- Python 3.8+ for backend services
+- AxeBench backend services (AxeBench, AxeShed, AxePool)
 
 ### Installation
 
-1. **Install Dependencies**
+1. **Start Backend Services**
+   
+   Use the launcher to start all three backend services:
+   ```bash
+   python python/launcher.py
+   ```
+   
+   This starts:
+   - **AxeBench** (port 5000) - Main benchmarking interface
+   - **AxeShed** (port 5001) - Profile scheduling
+   - **AxePool** (port 5002) - Pool management
+
+2. **Install Frontend Dependencies**
    ```bash
    cd /home/ubuntu/axebench-matrix-ui
    pnpm install
    ```
 
-2. **Configure API Connection**
-   
-   Create a `.env` file in the project root:
-   ```bash
-   VITE_API_BASE_URL=http://localhost:5000
-   ```
-   
-   Or set it to your Flask server URL:
-   ```bash
-   VITE_API_BASE_URL=http://192.168.1.100:5000
-   ```
-
-3. **Start Development Server**
+3. **Start Frontend Development Server**
    ```bash
    pnpm dev
    ```
    
    The interface will be available at http://localhost:3000
+   
+   The frontend uses Vite proxy to forward `/api` requests to AxePool (port 5002).
 
 4. **Build for Production**
    ```bash
@@ -87,12 +90,18 @@ A stunning Matrix/Gridrunner-themed frontend interface for AxeBench v3.0.0 - the
    pnpm start
    ```
 
-## Connecting to Flask Backend
+## Connecting to Backend Services
 
-The Matrix UI connects to your existing AxeBench Flask backend via REST API.
+The Matrix UI connects to the AxeBench backend services via REST API.
 
-### Default Configuration
-- **Backend URL**: `http://localhost:5000`
+### Service Ports
+- **AxeBench**: `http://localhost:5000` - Main benchmarking
+- **AxeShed**: `http://localhost:5001` - Profile scheduling  
+- **AxePool**: `http://localhost:5002` - Pool management (primary API)
+
+### Frontend Configuration
+- **Dev Server**: `http://localhost:3000`
+- **API Proxy**: `/api` → `http://localhost:5002` (AxePool)
 - **API Prefix**: `/api`
 
 ### API Endpoints Used
