@@ -332,11 +332,11 @@
 - [x] Filter out null/invalid profiles before rendering
 
 ## BUG - STOP Button 404 Error
-- [ ] STOP button in control panel returns 404 error when clicked
-- [ ] Endpoint /api/benchmark/stop not found or URL incorrect
-- [ ] Check Flask backend has /api/benchmark/stop route
-- [ ] Verify API client is calling correct endpoint
-- [ ] Test STOP button functionality after fix
+- [x] STOP button in control panel returns 404 error when clicked
+- [x] Root cause: Frontend was connecting to port 5000, but AxePool runs on 5002
+- [x] Updated API_BASE_URL from localhost:5000 to localhost:5002
+- [x] Backend has /api/benchmark/stop route (verified in web_interface.py)
+- [ ] Test STOP button functionality with AxePool running on port 5002
 
 ## BUG - Status Banner Issues
 - [ ] Two identical "BENCHMARK_RUNNING" banners appear at top of page

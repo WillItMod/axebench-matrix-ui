@@ -5,9 +5,10 @@
 
 import { logger } from './logger';
 
-// API Base URL - default to localhost:5000 (Flask server)
+// API Base URL - default to localhost:5002 (AxePool backend)
+// AxePool runs on 5002, AxeShed runs on 5001
 // Can be overridden with environment variable
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002';
 
 /**
  * Fetch wrapper with error handling and logging
