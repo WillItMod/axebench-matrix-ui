@@ -41,8 +41,21 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      // All /api requests go to AxeBench (port 5000)
-      // AxeBench web_interface.py acts as the main hub and can forward to AxePool/AxeShed
+      // AxePool - Pool Management (port 5002)
+      // Must come BEFORE the catch-all /api route
+      '/api/pools': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/api/scheduler': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        secure: false,
+      },
+      
+      // AxeBench - Main backend (port 5000)
+      // This catches all other /api requests
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
