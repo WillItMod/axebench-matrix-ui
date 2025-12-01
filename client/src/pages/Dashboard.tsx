@@ -4,6 +4,7 @@ import { api, formatHashrate, formatPower, formatTemp, MODEL_COLORS, MODEL_NAMES
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import AddDeviceModal from '@/components/AddDeviceModal';
+import { logger } from '@/lib/logger';
 
 interface Device {
   name: string;
@@ -28,15 +29,21 @@ export default function Dashboard() {
 
   // Load devices with status
   const loadDevices = async () => {
+    logger.info('Dashboard', 'Starting loadDevices');
     try {
       setRefreshing(true);
+      logger.debug('Dashboard', 'Fetching device list from API');
       const deviceList = await api.devices.list();
+      logger.info('Dashboard', 'Device list received', { count: deviceList?.length, deviceList });
       
       // Fetch status for each device
+      logger.debug('Dashboard', 'Fetching status for each device');
       const devicesWithStatus = await Promise.all(
         deviceList.map(async (device: any) => {
+          logger.debug('Dashboard', `Fetching status for device: ${device.name}`);
           try {
             const status = await api.devices.status(device.name);
+            logger.info('Dashboard', `Status received for ${device.name}`, { status });
             return {
               ...device,
               online: true, // If we got status, device is online
@@ -51,26 +58,38 @@ export default function Dashboard() {
             };
           } catch (error) {
             // Device offline or error fetching status
+            logger.warn('Dashboard', `Failed to get status for ${device.name}`, { error });
             return { ...device, online: false, status: null };
           }
         })
       );
       
+      logger.info('Dashboard', 'All device statuses fetched, updating state', { 
+        count: devicesWithStatus.length, 
+        devicesWithStatus 
+      });
       setDevices(devicesWithStatus);
+      logger.info('Dashboard', 'State updated with devices');
     } catch (error) {
+      logger.error('Dashboard', 'Failed to load devices', { error });
       toast.error('Failed to load devices');
       console.error(error);
     } finally {
+      logger.debug('Dashboard', 'loadDevices complete, setting loading=false');
       setLoading(false);
       setRefreshing(false);
     }
   };
 
   useEffect(() => {
+    logger.info('Dashboard', 'Component mounted, starting initial load');
     loadDevices();
     // Auto-refresh every 5 seconds
     const interval = setInterval(loadDevices, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      logger.info('Dashboard', 'Component unmounting, clearing interval');
+      clearInterval(interval);
+    };
   }, []);
 
   // Calculate fleet stats
@@ -85,6 +104,17 @@ export default function Dashboard() {
       .reduce((sum, d) => sum + (d.status?.power || 0), 0),
   };
 
+  // Debug logging
+  logger.debug('Dashboard', 'Render cycle', { 
+    devicesCount: devices.length, 
+    devices, 
+    loading, 
+    refreshing,
+    devicesIsArray: Array.isArray(devices),
+    devicesType: typeof devices
+  });
+  console.log('Dashboard render - devices:', devices, 'length:', devices.length, 'loading:', loading);
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">

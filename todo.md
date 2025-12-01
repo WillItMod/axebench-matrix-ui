@@ -148,3 +148,23 @@
 - [ ] Implement AxeShed interface for time-based profile scheduling
 - [ ] Add AxePool page (Pool Management) to navigation
 - [ ] Implement AxePool interface for pool switching
+
+## CRITICAL BUG - Device Rendering
+- [ ] API successfully returns 4 devices (Gamma 601, Gamma 602, test, test 2)
+- [ ] Network tab shows 200 OK with correct JSON data
+- [ ] But UI shows "NO_DEVICES_DETECTED" instead of device cards
+- [ ] No JavaScript errors in console
+- [ ] Issue is in Dashboard rendering logic - devices array not being rendered
+
+## Logging & Debugging
+- [x] Add comprehensive file-based logging system
+- [x] Log all API calls (request/response)
+- [x] Log device state changes
+- [x] Log component render cycles
+- [ ] Create debug log viewer in UI (can use window.axebenchLogger.downloadLogs() for now)
+
+## Diagnostic Tools Created
+- [x] test-flask-connection.js - Tests Flask API connectivity
+- [x] TROUBLESHOOTING.md - Comprehensive troubleshooting guide
+- [x] Logger utility with localStorage persistence
+- [x] window.axebenchLogger.downloadLogs() - Download logs as file

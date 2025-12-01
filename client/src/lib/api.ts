@@ -3,15 +3,20 @@
  * Connects to the Flask backend (AxeBench Python server)
  */
 
+import { logger } from './logger';
+
 // API Base URL - default to localhost:5000 (Flask server)
 // Can be overridden with environment variable
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 /**
- * Fetch wrapper with error handling
+ * Fetch wrapper with error handling and logging
  */
 async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  const method = options?.method || 'GET';
+  
+  logger.debug('API', `Request: ${method} ${endpoint}`, { url, options });
   
   try {
     const response = await fetch(url, {
@@ -24,11 +29,23 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: response.statusText }));
+      logger.error('API', `Response error: ${method} ${endpoint}`, { 
+        status: response.status, 
+        statusText: response.statusText,
+        error 
+      });
       throw new Error(error.error || `HTTP ${response.status}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    logger.info('API', `Response success: ${method} ${endpoint}`, { 
+      status: response.status, 
+      dataType: Array.isArray(data) ? `array[${data.length}]` : typeof data,
+      data 
+    });
+    return data;
   } catch (error) {
+    logger.error('API', `Request failed: ${method} ${endpoint}`, { error });
     console.error(`API Error [${endpoint}]:`, error);
     throw error;
   }
