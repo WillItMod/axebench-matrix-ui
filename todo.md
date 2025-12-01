@@ -520,3 +520,8 @@
 - [x] Dashboard: Format Best Difficulty and Best Since Boot with M/G/T
 - [x] Dashboard: Add Best Since Boot to each device card
 - [x] Dashboard: Add RV Temp, Efficiency (J/TH), Best Diff, Profile Name, Pool Name to device cards
+
+- [x] Install Chart.js (react-chartjs-2 and chart.js)
+- [x] Create LiveMonitorGraphs component with real-time charts
+- [x] Add graphs for hashrate, temperature, voltage, frequency, and power
+- [x] Integrate graphs into LiveMonitoringPanel with data polling

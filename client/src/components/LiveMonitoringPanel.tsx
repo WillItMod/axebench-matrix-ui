@@ -1,5 +1,28 @@
 import { useEffect, useState } from 'react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartOptions,
+} from 'chart.js';
 import { api } from '@/lib/api';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 interface LiveStats {
   voltage: number;
@@ -8,11 +31,14 @@ interface LiveStats {
   power: number;
   chipTemp: number;
   vrTemp: number;
+  timestamp: string;
 }
 
 interface LiveMonitoringPanelProps {
   deviceName: string;
 }
+
+const MAX_HISTORY = 60; // Keep last 60 readings
 
 export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelProps) {
   const [stats, setStats] = useState<LiveStats | null>(null);
@@ -31,20 +57,24 @@ export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelP
           power: status.power || 0,
           chipTemp: status.temp || 0,
           vrTemp: status.vrTemp || 0,
+          timestamp: new Date().toLocaleTimeString(),
         };
         
         setStats(newStats);
-        setHistory(prev => [...prev.slice(-29), newStats]); // Keep last 30 readings
+        setHistory(prev => {
+          const updated = [...prev, newStats];
+          return updated.slice(-MAX_HISTORY); // Keep last MAX_HISTORY readings
+        });
       } catch (error) {
         console.error('Failed to fetch live stats:', error);
       }
     };
 
     // Initial fetch
-    fetchStats();
+    void fetchStats();
 
     // Poll every 2 seconds
-    const interval = setInterval(fetchStats, 2000);
+    const interval = setInterval(() => void fetchStats(), 2000);
     return () => clearInterval(interval);
   }, [deviceName]);
 
@@ -68,44 +98,163 @@ export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelP
     </div>
   );
 
-  const MiniChart = ({ data, label, color }: { data: number[]; label: string; color: string }) => {
-    const max = Math.max(...data, 1);
-    const min = Math.min(...data, 0);
-    const range = max - min || 1;
-
-    return (
-      <div className="matrix-card p-3">
-        <div className="text-xs text-[var(--text-muted)] mb-2">{label}</div>
-        <div className="h-16 flex items-end gap-0.5">
-          {data.map((value, i) => {
-            const height = ((value - min) / range) * 100;
-            return (
-              <div
-                key={i}
-                className="flex-1 transition-all duration-300"
-                style={{
-                  height: `${height}%`,
-                  backgroundColor: color,
-                  opacity: 0.3 + (i / data.length) * 0.7,
-                  boxShadow: `0 0 4px ${color}`,
-                }}
-              />
-            );
-          })}
-        </div>
-        <div className="text-xs text-[var(--text-muted)] mt-1 flex justify-between">
-          <span>{min.toFixed(1)}</span>
-          <span>{max.toFixed(1)}</span>
-        </div>
-      </div>
-    );
-  };
-
   // Temperature color based on value
   const getTempColor = (temp: number) => {
     if (temp > 70) return 'var(--error-red)';
     if (temp > 60) return 'var(--warning-yellow)';
     return 'var(--matrix-green)';
+  };
+
+  // Common chart options
+  const commonOptions: ChartOptions<'line'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        borderColor: 'rgba(0, 255, 65, 0.5)',
+        borderWidth: 1,
+        titleColor: '#00ff41',
+        bodyColor: '#fff',
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          color: 'rgba(0, 255, 65, 0.1)',
+        },
+        ticks: {
+          color: 'rgba(0, 255, 65, 0.6)',
+          maxTicksLimit: 10,
+          font: {
+            family: "'Courier New', monospace",
+            size: 10,
+          },
+        },
+      },
+      y: {
+        grid: {
+          color: 'rgba(0, 255, 65, 0.1)',
+        },
+        ticks: {
+          color: 'rgba(0, 255, 65, 0.6)',
+          font: {
+            family: "'Courier New', monospace",
+            size: 10,
+          },
+        },
+      },
+    },
+  };
+
+  const timestamps = history.map(h => h.timestamp);
+
+  // Hashrate chart
+  const hashrateData = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: 'Hashrate (GH/s)',
+        data: history.map(h => h.hashrate),
+        borderColor: '#00d4ff',
+        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#00d4ff',
+      },
+    ],
+  };
+
+  // Temperature chart (both chip and VR)
+  const tempData = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: 'Chip Temp (°C)',
+        data: history.map(h => h.chipTemp),
+        borderColor: '#ffaa00',
+        backgroundColor: 'rgba(255, 170, 0, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#ffaa00',
+      },
+      {
+        label: 'VR Temp (°C)',
+        data: history.map(h => h.vrTemp),
+        borderColor: '#ff6600',
+        backgroundColor: 'rgba(255, 102, 0, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#ff6600',
+      },
+    ],
+  };
+
+  // Voltage chart
+  const voltageData = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: 'Voltage (mV)',
+        data: history.map(h => h.voltage),
+        borderColor: '#00ff41',
+        backgroundColor: 'rgba(0, 255, 65, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#00ff41',
+      },
+    ],
+  };
+
+  // Frequency chart
+  const frequencyData = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: 'Frequency (MHz)',
+        data: history.map(h => h.frequency),
+        borderColor: '#ff00ff',
+        backgroundColor: 'rgba(255, 0, 255, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#ff00ff',
+      },
+    ],
+  };
+
+  // Power chart
+  const powerData = {
+    labels: timestamps,
+    datasets: [
+      {
+        label: 'Power (W)',
+        data: history.map(h => h.power),
+        borderColor: '#ffff00',
+        backgroundColor: 'rgba(255, 255, 0, 0.1)',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: '#ffff00',
+      },
+    ],
   };
 
   return (
@@ -115,42 +264,79 @@ export default function LiveMonitoringPanel({ deviceName }: LiveMonitoringPanelP
       </h3>
 
       {/* Current Values Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
         <StatCard label="VOLTAGE" value={stats.voltage} unit="mV" />
-        <StatCard label="FREQUENCY" value={stats.frequency} unit="MHz" />
+        <StatCard label="FREQUENCY" value={stats.frequency} unit="MHz" color="var(--neon-magenta)" />
         <StatCard label="HASHRATE" value={stats.hashrate} unit="GH/s" color="var(--neon-cyan)" />
         <StatCard label="POWER" value={stats.power} unit="W" color="var(--warning-yellow)" />
         <StatCard label="CHIP_TEMP" value={stats.chipTemp} unit="°C" color={getTempColor(stats.chipTemp)} />
         <StatCard label="VR_TEMP" value={stats.vrTemp} unit="°C" color={getTempColor(stats.vrTemp)} />
       </div>
 
-      {/* Mini Charts */}
+      {/* Real-time Charts */}
       {history.length > 5 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <MiniChart 
-            data={history.map(h => h.hashrate)} 
-            label="HASHRATE_TREND" 
-            color="var(--neon-cyan)" 
-          />
-          <MiniChart 
-            data={history.map(h => h.power)} 
-            label="POWER_TREND" 
-            color="var(--warning-yellow)" 
-          />
-          <MiniChart 
-            data={history.map(h => h.chipTemp)} 
-            label="CHIP_TEMP_TREND" 
-            color="var(--matrix-green)" 
-          />
-          <MiniChart 
-            data={history.map(h => h.vrTemp)} 
-            label="VR_TEMP_TREND" 
-            color="var(--matrix-green)" 
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Hashrate Graph */}
+          <div className="matrix-card p-4">
+            <h4 className="text-sm font-bold text-[var(--neon-cyan)] mb-3">HASHRATE_TREND</h4>
+            <div className="h-48">
+              <Line data={hashrateData} options={commonOptions} />
+            </div>
+          </div>
+
+          {/* Temperature Graph */}
+          <div className="matrix-card p-4">
+            <h4 className="text-sm font-bold text-[var(--warning-amber)] mb-3">TEMPERATURE_TREND</h4>
+            <div className="h-48">
+              <Line data={tempData} options={{
+                ...commonOptions,
+                plugins: {
+                  ...commonOptions.plugins,
+                  legend: {
+                    display: true,
+                    position: 'top' as const,
+                    labels: {
+                      color: 'rgba(0, 255, 65, 0.8)',
+                      font: {
+                        family: "'Courier New', monospace",
+                        size: 10,
+                      },
+                      boxWidth: 12,
+                      boxHeight: 2,
+                    },
+                  },
+                },
+              }} />
+            </div>
+          </div>
+
+          {/* Voltage Graph */}
+          <div className="matrix-card p-4">
+            <h4 className="text-sm font-bold text-[var(--matrix-green)] mb-3">VOLTAGE_TREND</h4>
+            <div className="h-48">
+              <Line data={voltageData} options={commonOptions} />
+            </div>
+          </div>
+
+          {/* Frequency Graph */}
+          <div className="matrix-card p-4">
+            <h4 className="text-sm font-bold text-[var(--neon-magenta)] mb-3">FREQUENCY_TREND</h4>
+            <div className="h-48">
+              <Line data={frequencyData} options={commonOptions} />
+            </div>
+          </div>
+
+          {/* Power Graph */}
+          <div className="matrix-card p-4 lg:col-span-2">
+            <h4 className="text-sm font-bold text-[var(--warning-yellow)] mb-3">POWER_TREND</h4>
+            <div className="h-48">
+              <Line data={powerData} options={commonOptions} />
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="text-xs text-[var(--text-muted)] text-center mt-3">
+      <div className="text-xs text-[var(--text-muted)] text-center mt-4">
         Updates every 2 seconds • Showing last {history.length} readings
       </div>
     </div>
