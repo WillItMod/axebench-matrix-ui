@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import MatrixBackground from './MatrixBackground';
+import BenchmarkStatusBanner from './BenchmarkStatusBanner';
 import { api, formatUptime } from '@/lib/api';
 
 interface LayoutProps {
@@ -44,6 +45,9 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen relative">
       {/* Matrix Background */}
       <MatrixBackground />
+
+      {/* Benchmark Status Banner - Shows across all pages */}
+      <BenchmarkStatusBanner />
 
       {/* Main Content */}
       <div className="relative z-20">

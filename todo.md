@@ -308,3 +308,15 @@
 - [ ] Add nag banner for free users (every 15 minutes)
 - [ ] Add thank you banner for Premium/Ultimate users
 - [ ] Persist auth state in localStorage
+
+## CURRENT SPRINT - Live Monitoring & Advanced Features
+- [ ] Create LiveMonitoringPanel component for Benchmark page
+- [ ] Add real-time charts for hashrate, power, voltage, frequency, temperature
+- [ ] Poll device status every 1-2 seconds during benchmark
+- [ ] Display current test parameters and progress
+- [ ] Add Nano Tune status banner (similar to BenchmarkStatusBanner)
+- [ ] Create PatreonContext for authentication state
+- [ ] Implement Patreon OAuth flow
+- [ ] Add device limit enforcement (Free: 5, Premium: 25, Ultimate: 250)
+- [ ] Add nag banner for free users (every 15 minutes)
+- [ ] Add thank you banner for Premium/Ultimate users
