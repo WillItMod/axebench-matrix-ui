@@ -40,7 +40,10 @@ export default function Profiles() {
     try {
       setLoading(true);
       const data = await api.profiles.get(selectedDevice);
-      setProfiles(data || {});
+      // Backend may wrap profiles in a 'profiles' key, unwrap if needed
+      const profileData = data?.profiles || data || {};
+      console.log('[Profiles] Loaded profiles:', { raw: data, unwrapped: profileData });
+      setProfiles(profileData);
     } catch (error) {
       console.error('Failed to load profiles:', error);
       setProfiles({});
@@ -141,6 +144,8 @@ export default function Profiles() {
               {profileList.map(([name, profile]: [string, any]) => {
                 // Skip null or invalid profiles
                 if (!profile || typeof profile !== 'object') return null;
+                
+                console.log('[Profiles] Rendering profile:', { name, profile });
                 
                 return (
                 <div key={name} className="matrix-card">

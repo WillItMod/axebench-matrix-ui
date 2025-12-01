@@ -431,3 +431,28 @@
 - [x] CRITICAL: Added debug logging for difficulty values (shows raw and parsed)
 - [ ] Need to check if backend returns difficulty in device status
 - [ ] Frontend may not be calculating/displaying max difficulty correctly
+
+## Test Results from User (2025-12-01)
+
+### Sessions Page
+- [ ] CRITICAL: Duration and Tests showing 0/0 - backend returns 0 values
+
+### Profiles Page
+- [x] CRITICAL: Fixed profile loading - unwraps 'profiles' key from backend response
+- [x] CRITICAL: Fixed delete error - was caused by backend wrapping profiles in {profiles: {...}}
+- [ ] CRITICAL: Save Current creates profile but values show as blank (backend returns correct data)
+- [ ] Profile display not showing voltage/frequency values from backend response
+
+### Nano Tune Modal
+- [ ] Should show voltage/frequency ranges (e.g., "500-600MHz, 1125-1150mV")
+- [ ] Currently only shows optimization goal
+
+### Pool Page
+- [ ] CRITICAL: Pool created successfully but list remains empty
+- [ ] Console shows: Created pool {id, status: 'saved'} but Loaded pools: []
+- [ ] Backend returns empty array after pool creation
+- [ ] CREATE_POOL button has no hover state - hard to tell it's clickable
+
+### Dashboard
+- [x] Devices loading correctly (console shows 3 devices)
+- [ ] Highest Difficulty still shows 0 (need console logs from user)

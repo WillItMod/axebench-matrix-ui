@@ -268,7 +268,7 @@ export default function Pool() {
             />
           </div>
         </div>
-        <Button onClick={handleCreatePool} className="mt-4 gap-2">
+        <Button onClick={handleCreatePool} className="mt-4 gap-2 btn-matrix">
           <Plus className="w-4 h-4" />
           CREATE_POOL
         </Button>
