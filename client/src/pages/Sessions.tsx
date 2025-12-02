@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 import { api, API_BASE_URL } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 export default function Sessions() {
+  const [, setLocation] = useLocation();
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -49,12 +51,17 @@ export default function Sessions() {
     }
   };
 
-  const handleGenerateProfiles = async (sessionId: string) => {
-    if (!confirm('Generate profiles from this session? This will create 4 optimized profiles (Quiet, Efficient, Optimal, Max).')) return;
+  const handleGenerateProfiles = async (sessionId: string, deviceName: string) => {
+    if (!confirm('Generate profiles from this session? This will create 4 optimized profiles (Quiet, Efficient, Max, Nuclear).')) return;
 
     try {
-      await api.sessions.generateProfiles(sessionId);
+      const result = await api.sessions.generateProfiles(sessionId);
       toast.success('Profiles generated successfully');
+
+      // Navigate to profiles tab and select the device
+      setTimeout(() => {
+        setLocation(`/profiles?device=${encodeURIComponent(deviceName)}`);
+      }, 500);
     } catch (error: any) {
       toast.error(error.message || 'Failed to generate profiles');
     }
@@ -103,7 +110,18 @@ export default function Sessions() {
               session={session}
               onView={() => handleViewDetails(session.id)}
               onDelete={() => handleDelete(session.id)}
-              onGenerateProfiles={() => handleGenerateProfiles(session.id)}
+              onGenerateProfiles={() => handleGenerateProfiles(session.id, session.device)}
+              onDownloadJson={() => {
+                const jsonData = JSON.stringify(session, null, 2);
+                const blob = new Blob([jsonData], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `session_${session.id.substring(0,8)}_${session.device}_${new Date(session.start_time).toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success('JSON downloaded');
+              }}
             />
           ))}
         </div>
@@ -119,7 +137,7 @@ export default function Sessions() {
   );
 }
 
-function SessionCard({ session, onView, onDelete, onGenerateProfiles }: any) {
+function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownloadJson }: any) {
   const formatDate = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -218,6 +236,13 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles }: any) {
           )}
           <Button
             size="sm"
+            onClick={onDownloadJson}
+            className="bg-[var(--neon-cyan)] hover:bg-[var(--neon-cyan)]/80 text-black text-xs"
+          >
+            📥 JSON
+          </Button>
+          <Button
+            size="sm"
             onClick={onDelete}
             className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white text-xs"
           >
@@ -301,8 +326,8 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
             <div>
               <div className="text-[var(--text-secondary)]">Tests</div>
               <div className="font-bold text-[var(--text-primary)]">
-                {session.tests_completed && session.tests_total 
-                  ? `${session.tests_completed}/${session.tests_total}` 
+                {session.tests_completed && session.tests_total
+                  ? `${session.tests_completed}/${session.tests_total}`
                   : 'N/A'}
               </div>
             </div>
@@ -394,9 +419,9 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
             </div>
           )}
 
-          {/* Logs */}
+          {/* Console Logs */}
           <div className="matrix-card">
-            <h3 className="text-lg font-bold text-glow-cyan mb-2">LOGS</h3>
+            <h3 className="text-lg font-bold text-glow-cyan mb-2">CONSOLE_LOG</h3>
             {loadingLogs ? (
               <div className="text-center py-4 text-[var(--matrix-green)] flicker">
                 LOADING_LOGS...
