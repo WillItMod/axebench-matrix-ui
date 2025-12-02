@@ -201,26 +201,33 @@ export default function Dashboard() {
     return suffix ? value * multipliers[suffix] : value;
   };
   
-  // Find device with highest difficulty
-  const highestDiffDevice = onlineDevices.reduce((max, d) => {
-    const diff = parseDifficulty(d.status?.difficulty || 0);
-    const maxDiff = max ? parseDifficulty(max.status?.difficulty || 0) : 0;
-    console.log('[Dashboard] Difficulty check:', { device: d.name, raw: d.status?.difficulty, parsed: diff });
+  // Find device with best all-time difficulty
+  const bestDiffDevice = onlineDevices.reduce((max, d) => {
+    const diff = parseDifficulty(d.status?.bestDiff || 0);
+    const maxDiff = max ? parseDifficulty(max.status?.bestDiff || 0) : 0;
     return diff > maxDiff ? d : max;
   }, onlineDevices[0] || null);
-  
-  console.log('[Dashboard] Highest difficulty device:', { 
-    name: highestDiffDevice?.name, 
-    difficulty: highestDiffDevice?.status?.difficulty 
+
+  // Find device with best difficulty since boot
+  const bestSessionDiffDevice = onlineDevices.reduce((max, d) => {
+    const diff = parseDifficulty(d.status?.bestSessionDiff || 0);
+    const maxDiff = max ? parseDifficulty(max.status?.bestSessionDiff || 0) : 0;
+    return diff > maxDiff ? d : max;
+  }, onlineDevices[0] || null);
+
+  console.log('[Dashboard] Best difficulty stats:', {
+    bestDiff: { device: bestDiffDevice?.name, value: bestDiffDevice?.status?.bestDiff },
+    bestSessionDiff: { device: bestSessionDiffDevice?.name, value: bestSessionDiffDevice?.status?.bestSessionDiff }
   });
-  
+
   const fleetStats = {
     total: devices.length,
     online: onlineDevices.length,
     totalHashrate,
     totalPower,
     fleetEfficiency,
-    highestDiffDevice,
+    bestDiffDevice,
+    bestSessionDiffDevice,
   };
 
   // Debug logging
@@ -270,35 +277,35 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Highest Difficulty */}
-      {fleetStats.highestDiffDevice && (
+      {/* Best Difficulty (All-Time) */}
+      {fleetStats.bestDiffDevice && (
         <div className="hud-panel">
           <div className="flex items-center justify-between">
             <div>
               <div className="data-label">BEST DIFFICULTY</div>
               <div className="text-[var(--text-secondary)] text-sm mt-1">
-                {fleetStats.highestDiffDevice.name}
+                {fleetStats.bestDiffDevice.name}
               </div>
             </div>
             <div className="data-value text-[var(--matrix-green)]">
-              {formatDifficulty(fleetStats.highestDiffDevice.status?.difficulty || 0)}
+              {formatDifficulty(fleetStats.bestDiffDevice.status?.bestDiff || 0)}
             </div>
           </div>
         </div>
       )}
 
       {/* Best Since Boot */}
-      {fleetStats.highestDiffDevice && (
+      {fleetStats.bestSessionDiffDevice && (
         <div className="hud-panel">
           <div className="flex items-center justify-between">
             <div>
               <div className="data-label">BEST SINCE BOOT</div>
               <div className="text-[var(--text-secondary)] text-sm mt-1">
-                {fleetStats.highestDiffDevice.name}
+                {fleetStats.bestSessionDiffDevice.name}
               </div>
             </div>
             <div className="data-value text-[var(--neon-cyan)]">
-              {formatDifficulty((fleetStats.highestDiffDevice.status as any)?.bestSessionDiff || 0)}
+              {formatDifficulty(fleetStats.bestSessionDiffDevice.status?.bestSessionDiff || 0)}
             </div>
           </div>
         </div>
