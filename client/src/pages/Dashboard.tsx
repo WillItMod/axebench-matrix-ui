@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { api, formatHashrate, formatPower, formatTemp, MODEL_COLORS, MODEL_NAMES } from '@/lib/api';
 import { formatDifficulty } from '@/lib/formatDifficulty';
@@ -46,6 +46,7 @@ export default function Dashboard() {
   const [scanSubnet, setScanSubnet] = useState('');
   const [scanning, setScanning] = useState(false);
   const [scanResults, setScanResults] = useState<any[]>([]);
+  const warningKeysRef = useRef<Set<string>>(new Set());
 
   // Load devices with status
   const loadDevices = async () => {
@@ -103,6 +104,7 @@ export default function Dashboard() {
         devicesWithStatus 
       });
       setDevices(devicesWithStatus);
+      checkWarnings(devicesWithStatus);
       logger.info('Dashboard', 'State updated with devices');
     } catch (error) {
       logger.error('Dashboard', 'Failed to load devices', { error });
@@ -177,6 +179,39 @@ export default function Dashboard() {
       loadPsus();
     }
   }, [devices]);
+
+  const checkWarnings = (deviceList: Device[]) => {
+    const keyset = warningKeysRef.current;
+    deviceList.forEach((d) => {
+      const status: any = d.status;
+      if (!status) return;
+      const temp = status.temp;
+      const vrTemp = status.vrTemp || status.vr_temp || 0;
+      const asicErr = status.asic_errors || status.errors || 0;
+
+      if (temp >= 70) {
+        const k = `${d.name}-temp`;
+        if (!keyset.has(k)) {
+          toast.warning(`${d.name} high ASIC temp (${temp}°C)`, { duration: 6000 });
+          keyset.add(k);
+        }
+      }
+      if (vrTemp >= 85) {
+        const k = `${d.name}-vr`;
+        if (!keyset.has(k)) {
+          toast.warning(`${d.name} high VR temp (${vrTemp}°C)`, { duration: 6000 });
+          keyset.add(k);
+        }
+      }
+      if (asicErr > 0) {
+        const k = `${d.name}-err`;
+        if (!keyset.has(k)) {
+          toast.warning(`${d.name} reports ASIC errors (${asicErr})`, { duration: 6000 });
+          keyset.add(k);
+        }
+      }
+    });
+  };
 
   const inferredSubnet = () => {
     if (devices.length > 0 && devices[0].ip) {
