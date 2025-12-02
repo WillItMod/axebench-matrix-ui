@@ -365,17 +365,19 @@ def update_device(device_name):
     new_name = data.get('name', device_name)
     new_ip = data.get('ip')
     new_model = data.get('model')
-    new_psu = data.get('psu')
-    
-    if not new_ip:
+    # Support both 'psu' and 'psu_id' for compatibility
+    new_psu_id = data.get('psu_id') if 'psu_id' in data else data.get('psu')
+
+    # Allow updating just PSU without requiring IP
+    if not new_ip and 'psu_id' not in data and 'psu' not in data:
         return jsonify({'error': 'IP address required'}), 400
-    
+
     # Ensure config directory exists
     config_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Load existing devices
     devices_data = load_devices_with_psu()
-    
+
     # Find and update the device
     device_found = False
     for d in devices_data:
@@ -385,33 +387,36 @@ def update_device(device_name):
                 device_manager.remove_device(device_name)
                 device_manager.add_device(new_name, new_ip, new_model or d.get('model', 'unknown'))
             else:
-                # Just update IP in device manager
-                device = device_manager.get_device(device_name)
-                if device:
-                    device.ip_address = new_ip
-                    device.base_url = f"http://{new_ip}"
-                    if new_model:
-                        device.model = new_model
-            
+                # Just update IP in device manager if provided
+                if new_ip:
+                    device = device_manager.get_device(device_name)
+                    if device:
+                        device.ip_address = new_ip
+                        device.base_url = f"http://{new_ip}"
+                        if new_model:
+                            device.model = new_model
+
             # Update stored data
             d['name'] = new_name
-            d['ip_address'] = new_ip
+            if new_ip:
+                d['ip_address'] = new_ip
             if new_model:
                 d['model'] = new_model
-            if new_psu:
-                d['psu'] = new_psu
-            
+            # Update PSU assignment (allow null to remove assignment)
+            if 'psu_id' in data or 'psu' in data:
+                d['psu_id'] = new_psu_id
+
             device_found = True
             break
-    
+
     if not device_found:
         return jsonify({'error': 'Device not found'}), 404
-    
+
     # Save updated devices
     devices_file = config_dir / "devices.json"
     with open(devices_file, 'w') as f:
         json.dump(devices_data, f, indent=2)
-    
+
     return jsonify({'status': 'updated', 'device': new_name})
 
 
