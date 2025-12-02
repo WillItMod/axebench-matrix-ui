@@ -185,6 +185,8 @@ export default function Sessions() {
   const [profileDialogLoading, setProfileDialogLoading] = useState(false);
   const [overwriteExisting, setOverwriteExisting] = useState(false);
   const [savingProfiles, setSavingProfiles] = useState(false);
+  const [appendSuffix, setAppendSuffix] = useState(false);
+  const [profileSuffix, setProfileSuffix] = useState('');
 
   useEffect(() => {
     loadSessions();
@@ -285,9 +287,13 @@ export default function Sessions() {
 
     try {
       setSavingProfiles(true);
+      const suffix = appendSuffix && profileSuffix.trim() ? `-${profileSuffix.trim()}` : '';
       const payload = Object.entries(profilePreview.profiles).reduce<Record<string, GeneratedProfile>>(
         (acc, [key, value]) => {
-          if (value) acc[key] = value;
+          if (value) {
+            const name = `${key}${suffix}`;
+            acc[name] = { ...value, tune_type: key };
+          }
           return acc;
         },
         {}
@@ -305,6 +311,8 @@ export default function Sessions() {
       setProfileDialogOpen(false);
       setProfilePreview(null);
       setOverwriteExisting(false);
+      setAppendSuffix(false);
+      setProfileSuffix('');
       setLocation(`/profiles?device=${encodeURIComponent(profilePreview.device)}`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to save profiles');
@@ -320,8 +328,10 @@ export default function Sessions() {
       overwriteExisting,
       saving: savingProfiles,
       loading: profileDialogLoading,
+      appendSuffix,
+      profileSuffix,
     }),
-    [profileDialogOpen, profilePreview, overwriteExisting, savingProfiles, profileDialogLoading]
+    [profileDialogOpen, profilePreview, overwriteExisting, savingProfiles, profileDialogLoading, appendSuffix, profileSuffix]
   );
 
   if (loading) {
@@ -399,10 +409,14 @@ export default function Sessions() {
             setProfilePreview(null);
             setOverwriteExisting(false);
             setProfileDialogLoading(false);
+            setAppendSuffix(false);
+            setProfileSuffix('');
           }
         }}
         onSave={handleSaveGeneratedProfiles}
         onToggleOverwrite={setOverwriteExisting}
+        onToggleSuffix={setAppendSuffix}
+        onSuffixChange={setProfileSuffix}
       />
     </div>
   );
@@ -734,14 +748,18 @@ interface ProfilePreviewDialogProps {
     overwriteExisting: boolean;
     saving: boolean;
     loading: boolean;
+    appendSuffix: boolean;
+    profileSuffix: string;
   };
   onOpenChange: (open: boolean) => void;
   onSave: () => void;
   onToggleOverwrite: (checked: boolean) => void;
+  onToggleSuffix: (checked: boolean) => void;
+  onSuffixChange: (value: string) => void;
 }
 
-function ProfilePreviewDialog({ state, onOpenChange, onSave, onToggleOverwrite }: ProfilePreviewDialogProps) {
-  const { open, preview, overwriteExisting, saving, loading } = state;
+function ProfilePreviewDialog({ state, onOpenChange, onSave, onToggleOverwrite, onToggleSuffix, onSuffixChange }: ProfilePreviewDialogProps) {
+  const { open, preview, overwriteExisting, saving, loading, appendSuffix, profileSuffix } = state;
 
   const formatNumber = (value?: number | null, digits = 1) => {
     if (value === undefined || value === null || Number.isNaN(value)) return '?';
@@ -830,6 +848,30 @@ function ProfilePreviewDialog({ state, onOpenChange, onSave, onToggleOverwrite }
                 </div>
               </div>
             )}
+
+            <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--grid-gray)]/40 px-4 py-3">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="suffix"
+                  checked={appendSuffix}
+                  onCheckedChange={(checked) => onToggleSuffix(Boolean(checked))}
+                />
+                <div className="flex-1">
+                  <label htmlFor="suffix" className="text-sm text-[var(--text-primary)] font-semibold">
+                    Append suffix to profile names
+                  </label>
+                  <p className="text-xs text-[var(--text-secondary)]">Adds "-suffix" to Quiet/Efficient/Balanced/Max.</p>
+                  <input
+                    type="text"
+                    value={profileSuffix}
+                    onChange={(e) => onSuffixChange(e.target.value)}
+                    className="mt-2 w-full px-3 py-2 rounded bg-[var(--dark-gray)] border border-[var(--grid-gray)] text-[var(--text-primary)] text-sm"
+                    placeholder="e.g., room1"
+                    disabled={!appendSuffix}
+                  />
+                </div>
+              </div>
+            </div>
 
             <DialogFooter className="gap-2">
               <Button

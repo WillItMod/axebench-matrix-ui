@@ -24,7 +24,6 @@ export default function Profiles() {
   
   // Quick Apply state
   const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
-  const [applyAsMain, setApplyAsMain] = useState(true);
 
   useEffect(() => {
     loadDevices();
@@ -233,38 +232,6 @@ export default function Profiles() {
         </div>
 
         {/* Profile Selection & Apply Type */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <Label className="text-[var(--text-secondary)] mb-2 block">APPLY_AS</Label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setApplyAsMain(true)}
-                className={`
-                  flex-1 py-2 px-4 rounded border-2 font-bold transition-all
-                  ${applyAsMain
-                    ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/20 text-[var(--matrix-green)]'
-                    : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] text-[var(--text-secondary)]'
-                  }
-                `}
-              >
-                MAIN
-              </button>
-              <button
-                onClick={() => setApplyAsMain(false)}
-                className={`
-                  flex-1 py-2 px-4 rounded border-2 font-bold transition-all
-                  ${!applyAsMain
-                    ? 'border-[var(--neon-cyan)] bg-[var(--neon-cyan)]/20 text-[var(--neon-cyan)]'
-                    : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] text-[var(--text-secondary)]'
-                  }
-                `}
-              >
-                FALLBACK
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {(['quiet', 'efficient', 'balanced', 'max'] as const).map((name) => (
             <Button
@@ -388,7 +355,7 @@ export default function Profiles() {
                         }}
                         className="btn-cyan text-xs"
                       >
-                        🔬 TUNE
+                        🔬 NANO
                       </Button>
                       <Button
                         size="sm"
@@ -469,7 +436,7 @@ export default function Profiles() {
                 <strong className="text-[var(--text-primary)]">APPLY:</strong> Set device to profile settings
               </p>
               <p>
-                <strong className="text-[var(--text-primary)]">TUNE:</strong> Fine-tune with Nano Tune
+                <strong className="text-[var(--text-primary)]">NANO:</strong> Fine-tune with Nano Tune
               </p>
               <p>
                 <strong className="text-[var(--text-primary)]">SAVE_CURRENT:</strong> Save current device settings
@@ -597,8 +564,14 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
   useEffect(() => {
     if (open) {
       setHasInteracted(false);
+      if (profile) {
+        const lower = profile.toLowerCase();
+        if (['quiet', 'efficient', 'balanced', 'max'].includes(lower)) {
+          setConfig((prev) => ({ ...prev, goal: lower }));
+        }
+      }
     }
-  }, [open]);
+  }, [open, profile]);
 
   const handleStart = async () => {
     try {
@@ -652,10 +625,10 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
-                <SelectItem value="max_hashrate">Maximum Hashrate</SelectItem>
-                <SelectItem value="efficient">Maximum Efficiency</SelectItem>
+                <SelectItem value="quiet">Quiet</SelectItem>
+                <SelectItem value="efficient">Efficient</SelectItem>
                 <SelectItem value="balanced">Balanced</SelectItem>
-                <SelectItem value="quiet">Quiet Mode</SelectItem>
+                <SelectItem value="max">Max</SelectItem>
               </SelectContent>
             </Select>
           </div>
