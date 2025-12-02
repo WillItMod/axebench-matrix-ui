@@ -24,6 +24,8 @@ import signal
 import logging
 import webbrowser
 import subprocess
+import shutil
+import os
 from pathlib import Path
 from threading import Thread
 from multiprocessing import Process
@@ -64,7 +66,7 @@ def start_axebench():
     try:
         logger.info("Starting AxeBench on port 5000...")
         from web_interface import run_web_server
-        run_web_server(host='0.0.0.0', port=5000)
+        run_web_server(host='localhost', port=5000)
     except Exception as e:
         logger.error(f"AxeBench failed to start: {e}")
         sys.exit(1)
@@ -74,7 +76,7 @@ def start_axeshed():
     try:
         logger.info("Starting AxeShed on port 5001...")
         from axeshed import run_axeshed
-        run_axeshed(host='0.0.0.0', port=5001)
+        run_axeshed(host='localhost', port=5001)
     except Exception as e:
         logger.error(f"AxeShed failed to start: {e}")
         sys.exit(1)
@@ -84,26 +86,45 @@ def start_axepool():
     try:
         logger.info("Starting AxePool on port 5002...")
         from axepool import run_axepool
-        run_axepool(host='0.0.0.0', port=5002)
+        run_axepool(host='localhost', port=5002)
     except Exception as e:
         logger.error(f"AxePool failed to start: {e}")
         sys.exit(1)
+
+def _resolve_runner() -> list:
+    """
+    Resolve a package runner that works on Windows and Linux/macOS.
+    Prefers pnpm, falls back to npm, then yarn.
+    """
+    is_windows = os.name == "nt"
+    candidates = [
+        ("pnpm", ["dev"]),
+        ("npm", ["run", "dev"]),
+        ("yarn", ["dev"]),
+    ]
+    for tool, args in candidates:
+        exe = f"{tool}.cmd" if is_windows else tool
+        path = shutil.which(exe) or shutil.which(tool)
+        if path:
+            return [path, *args]
+    raise FileNotFoundError("No package runner found (pnpm/npm/yarn)")
+
 
 def start_frontend():
     """Start Vite frontend dev server"""
     try:
         logger.info("Starting Vite frontend on port 5173...")
         project_root = Path(__file__).parent.parent
+        cmd = _resolve_runner()
+        logger.info(f"Frontend command: {' '.join(cmd)} (cwd={project_root})")
 
-        # Detect package manager (prefer pnpm if available, fallback to npm)
-        pkg_manager = 'pnpm' if subprocess.run(['which', 'pnpm'], capture_output=True).returncode == 0 else 'npm'
-
-        # Check if node_modules exists
         node_modules = project_root / 'node_modules'
         if not node_modules.exists():
-            logger.info(f"Installing dependencies with {pkg_manager} (first run)...")
+            installer = cmd[0]
+            install_cmd = [installer, "install"]
+            logger.info(f"node_modules missing; installing dependencies with {installer}...")
             install_result = subprocess.run(
-                [pkg_manager, 'install'],
+                install_cmd,
                 cwd=str(project_root),
                 capture_output=True,
                 text=True
@@ -112,13 +133,12 @@ def start_frontend():
                 logger.error(f"Failed to install dependencies: {install_result.stderr}")
                 sys.exit(1)
 
-        # Start Vite dev server (don't capture output so we can see errors)
-        logger.info(f"Starting dev server with {pkg_manager}...")
         process = subprocess.Popen(
-            [pkg_manager, 'run', 'dev'],
+            cmd,
             cwd=str(project_root),
+            stdout=None,
+            stderr=None,
         )
-        # Keep process running
         process.wait()
     except Exception as e:
         logger.error(f"Frontend failed to start: {e}")
