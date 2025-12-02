@@ -8,6 +8,8 @@ import AddDeviceModal from '@/components/AddDeviceModal';
 import ConfigModal from '@/components/ConfigModal';
 import PsuModal from '@/components/PsuModal';
 import { logger } from '@/lib/logger';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 interface Device {
   name: string;
@@ -40,6 +42,10 @@ export default function Dashboard() {
   const [showPsuModal, setShowPsuModal] = useState(false);
   const [editingPsu, setEditingPsu] = useState<{id: string; name: string; wattage: number} | null>(null);
   const [psus, setPsus] = useState<any[]>([]);
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanSubnet, setScanSubnet] = useState('');
+  const [scanning, setScanning] = useState(false);
+  const [scanResults, setScanResults] = useState<any[]>([]);
 
   // Load devices with status
   const loadDevices = async () => {
@@ -171,6 +177,53 @@ export default function Dashboard() {
       loadPsus();
     }
   }, [devices]);
+
+  const inferredSubnet = () => {
+    if (devices.length > 0 && devices[0].ip) {
+      const parts = devices[0].ip.split('.');
+      if (parts.length === 4) {
+        parts[3] = '0';
+        return parts.join('.');
+      }
+    }
+    return '';
+  };
+
+  const handleScan = async () => {
+    const base = scanSubnet || inferredSubnet();
+    if (!base || base.split('.').length !== 4) {
+      toast.error('Enter a subnet like 192.168.1.0, 10.10.2.0, or 172.16.0.0');
+      return;
+    }
+    setScanning(true);
+    setScanResults([]);
+    const prefix = base.split('.').slice(0, 3).join('.');
+    const ips = Array.from({ length: 254 }, (_, i) => `${prefix}.${i + 1}`);
+    const found: any[] = [];
+    const chunkSize = 20;
+    for (let i = 0; i < ips.length; i += chunkSize) {
+      const slice = ips.slice(i, i + chunkSize);
+      const results = await Promise.all(slice.map(async (ip) => {
+        try {
+          const detected = await api.devices.detect(ip);
+          if (detected && detected.model) {
+            return { ip, model: detected.model, name: detected.name || ip };
+          }
+        } catch {
+          return null;
+        }
+        return null;
+      }));
+      found.push(...results.filter(Boolean) as any[]);
+      setScanResults([...found]);
+    }
+    if (found.length === 0) {
+      toast.warning('No devices detected on this subnet');
+    } else {
+      toast.success(`Found ${found.length} device(s)`);
+    }
+    setScanning(false);
+  };
 
   // Calculate fleet stats
   const onlineDevices = devices.filter(d => d.online && d.status);
@@ -393,6 +446,17 @@ export default function Dashboard() {
         <h2 className="text-2xl font-bold text-glow-green">DEVICE_GRID</h2>
         <div className="flex gap-2">
           <Button
+            onClick={() => {
+              const inferred = inferredSubnet();
+              setScanSubnet(inferred);
+              setShowScanModal(true);
+            }}
+            variant="outline"
+            className="gap-2"
+          >
+            SCAN
+          </Button>
+          <Button
             onClick={loadDevices}
             disabled={refreshing}
             className="btn-cyan"
@@ -456,6 +520,38 @@ export default function Dashboard() {
         }}
         editPsu={editingPsu}
       />
+
+      <Dialog open={showScanModal} onOpenChange={setShowScanModal}>
+        <DialogContent className="bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] text-[var(--text-primary)] max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-glow-green">SCAN_NETWORK</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div>
+              <label className="text-[var(--text-secondary)] text-sm">Subnet (end with .0)</label>
+              <Input
+                value={scanSubnet}
+                onChange={(e) => setScanSubnet(e.target.value)}
+                placeholder="e.g., 192.168.1.0"
+                className="bg-[var(--dark-gray)] border-[var(--grid-gray)] mt-1"
+              />
+            </div>
+            <Button onClick={handleScan} disabled={scanning} className="btn-matrix w-full">
+              {scanning ? 'SCANNING...' : 'START_SCAN'}
+            </Button>
+            {scanResults.length > 0 && (
+              <div className="max-h-48 overflow-y-auto text-sm space-y-1">
+                {scanResults.map((res, idx) => (
+                  <div key={idx} className="p-2 border border-[var(--grid-gray)] rounded">
+                    <div className="font-bold text-[var(--text-primary)]">{res.name}</div>
+                    <div className="text-[var(--text-secondary)] text-xs">{res.ip} · {res.model}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

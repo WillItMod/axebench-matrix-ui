@@ -13,6 +13,7 @@ interface ConfigModalProps {
   onClose: () => void;
   device: {
     name: string;
+    ip?: string;
     model: string;
     status?: {
       voltage: number;
@@ -32,6 +33,7 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
   const [applying, setApplying] = useState(false);
   const [psus, setPsus] = useState<any[]>([]);
   const [selectedPsu, setSelectedPsu] = useState<string>('standalone');
+  const [ipAddress, setIpAddress] = useState(device.ip || '');
   
   // Load PSUs and current device PSU assignment
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
         // Get current device PSU assignment
         const deviceData = await api.devices.get(device.name);
         setSelectedPsu(deviceData.psu_id || 'standalone');
+        setIpAddress(deviceData.ip || deviceData.ip_address || device.ip || '');
       } catch (error) {
         console.error('Failed to load PSUs:', error);
       }
@@ -56,6 +59,11 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
     try {
       setApplying(true);
       
+      // Update IP if changed
+      if (ipAddress && (ipAddress !== device.ip)) {
+        await api.devices.update(device.name, { ip: ipAddress });
+      }
+
       // Apply voltage and frequency
       await api.devices.applySettings(device.name, voltage, frequency);
       
@@ -108,6 +116,18 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
                 Current: {device.status.voltage}mV @ {device.status.frequency}MHz | {device.status.temp.toFixed(1)}°C
               </div>
             )}
+          </div>
+
+          {/* IP Address */}
+          <div>
+            <Label className="text-[var(--text-secondary)]">IP Address</Label>
+            <Input
+              type="text"
+              value={ipAddress}
+              onChange={(e) => setIpAddress(e.target.value)}
+              placeholder="e.g., 192.168.1.50"
+              className="mt-1"
+            />
           </div>
 
           {/* Voltage */}
