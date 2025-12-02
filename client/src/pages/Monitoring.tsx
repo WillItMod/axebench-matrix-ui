@@ -109,11 +109,6 @@ export default function Monitoring() {
                   : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--neon-cyan)] hover:text-[var(--neon-cyan)] flex items-center gap-2'
                 }
               >
-                <div className="flex gap-0.5">
-                  {colorPalette.map((color, i) => (
-                    <div key={i} className="w-2 h-2 rounded-sm" style={{ backgroundColor: color }} />
-                  ))}
-                </div>
                 {device.name}
                 <span className="ml-1 text-xs opacity-60">({device.model})</span>
               </Button>

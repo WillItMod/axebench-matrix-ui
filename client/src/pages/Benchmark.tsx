@@ -301,9 +301,10 @@ export default function Benchmark() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
-                    <SelectItem value="max_hashrate">🚀 Max Hashrate</SelectItem>
-                    <SelectItem value="max_efficiency">🌱 Max Efficiency</SelectItem>
-                    <SelectItem value="balanced">⚖️ Balanced</SelectItem>
+                    <SelectItem value="quiet">Quiet</SelectItem>
+                    <SelectItem value="efficient">Efficient</SelectItem>
+                    <SelectItem value="balanced">Balanced</SelectItem>
+                    <SelectItem value="max">Max</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -450,9 +451,10 @@ export default function Benchmark() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
-                    <SelectItem value="max_hashrate">Maximum Hashrate</SelectItem>
-                    <SelectItem value="efficient">Maximum Efficiency</SelectItem>
+                    <SelectItem value="quiet">Quiet</SelectItem>
+                    <SelectItem value="efficient">Efficient</SelectItem>
                     <SelectItem value="balanced">Balanced</SelectItem>
+                    <SelectItem value="max">Max</SelectItem>
                     <SelectItem value="quiet">Quiet Mode</SelectItem>
                   </SelectContent>
                 </Select>
