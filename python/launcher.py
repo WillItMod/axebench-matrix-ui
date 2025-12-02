@@ -94,12 +94,29 @@ def start_frontend():
     try:
         logger.info("Starting Vite frontend on port 5173...")
         project_root = Path(__file__).parent.parent
-        # Use Popen instead of run so it doesn't block
+
+        # Detect package manager (prefer pnpm if available, fallback to npm)
+        pkg_manager = 'pnpm' if subprocess.run(['which', 'pnpm'], capture_output=True).returncode == 0 else 'npm'
+
+        # Check if node_modules exists
+        node_modules = project_root / 'node_modules'
+        if not node_modules.exists():
+            logger.info(f"Installing dependencies with {pkg_manager} (first run)...")
+            install_result = subprocess.run(
+                [pkg_manager, 'install'],
+                cwd=str(project_root),
+                capture_output=True,
+                text=True
+            )
+            if install_result.returncode != 0:
+                logger.error(f"Failed to install dependencies: {install_result.stderr}")
+                sys.exit(1)
+
+        # Start Vite dev server (don't capture output so we can see errors)
+        logger.info(f"Starting dev server with {pkg_manager}...")
         process = subprocess.Popen(
-            ['npm', 'run', 'dev'],
+            [pkg_manager, 'run', 'dev'],
             cwd=str(project_root),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
         )
         # Keep process running
         process.wait()
