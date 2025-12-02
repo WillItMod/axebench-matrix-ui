@@ -24,7 +24,6 @@ export default function Profiles() {
   
   // Quick Apply state
   const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
-  const [quickApplyProfile, setQuickApplyProfile] = useState('');
   const [applyAsMain, setApplyAsMain] = useState(true);
 
   useEffect(() => {
@@ -144,35 +143,36 @@ export default function Profiles() {
     setSelectedDevices(newSelected);
   };
 
-  const handleQuickApply = async () => {
+  const applyPresetProfile = async (presetName: string) => {
     if (selectedDevices.size === 0) {
       toast.error('Please select at least one device');
       return;
     }
-    if (!quickApplyProfile) {
-      toast.error('Please select a profile');
-      return;
-    }
-
     const deviceArray = Array.from(selectedDevices);
-    let successCount = 0;
-    let failCount = 0;
+    const missing: string[] = [];
+    let applied = 0;
 
     for (const deviceName of deviceArray) {
       try {
-        await api.profiles.apply(deviceName, quickApplyProfile);
-        successCount++;
+        const deviceProfiles = await api.profiles.get(deviceName);
+        const profilesObj = deviceProfiles?.profiles || deviceProfiles || {};
+        if (!profilesObj[presetName]) {
+          missing.push(deviceName);
+          continue;
+        }
+        await api.profiles.apply(deviceName, presetName);
+        applied++;
       } catch (error) {
-        console.error(`Failed to apply profile to ${deviceName}:`, error);
-        failCount++;
+        console.error(`Failed to apply ${presetName} to ${deviceName}:`, error);
+        missing.push(deviceName);
       }
     }
 
-    if (successCount > 0) {
-      toast.success(`Applied "${quickApplyProfile}" to ${successCount} device(s)${applyAsMain ? ' as MAIN' : ' as FALLBACK'}`);
+    if (applied > 0) {
+      toast.success(`Applied ${presetName.toUpperCase()} to ${applied} device(s)`);
     }
-    if (failCount > 0) {
-      toast.error(`Failed to apply to ${failCount} device(s)`);
+    if (missing.length > 0) {
+      toast.warning(`Missing ${presetName} profile for: ${missing.join(', ')}`);
     }
   };
 
@@ -235,25 +235,6 @@ export default function Profiles() {
         {/* Profile Selection & Apply Type */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
-            <Label className="text-[var(--text-secondary)] mb-2 block">SELECT_PROFILE</Label>
-            <Select value={quickApplyProfile} onValueChange={setQuickApplyProfile}>
-              <SelectTrigger className="bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                <SelectValue placeholder="Select profile..." />
-              </SelectTrigger>
-              <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
-                {profileList.map(([name, profile]: [string, any]) => {
-                  if (!profile || typeof profile !== 'object') return null;
-                  return (
-                    <SelectItem key={name} value={name} className="text-[var(--text-primary)]">
-                      {name.toUpperCase()} - {profile.voltage}mV @ {profile.frequency}MHz
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
             <Label className="text-[var(--text-secondary)] mb-2 block">APPLY_AS</Label>
             <div className="flex gap-2">
               <button
@@ -284,15 +265,18 @@ export default function Profiles() {
           </div>
         </div>
 
-        {/* Apply Button */}
-        <Button
-          onClick={handleQuickApply}
-          disabled={selectedDevices.size === 0 || !quickApplyProfile}
-          className="w-full btn-matrix text-lg py-6"
-        >
-          <Zap className="w-5 h-5 mr-2" />
-          APPLY_TO_{selectedDevices.size}_DEVICE{selectedDevices.size !== 1 ? 'S' : ''}
-        </Button>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {(['quiet', 'efficient', 'balanced', 'max'] as const).map((name) => (
+            <Button
+              key={name}
+              onClick={() => applyPresetProfile(name)}
+              disabled={selectedDevices.size === 0}
+              className="w-full btn-matrix text-sm py-4 uppercase"
+            >
+              {name}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -51,8 +51,13 @@ export default function Pool() {
         api.pool.presets(),
         api.devices.list(),
       ]);
-      // Ensure poolsData is an array
-      const poolsArray = Array.isArray(poolsData) ? poolsData : [];
+      // Backend may return an object map (axepool) or an array (v3). Normalize to array.
+      const poolsArray = Array.isArray(poolsData)
+        ? poolsData
+        : Object.entries(poolsData || {}).map(([id, pool]: [string, any]) => ({
+            id,
+            ...pool,
+          }));
       console.log('[Pool] Loaded pools:', poolsArray);
       setPools(poolsArray);
       setPresets(presetsData || []);
