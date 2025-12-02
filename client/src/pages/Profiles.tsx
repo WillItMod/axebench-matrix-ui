@@ -32,6 +32,16 @@ export default function Profiles() {
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paramDevice = params.get('device');
+    const storedDevice = localStorage.getItem('axebench:selectedProfileDevice');
+    const target = paramDevice || storedDevice;
+    if (target) {
+      setSelectedDevice(target);
+    }
+  }, []);
+
+  useEffect(() => {
     if (selectedDevice) {
       loadProfiles();
     }
