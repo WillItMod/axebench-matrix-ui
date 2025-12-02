@@ -441,42 +441,48 @@ def manage_psus():
     if request.method == 'POST':
         data = request.json
         name = data.get('name')
-        capacity_watts = data.get('capacity_watts', 50)
-        
+        # Accept both 'wattage' (frontend) and 'capacity_watts' (legacy)
+        capacity_watts = data.get('wattage') or data.get('capacity_watts', 50)
+
         if not name:
             return jsonify({'error': 'Name required'}), 400
-        
+
         psus = load_shared_psus()
-        
+
         # Generate unique ID
         psu_id = f"psu_{len(psus) + 1}_{int(time.time())}"
-        
+
         new_psu = {
             'id': psu_id,
             'name': name,
             'capacity_watts': capacity_watts,
+            'wattage': capacity_watts,  # Add wattage field for frontend compatibility
             'safe_watts': data.get('safe_watts', int(capacity_watts * 0.8)),
             'warning_watts': data.get('warning_watts', int(capacity_watts * 0.7)),
             'created': datetime.now().isoformat()
         }
-        
+
         psus.append(new_psu)
         save_shared_psus(psus)
-        
+
         return jsonify({'status': 'created', 'psu': new_psu})
-    
+
     # GET - list PSUs with device counts
     psus = load_shared_psus()
     devices_data = load_devices_with_psu()
-    
+
     for psu in psus:
-        # Count devices using this PSU
-        device_count = sum(1 for d in devices_data if d.get('psu', {}).get('shared_psu_id') == psu['id'])
+        # Count devices assigned to this PSU (check psu_id field)
+        device_count = sum(1 for d in devices_data if d.get('psu_id') == psu['id'])
         psu['devices_count'] = device_count
-        
+
+        # Add wattage field for frontend compatibility
+        if 'wattage' not in psu:
+            psu['wattage'] = psu.get('capacity_watts', 50)
+
         # Calculate current power usage (would need live data)
         psu['current_watts'] = 0  # TODO: Calculate from live device data
-    
+
     return jsonify(psus)
 
 @app.route('/api/psus/<psu_id>', methods=['DELETE'])
@@ -495,14 +501,17 @@ def update_psu(psu_id):
     """Update a shared PSU"""
     data = request.json
     psus = load_shared_psus()
-    
+
     psu_found = False
     for psu in psus:
         if psu['id'] == psu_id:
             if 'name' in data:
                 psu['name'] = data['name']
-            if 'capacity_watts' in data:
-                psu['capacity_watts'] = data['capacity_watts']
+            # Accept both 'wattage' (frontend) and 'capacity_watts' (legacy)
+            if 'wattage' in data or 'capacity_watts' in data:
+                new_wattage = data.get('wattage') or data.get('capacity_watts')
+                psu['capacity_watts'] = new_wattage
+                psu['wattage'] = new_wattage
             if 'safe_watts' in data:
                 psu['safe_watts'] = data['safe_watts']
             if 'warning_watts' in data:
@@ -510,10 +519,10 @@ def update_psu(psu_id):
             psu['updated'] = datetime.now().isoformat()
             psu_found = True
             break
-    
+
     if not psu_found:
         return jsonify({'error': 'PSU not found'}), 404
-    
+
     save_shared_psus(psus)
     return jsonify({'status': 'updated', 'psu_id': psu_id})
 
