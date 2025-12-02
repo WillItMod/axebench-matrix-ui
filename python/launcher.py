@@ -94,11 +94,15 @@ def start_frontend():
     try:
         logger.info("Starting Vite frontend on port 5173...")
         project_root = Path(__file__).parent.parent
-        subprocess.run(
+        # Use Popen instead of run so it doesn't block
+        process = subprocess.Popen(
             ['npm', 'run', 'dev'],
             cwd=str(project_root),
-            check=False
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
         )
+        # Keep process running
+        process.wait()
     except Exception as e:
         logger.error(f"Frontend failed to start: {e}")
         sys.exit(1)
