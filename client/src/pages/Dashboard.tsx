@@ -56,6 +56,19 @@ const MODEL_POWER_HINTS: Record<string, { volts: number; amps: number; note: str
   nerdqaxe_plus_plus: { volts: 5, amps: 8, note: 'NerdQAxe++ (quad BM1370) 5V high-current' },
 };
 
+const loadStoredAssignments = (): Record<string, string | null> => {
+  try {
+    const raw = localStorage.getItem('axebench:psuAssignments');
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+  } catch (error) {
+    console.warn('Failed to load PSU assignments from storage', error);
+  }
+  return {};
+};
+
 const getDevicePsuId = (device: any) => {
   const fromNested = device?.psu?.id ?? device?.psu?.name ?? null;
   const shared = device?.psu?.shared_psu_id ?? device?.psu?.sharedPsuId ?? null;
@@ -70,6 +83,19 @@ const getDevicePsuId = (device: any) => {
     fromNested ??
     null
   );
+};
+
+const loadStoredAssignments = (): Record<string, string | null> => {
+  try {
+    const raw = localStorage.getItem('axebench:psuAssignments');
+    const parsed = raw ? JSON.parse(raw) : {};
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+  } catch (err) {
+    console.warn('Failed to load PSU assignments from storage', err);
+  }
+  return {};
 };
 
 const deviceMatchesPsu = (device: any, psu: any) => {
@@ -89,6 +115,18 @@ const resolveAssignedDevices = (
 ) => {
   // Direct match by id/name on device
   let matches = devices.filter((d) => deviceMatchesPsu(d, psu));
+
+  // Add devices explicitly mapped via stored assignments (localStorage)
+  const psuId = psu?.id != null ? String(psu.id) : null;
+  Object.entries(storedAssignments).forEach(([deviceName, storedId]) => {
+    if (!storedId) return;
+    if (psuId && String(storedId) === psuId) {
+      const dev = devices.find((d) => d.name === deviceName);
+      if (dev && !matches.some((m) => m.name === dev.name)) {
+        matches.push(dev);
+      }
+    }
+  });
 
   // Fallback: backend may provide device names under various keys
   const candidateLists = [
