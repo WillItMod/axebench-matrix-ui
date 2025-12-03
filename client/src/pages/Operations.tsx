@@ -504,14 +504,14 @@ export default function Operations() {
                     <SelectValue placeholder="Select main pool" />
                   </SelectTrigger>
                   <SelectContent>
-                    {pools.map((p: any) => {
-                      const poolId = p.id || p.name;
-                      return (
-                        <SelectItem key={poolId} value={poolId}>
-                          {p.name || poolId}
+                    {pools
+                      .map((p: any) => ({ poolId: p.id || p.name, label: p.name || p.id }))
+                      .filter((p) => p.poolId)
+                      .map((p) => (
+                        <SelectItem key={p.poolId} value={p.poolId}>
+                          {p.label}
                         </SelectItem>
-                      );
-                    })}
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -528,14 +528,14 @@ export default function Operations() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {pools.map((p: any) => {
-                      const poolId = p.id || p.name;
-                      return (
-                        <SelectItem key={poolId} value={poolId}>
-                          {p.name || poolId}
+                    {pools
+                      .map((p: any) => ({ poolId: p.id || p.name, label: p.name || p.id }))
+                      .filter((p) => p.poolId)
+                      .map((p) => (
+                        <SelectItem key={p.poolId} value={p.poolId}>
+                          {p.label}
                         </SelectItem>
-                      );
-                    })}
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
