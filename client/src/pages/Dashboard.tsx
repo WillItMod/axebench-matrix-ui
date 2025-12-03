@@ -47,11 +47,15 @@ const normalizeNumber = (value: any, fallback: number | null = null) => {
 
 const getDevicePsuId = (device: any) => {
   const fromNested = device?.psu?.id ?? device?.psu?.name ?? null;
+  const shared = device?.psu?.shared_psu_id ?? device?.psu?.sharedPsuId ?? null;
+  const statusPsu = device?.status?.psu_id ?? device?.status?.psuId ?? null;
   return (
     device?.psu_id ??
     device?.psuId ??
     device?.psu ??
     device?.psuName ??
+    shared ??
+    statusPsu ??
     fromNested ??
     null
   );
@@ -211,7 +215,10 @@ export default function Dashboard() {
             return {
               ...device,
               psu_id: normalizedPsu ?? device.psu_id,
-              psuName: device?.psuName ?? device?.psu?.name ?? null,
+              psuName:
+                device?.psuName ??
+                device?.psu?.name ??
+                (typeof normalizedPsu === 'string' ? normalizedPsu : null),
               online: true, // If we got status, device is online
               status: {
                 hashrate: status.hashrate || 0,
@@ -224,6 +231,7 @@ export default function Dashboard() {
                 bestDiff: deviceInfo?.bestDiff || 0,
                 bestSessionDiff: deviceInfo?.bestSessionDiff || 0,
                 efficiency: status.power > 0 ? (status.power / (status.hashrate / 1000)) : 0,
+                psu_id: normalizedPsu ?? status.psu_id ?? status.psuId ?? null,
               },
             };
           } catch (error) {
@@ -946,6 +954,12 @@ function DeviceCard({ device, onRefresh, onConfig }: { device: Device; onRefresh
               <div className="text-[var(--text-secondary)]">Pool</div>
               <div className="font-bold text-[var(--text-primary)] truncate">
                 {(device.status as any).poolName || 'N/A'}
+              </div>
+            </div>
+            <div>
+              <div className="text-[var(--text-secondary)]">PSU</div>
+              <div className="font-bold text-[var(--text-primary)] truncate">
+                {device.psuName || device.psu_id || (device.status as any).psu_id || 'Standalone'}
               </div>
             </div>
           </div>
