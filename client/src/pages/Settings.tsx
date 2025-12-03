@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTheme, palettes, type PaletteName, fonts } from '@/contexts/ThemeContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
@@ -18,6 +17,7 @@ interface LicenseStatus {
 
 export default function Settings() {
   const { paletteName, setPalette, palette, fontKey, setFontKey, fontScale, setFontScale, matrixCodeColor, setMatrixCodeColor } = useTheme();
+  const [darkSurge, setDarkSurge] = useState(false);
   const [customPalette, setCustomPalette] = useState({
     primary: palette.colors.primary,
     accent: palette.colors.accent,
@@ -107,18 +107,25 @@ export default function Settings() {
         {/* Fonts */}
         <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
           <div className="text-lg font-bold text-[var(--neon-cyan)]">FONTS</div>
-          <Select value={fontKey} onValueChange={(v) => setFontKey(v)}>
-            <SelectTrigger className="bg-black border-[var(--grid-gray)]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {fonts.map((font) => (
-                <SelectItem key={font.key} value={font.key}>
+          <div className="grid grid-cols-2 gap-2">
+            {fonts.map((font) => {
+              const selected = fontKey === font.key;
+              return (
+                <button
+                  key={font.key}
+                  onClick={() => setFontKey(font.key)}
+                  style={{ fontFamily: font.stack }}
+                  className={`rounded-md border p-3 text-left transition-all ${
+                    selected
+                      ? 'border-[var(--theme-primary)] shadow-[0_0_12px_rgba(0,255,65,0.35)] bg-[var(--grid-gray)]/40'
+                      : 'border-[var(--grid-gray)] hover:border-[var(--theme-accent)] hover:shadow-[0_0_10px_rgba(0,255,255,0.25)]'
+                  }`}
+                >
                   {font.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                </button>
+              );
+            })}
+          </div>
           <div className="text-xs text-[var(--text-secondary)]">Apply a font stack across the UI.</div>
           <div className="mt-3">
             <Label className="text-xs text-[var(--text-secondary)]">Global Text Size</Label>
@@ -129,7 +136,7 @@ export default function Settings() {
               step="0.02"
               value={fontScale}
               onChange={(e) => setFontScale(parseFloat(e.target.value))}
-              className="w-full"
+              className="w-full accent-[var(--theme-primary)]"
             />
             <div className="text-xs text-[var(--text-secondary)]">Scale: {fontScale.toFixed(2)}x</div>
           </div>
@@ -148,15 +155,24 @@ export default function Settings() {
             return (
               <button
                 key={key}
-                onClick={() => setPalette(key as PaletteName)}
-                className={`rounded-lg border text-left p-3 transition-all ${
-                  selected ? 'border-[var(--matrix-green)] shadow-[0_0_10px_rgba(0,255,65,0.3)]' : 'border-[var(--grid-gray)]'
+                onClick={() => {
+                  setPalette(key as PaletteName);
+                  if (key === 'blackout') {
+                    setDarkSurge(true);
+                    setTimeout(() => setDarkSurge(false), 700);
+                  }
+                }}
+                className={`rounded-lg border text-left p-3 transition-all relative overflow-hidden ${
+                  selected
+                    ? 'border-[var(--matrix-green)] shadow-[0_0_10px_rgba(0,255,65,0.3)]'
+                    : 'border-[var(--grid-gray)] hover:border-[var(--theme-accent)] hover:shadow-[0_0_12px_rgba(0,255,255,0.25)]'
                 }`}
                 style={{ background: pal.colors.surface }}
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-6 h-6 rounded-full" style={{ background: pal.colors.primary }} />
-                  <div className="w-6 h-6 rounded-full" style={{ background: pal.colors.accent }} />
+                  {[pal.colors.primary, pal.colors.secondary, pal.colors.accent, pal.colors.text].map((c, idx) => (
+                    <div key={idx} className="w-5 h-5 rounded-full border border-white/10" style={{ background: c }} />
+                  ))}
                 </div>
                 <div className="text-sm font-bold" style={{ color: pal.colors.text }}>
                   {pal.label}
@@ -164,6 +180,9 @@ export default function Settings() {
                 <div className="text-xs" style={{ color: pal.colors.textSecondary }}>
                   {selected ? 'Selected' : 'Tap to apply'}
                 </div>
+                {key === 'blackout' && (
+                  <div className="absolute inset-0 pointer-events-none opacity-0 hover:opacity-40 transition-all bg-gradient-to-br from-[#0aff9d]/20 via-[#08e0ff]/15 to-[#ffd166]/20" />
+                )}
               </button>
             );
           })}
@@ -209,6 +228,10 @@ export default function Settings() {
           </div>
         </div>
       </Card>
+
+      {darkSurge && (
+        <div className="fixed inset-0 z-[999] pointer-events-none bg-black/70 animate-pulse" />
+      )}
     </div>
   );
 }

@@ -22,6 +22,12 @@ export type PaletteName =
   | 'arcade-neon'
   | 'terminal-green'
   | 'blackout'
+  | 'vaporwave-dream'
+  | 'tron-grid'
+  | 'ember-forge'
+  | 'midnight-gold'
+  | 'oceanic-blue'
+  | 'neon-teal'
   | 'custom';
 
 export interface Palette {
@@ -281,7 +287,7 @@ const basePalettes: Record<PaletteName, Palette> = {
   },
   blackout: {
     name: 'blackout',
-    label: 'Blackout (True Black)',
+    label: 'Dark Matter (Blackout)',
     colors: {
       primary: '#0aff9d',
       secondary: '#08e0ff',
@@ -294,6 +300,108 @@ const basePalettes: Record<PaletteName, Palette> = {
       success: '#22c55e',
       warning: '#fbbf24',
       error: '#ef4444',
+    },
+  },
+  'vaporwave-dream': {
+    name: 'vaporwave-dream',
+    label: 'Vaporwave Dream',
+    colors: {
+      primary: '#ff71ce',
+      secondary: '#01cdfe',
+      accent: '#05ffa1',
+      background: '#1b113a',
+      surface: '#24154d',
+      text: '#fdf6ff',
+      textSecondary: '#c6b3ff',
+      border: '#34235f',
+      success: '#2afc98',
+      warning: '#f6d743',
+      error: '#ff3f8e',
+    },
+  },
+  'tron-grid': {
+    name: 'tron-grid',
+    label: 'TRON Grid',
+    colors: {
+      primary: '#00f0ff',
+      secondary: '#ff007a',
+      accent: '#00ff9c',
+      background: '#050910',
+      surface: '#0a121f',
+      text: '#e6f9ff',
+      textSecondary: '#9fd5ff',
+      border: '#133049',
+      success: '#1de9b6',
+      warning: '#ffd54f',
+      error: '#ff4081',
+    },
+  },
+  'ember-forge': {
+    name: 'ember-forge',
+    label: 'Ember Forge',
+    colors: {
+      primary: '#ff6b35',
+      secondary: '#ffd166',
+      accent: '#00d4ff',
+      background: '#0f0906',
+      surface: '#1c120c',
+      text: '#fff3e6',
+      textSecondary: '#f6c79a',
+      border: '#382018',
+      success: '#81e979',
+      warning: '#ffb347',
+      error: '#ff4d4d',
+    },
+  },
+  'midnight-gold': {
+    name: 'midnight-gold',
+    label: 'Midnight Gold',
+    colors: {
+      primary: '#f1c40f',
+      secondary: '#00e0b8',
+      accent: '#8b5cf6',
+      background: '#05060b',
+      surface: '#0f1018',
+      text: '#fefbe8',
+      textSecondary: '#d6c68f',
+      border: '#2a2d3a',
+      success: '#2dd4bf',
+      warning: '#facc15',
+      error: '#ef4444',
+    },
+  },
+  'oceanic-blue': {
+    name: 'oceanic-blue',
+    label: 'Oceanic Blue',
+    colors: {
+      primary: '#00d8ff',
+      secondary: '#0050ff',
+      accent: '#7cf0ff',
+      background: '#041018',
+      surface: '#0b1f2b',
+      text: '#e6f6ff',
+      textSecondary: '#a5c9e0',
+      border: '#163245',
+      success: '#34d399',
+      warning: '#fbbf24',
+      error: '#f43f5e',
+    },
+  },
+  'neon-teal': {
+    name: 'neon-teal',
+    label: 'Neon Teal',
+    colors: {
+      primary: '#00ffd1',
+      secondary: '#00c2ff',
+      accent: '#ff66c4',
+      background: '#030b0f',
+      surface: '#0a161d',
+      text: '#e9fffb',
+      textSecondary: '#b4efe3',
+      border: '#123238',
+      success: '#2de7ae',
+      warning: '#ffca28',
+      error: '#ff4d6d',
     },
   },
   custom: {
