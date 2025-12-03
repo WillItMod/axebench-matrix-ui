@@ -431,10 +431,6 @@ export const fonts: FontChoice[] = [
   { key: 'exo2', label: 'Exo 2 (Sci-Fi)', stack: '\"Exo 2\", \"Inter\", system-ui, sans-serif' },
   { key: 'sora', label: 'Sora (Clean Tech)', stack: '\"Sora\", \"Inter\", system-ui, sans-serif' },
   { key: 'audiowide', label: 'Audiowide (Arcade)', stack: '\"Audiowide\", \"Inter\", system-ui, sans-serif' },
-  { key: 'oxanium', label: 'Oxanium', stack: '\"Oxanium\", \"Inter\", system-ui, sans-serif' },
-  { key: 'orbitron', label: 'Orbitron', stack: '\"Orbitron\", \"Inter\", system-ui, sans-serif' },
-  { key: 'rajdhani', label: 'Rajdhani', stack: '\"Rajdhani\", \"Inter\", system-ui, sans-serif' },
-  { key: 'press-start', label: 'Press Start 2P', stack: '\"Press Start 2P\", \"Inter\", system-ui, sans-serif' },
   { key: 'vt323', label: 'VT323 (Retro Terminal)', stack: '\"VT323\", monospace' },
   { key: 'plex-mono', label: 'IBM Plex Mono', stack: '\"IBM Plex Mono\", \"Inter\", monospace' },
 ];
@@ -520,6 +516,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     Object.entries(palette.colors).forEach(([key, value]) => {
       root.style.setProperty(`--theme-${key}`, value);
     });
+    // convenient aliases
+    root.style.setProperty('--theme-primary', palette.colors.primary);
+    root.style.setProperty('--theme-secondary', palette.colors.secondary);
+    root.style.setProperty('--theme-accent', palette.colors.accent);
     root.style.setProperty('--neon-cyan', palette.colors.primary);
     root.style.setProperty('--neon-pink', palette.colors.accent);
     root.style.setProperty('--text-primary', palette.colors.text);
@@ -557,10 +557,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     if (paletteName === 'blackout') {
       root.classList.add('blackout-mode');
+      body.classList.add('blackout-mode');
     } else {
       root.classList.remove('blackout-mode');
+      body.classList.remove('blackout-mode');
     }
   }, [paletteName]);
 

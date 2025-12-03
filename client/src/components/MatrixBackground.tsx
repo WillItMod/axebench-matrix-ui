@@ -76,7 +76,11 @@ export default function MatrixBackground() {
       <div className="fixed inset-0 animated-grid opacity-30 pointer-events-none z-0" />
 
       {/* Digital rain canvas */}
-      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0 opacity-20" />
+      <canvas
+        ref={canvasRef}
+        className="fixed inset-0 pointer-events-none z-0"
+        style={{ opacity: 'var(--matrix-brightness, 0.8)' }}
+      />
     </>
   );
 }
