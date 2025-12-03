@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Calendar, Layers, Play, Square, Trash2, RefreshCcw } from 'lucide-react';
+import { Calendar, Layers, Play, RefreshCcw, Square, Trash2 } from 'lucide-react';
 
 type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
@@ -375,6 +375,10 @@ export default function Operations() {
     schedule: deviceSchedules[name],
   }));
 
+  const targetLabel = selectedDevices.length
+    ? `${selectedDevices.length} device(s): ${selectedDevices.join(', ')}`
+    : 'None selected';
+
   return (
     <div className="space-y-6">
       <div className="hud-panel flex flex-col gap-2">
@@ -400,24 +404,31 @@ export default function Operations() {
             {dirty && <span className="text-xs text-amber-400">Unsaved changes</span>}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-auto">
             {devices.map((d) => {
               const active = selectedDevices.includes(d.name);
               return (
-                <Button
+                <label
                   key={d.name}
-                  size="sm"
-                  variant={active ? 'default' : 'outline'}
-                  className={active ? 'bg-[var(--neon-cyan)] text-black' : 'text-[var(--text-secondary)]'}
-                  onClick={() =>
-                    setSelectedDevices((prev) =>
-                      prev.includes(d.name) ? prev.filter((n) => n !== d.name) : [...prev, d.name]
-                    )
-                  }
+                  className={`flex items-center gap-2 rounded border px-3 py-2 cursor-pointer ${
+                    active ? 'border-[var(--neon-cyan)] bg-[var(--neon-cyan)]/10' : 'border-[var(--grid-gray)] bg-black/40'
+                  }`}
                 >
-                  {d.name}
-                  <span className="ml-1 text-xs opacity-60">({d.model})</span>
-                </Button>
+                  <input
+                    type="checkbox"
+                    className="accent-[var(--neon-cyan)]"
+                    checked={active}
+                    onChange={() =>
+                      setSelectedDevices((prev) =>
+                        prev.includes(d.name) ? prev.filter((n) => n !== d.name) : [...prev, d.name]
+                      )
+                    }
+                  />
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-sm text-[var(--text-primary)]">{d.name}</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">{d.model}</span>
+                  </div>
+                </label>
               );
             })}
           </div>
@@ -443,12 +454,10 @@ export default function Operations() {
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-xl font-bold text-[var(--neon-cyan)]">Schedule editor</h2>
-            <p className="text-xs text-[var(--text-muted)]">
-              Editing applies to: {selectedDevices.length ? selectedDevices.join(', ') : 'None'}
-            </p>
+            <p className="text-xs text-[var(--text-muted)]">Targets: {targetLabel}</p>
           </div>
           <Button onClick={handleSave} disabled={saving || !selectedDevices.length} className="btn-matrix">
-            {saving ? 'Saving...' : 'Save to selected'}
+            {saving ? 'Saving...' : selectedDevices.length ? 'Save to selected' : 'Select devices to save'}
           </Button>
         </div>
 
@@ -459,7 +468,7 @@ export default function Operations() {
                 <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
                 <div>
                   <div className="text-sm font-bold text-[var(--neon-cyan)]">Tuning profiles</div>
-                  <div className="text-xs text-[var(--text-muted)]">Enable schedule and define blocks.</div>
+                  <div className="text-xs text-[var(--text-muted)]">When off, blocks are saved but not executed.</div>
                 </div>
               </div>
               <Switch
@@ -514,7 +523,7 @@ export default function Operations() {
                 <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
                 <div>
                   <div className="text-sm font-bold text-[var(--matrix-green)]">Pool profiles</div>
-                  <div className="text-xs text-[var(--text-muted)]">Default + time blocks for main/fallback.</div>
+                  <div className="text-xs text-[var(--text-muted)]">When off, blocks are saved but not executed.</div>
                 </div>
               </div>
               <Switch
