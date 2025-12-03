@@ -45,6 +45,11 @@ interface SchedulePayload {
   >;
 }
 
+const generateId = () =>
+  (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+    ? crypto.randomUUID()
+    : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -57,14 +62,14 @@ export default function Operations() {
   const [showRemove, setShowRemove] = useState<{ type: 'profile' | 'pool'; id: string } | null>(null);
 
   const [newProfileSlot, setNewProfileSlot] = useState<ProfileSlot>({
-    id: crypto.randomUUID(),
+    id: generateId(),
     time: '00:00',
     profile: '',
     days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   });
 
   const [newPoolSlot, setNewPoolSlot] = useState<PoolSlot>({
-    id: crypto.randomUUID(),
+    id: generateId(),
     time: '00:00',
     poolId: '',
     mode: 'main',

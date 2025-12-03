@@ -210,31 +210,52 @@ export const api = {
     presets: () => apiFetch<any>('/api/pools/presets'),
     
     // Device pool operations
-    getDevicePool: (deviceName: string) => apiFetch<any>(`/api/devices/${deviceName}/pool`),
-    setDevicePool: (deviceName: string, poolId: string) =>
-      apiFetch<any>(`/api/devices/${deviceName}/pool`, { 
+    getDevicePool: (deviceName: string) => {
+      const dev = encodeURIComponent(deviceName);
+      return apiFetch<any>(`/api/devices/${dev}/pool`);
+    },
+    setDevicePool: (deviceName: string, poolId: string) => {
+      const dev = encodeURIComponent(deviceName);
+      const pool = encodeURIComponent(poolId);
+      return apiFetch<any>(`/api/devices/${dev}/pool`, { 
         method: 'POST', 
         body: JSON.stringify({ pool_id: poolId }) 
-      }),
-    applyPool: (deviceName: string, poolId: string) =>
-      apiFetch<any>(`/api/devices/${deviceName}/pool/apply/${poolId}`, { method: 'POST' }),
-    applyFallback: (deviceName: string, poolId: string) =>
-      apiFetch<any>(`/api/devices/${deviceName}/pool/apply-fallback/${poolId}`, { method: 'POST' }),
-    swapPool: (deviceName: string) =>
-      apiFetch<any>(`/api/devices/${deviceName}/pool/swap`, { method: 'POST' }),
-    importPool: (deviceName: string, poolData: any) =>
-      apiFetch<any>(`/api/devices/${deviceName}/pool/import`, { 
+      });
+    },
+    applyPool: (deviceName: string, poolId: string) => {
+      const dev = encodeURIComponent(deviceName);
+      const pool = encodeURIComponent(poolId);
+      return apiFetch<any>(`/api/devices/${dev}/pool/apply/${pool}`, { method: 'POST' });
+    },
+    applyFallback: (deviceName: string, poolId: string) => {
+      const dev = encodeURIComponent(deviceName);
+      const pool = encodeURIComponent(poolId);
+      return apiFetch<any>(`/api/devices/${dev}/pool/apply-fallback/${pool}`, { method: 'POST' });
+    },
+    swapPool: (deviceName: string) => {
+      const dev = encodeURIComponent(deviceName);
+      return apiFetch<any>(`/api/devices/${dev}/pool/swap`, { method: 'POST' });
+    },
+    importPool: (deviceName: string, poolData: any) => {
+      const dev = encodeURIComponent(deviceName);
+      return apiFetch<any>(`/api/devices/${dev}/pool/import`, { 
         method: 'POST', 
         body: JSON.stringify(poolData) 
-      }),
+      });
+    },
     
     // Pool scheduling
-    getSchedule: (deviceName: string) => apiFetch<any>(`/api/devices/${deviceName}/schedule`),
-    setSchedule: (deviceName: string, schedule: any) =>
-      apiFetch<any>(`/api/devices/${deviceName}/schedule`, { 
+    getSchedule: (deviceName: string) => {
+      const dev = encodeURIComponent(deviceName);
+      return apiFetch<any>(`/api/devices/${dev}/schedule`);
+    },
+    setSchedule: (deviceName: string, schedule: any) => {
+      const dev = encodeURIComponent(deviceName);
+      return apiFetch<any>(`/api/devices/${dev}/schedule`, { 
         method: 'POST', 
         body: JSON.stringify(schedule) 
-      }),
+      });
+    },
     
     // Scheduler control
     schedulerStatus: () => apiFetch<any>('/api/scheduler/status'),
@@ -248,17 +269,28 @@ export const api = {
   
   shed: {
     // Profile scheduling
-    getSchedule: (deviceName: string) => apiFetch<any>(`/api/devices/${deviceName}/schedule`),
-    setSchedule: (deviceName: string, schedule: any) =>
-      apiFetch<any>(`/api/devices/${deviceName}/schedule`, { 
+    getSchedule: (deviceName: string) => {
+      const dev = encodeURIComponent(deviceName);
+      return apiFetch<any>(`/api/devices/${dev}/schedule`);
+    },
+    setSchedule: (deviceName: string, schedule: any) => {
+      const dev = encodeURIComponent(deviceName);
+      return apiFetch<any>(`/api/devices/${dev}/schedule`, { 
         method: 'POST', 
         body: JSON.stringify(schedule) 
-      }),
+      });
+    },
     
     // Profile operations
-    getProfiles: (deviceName: string) => apiFetch<any>(`/api/devices/${deviceName}/profiles`),
-    applyProfile: (deviceName: string, profileName: string) =>
-      apiFetch<any>(`/api/devices/${deviceName}/apply/${profileName}`, { method: 'POST' }),
+    getProfiles: (deviceName: string) => {
+      const dev = encodeURIComponent(deviceName);
+      return apiFetch<any>(`/api/devices/${dev}/profiles`);
+    },
+    applyProfile: (deviceName: string, profileName: string) => {
+      const dev = encodeURIComponent(deviceName);
+      const profile = encodeURIComponent(profileName);
+      return apiFetch<any>(`/api/devices/${dev}/apply/${profile}`, { method: 'POST' });
+    },
     
     // Scheduler control
     schedulerStatus: () => apiFetch<any>('/api/scheduler/status'),
