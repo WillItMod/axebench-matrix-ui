@@ -415,15 +415,6 @@ export default function Operations() {
     }
   };
 
-  const quickSelect = (count: number) => {
-    if (!devices.length) return;
-    if (count === -1) {
-      setSelectedDevices(devices.map((d) => d.name));
-      return;
-    }
-    setSelectedDevices(devices.slice(0, count).map((d) => d.name));
-  };
-
   // persist drafts locally so refresh doesn't lose schedule
   useEffect(() => {
     localStorage.setItem(PROFILE_DRAFT_KEY, JSON.stringify(profileSlots));
@@ -479,21 +470,12 @@ export default function Operations() {
         </p>
       </div>
 
-      {/* Device selection + quick picks + scheduler toggles */}
+      {/* Device selection + scheduler toggles */}
       <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div>
-              <Label className="text-[var(--text-secondary)]">Target Devices</Label>
-              <div className="text-xs text-[var(--text-muted)]">Pick one, first 5/10, or all.</div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => quickSelect(1)}>First</Button>
-              <Button size="sm" variant="outline" onClick={() => quickSelect(5)}>First 5</Button>
-              <Button size="sm" variant="outline" onClick={() => quickSelect(10)}>First 10</Button>
-              <Button size="sm" variant="outline" onClick={() => quickSelect(-1)}>All</Button>
-              <Button size="sm" variant="outline" onClick={() => setSelectedDevices([])}>Clear</Button>
-            </div>
+          <div>
+            <Label className="text-[var(--text-secondary)]">Target Devices</Label>
+            <div className="text-xs text-[var(--text-muted)]">Click one or several to edit/apply schedules.</div>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -545,14 +527,62 @@ export default function Operations() {
             <Button
               variant="outline"
               onClick={() => {
-                setSelectedDevices(devices[0] ? [devices[0].name] : []);
+                setSelectedDevices([]);
               }}
             >
-              Reset Selection
+              Clear Selection
             </Button>
           </div>
         </div>
       </Card>
+
+      {selectedDevices.length > 0 && (
+        <Card className="p-4 bg-[var(--dark-gray)]/80 border-[var(--grid-gray)] space-y-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div className="text-sm font-semibold text-[var(--text-primary)]">
+              Loaded schedule for <span className="text-[var(--neon-cyan)]">{selectedDevices[0]}</span>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => loadSchedule(selectedDevices[0])}>
+              Refresh from scheduler
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded p-3">
+              <div className="font-semibold text-[var(--neon-cyan)] mb-2">Tuning Profiles</div>
+              {profileSlots.length === 0 ? (
+                <div className="text-xs text-[var(--text-muted)]">No entries loaded.</div>
+              ) : (
+                <ul className="text-xs space-y-1">
+                  {profileSlots.map((slot) => (
+                    <li key={slot.id} className="flex justify-between">
+                      <span>{slot.profile}</span>
+                      <span className="text-[var(--text-muted)]">{slot.time}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div className="bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded p-3">
+              <div className="font-semibold text-[var(--matrix-green)] mb-2">Pool Profiles</div>
+              {poolSlots.length === 0 ? (
+                <div className="text-xs text-[var(--text-muted)]">No entries loaded.</div>
+              ) : (
+                <ul className="text-xs space-y-1">
+                  {poolSlots.map((slot) => (
+                    <li key={slot.id} className="flex justify-between">
+                      <span>{slot.poolId} ({slot.mode})</span>
+                      <span className="text-[var(--text-muted)]">{slot.time}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+          <div className="text-[10px] text-[var(--text-muted)]">
+            Schedules are loaded from the scheduler services (profiles: AxeShed 5001, pools: AxePool 5002). Use the editors below to change them.
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Profile schedule */}
