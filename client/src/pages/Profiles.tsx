@@ -2,23 +2,23 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Zap, Check } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 export default function Profiles() {
   const [devices, setDevices] = useState<any[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState('');
-  const [profiles, setProfiles] = useState<any>({});
-  const [loading, setLoading] = useState(false);
+  const [profilesByDevice, setProfilesByDevice] = useState<Record<string, any>>({});
+  const [loadingDevices, setLoadingDevices] = useState<Record<string, boolean>>({});
   const [showNanoTune, setShowNanoTune] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<string>('');
+  const [activeNanoDevice, setActiveNanoDevice] = useState<string>('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
+  const [pendingSaveDevice, setPendingSaveDevice] = useState('');
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingProfile, setEditingProfile] = useState<string>('');
+  const [editingDevice, setEditingDevice] = useState<string>('');
   const [editVoltage, setEditVoltage] = useState('');
   const [editFrequency, setEditFrequency] = useState('');
   
@@ -30,90 +30,89 @@ export default function Profiles() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const paramDevice = params.get('device');
-    const storedDevice = localStorage.getItem('axebench:selectedProfileDevice');
-    const target = paramDevice || storedDevice;
-    if (target) {
-      setSelectedDevice(target);
+    const list = Array.from(selectedDevices);
+    if (list.length === 0) {
+      setProfilesByDevice({});
+      return;
     }
-  }, []);
-
-  useEffect(() => {
-    if (selectedDevice) {
-      loadProfiles();
-    }
-  }, [selectedDevice]);
+    loadProfilesForDevices(list);
+  }, [selectedDevices]);
 
   const loadDevices = async () => {
     try {
       const data = await api.devices.list();
       setDevices(data);
+      if (data?.length && selectedDevices.size === 0) {
+        setSelectedDevices(new Set([data[0].name]));
+      }
     } catch (error) {
       console.error('Failed to load devices:', error);
     }
   };
 
-  const loadProfiles = async () => {
-    if (!selectedDevice) return;
-    
+  const loadProfilesForDevice = async (deviceName: string) => {
+    if (!deviceName) return;
+    setLoadingDevices((prev) => ({ ...prev, [deviceName]: true }));
     try {
-      setLoading(true);
-      const data = await api.profiles.get(selectedDevice);
-      // Backend may wrap profiles in a 'profiles' key, unwrap if needed
+      const data = await api.profiles.get(deviceName);
       const profileData = data?.profiles || data || {};
-      console.log('[Profiles] Loaded profiles:', { raw: data, unwrapped: profileData });
-      setProfiles(profileData);
+      setProfilesByDevice((prev) => ({ ...prev, [deviceName]: profileData }));
     } catch (error) {
       console.error('Failed to load profiles:', error);
-      setProfiles({});
+      toast.error(`Failed to load profiles for ${deviceName}`);
+      setProfilesByDevice((prev) => ({ ...prev, [deviceName]: {} }));
     } finally {
-      setLoading(false);
+      setLoadingDevices((prev) => ({ ...prev, [deviceName]: false }));
     }
   };
 
-  const handleApply = async (profileName: string) => {
-    if (!selectedDevice) return;
+  const loadProfilesForDevices = async (deviceNames: string[]) => {
+    await Promise.all(deviceNames.map((name) => loadProfilesForDevice(name)));
+  };
+
+  const handleApply = async (profileName: string, deviceName: string) => {
+    if (!deviceName) return;
 
     try {
-      await api.profiles.apply(selectedDevice, profileName);
-      toast.success(`Applied profile: ${profileName}`);
+      await api.profiles.apply(deviceName, profileName);
+      toast.success(`Applied ${profileName} to ${deviceName}`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to apply profile');
     }
   };
 
-  const handleDelete = async (profileName: string) => {
-    console.log('[Profiles] handleDelete called with:', { profileName, selectedDevice });
-    if (!selectedDevice) return;
-    if (!confirm(`Delete profile "${profileName}"?`)) return;
+  const handleDelete = async (profileName: string, deviceName: string) => {
+    console.log('[Profiles] handleDelete called with:', { profileName, deviceName });
+    if (!deviceName) return;
+    if (!confirm(`Delete profile "${profileName}" from ${deviceName}?`)) return;
 
     try {
-      console.log('[Profiles] Calling API delete:', { device: selectedDevice, profile: profileName });
-      await api.profiles.delete(selectedDevice, profileName);
+      console.log('[Profiles] Calling API delete:', { device: deviceName, profile: profileName });
+      await api.profiles.delete(deviceName, profileName);
       toast.success('Profile deleted');
-      loadProfiles();
+      loadProfilesForDevice(deviceName);
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete profile');
     }
   };
 
-  const handleSaveCurrent = () => {
-    if (!selectedDevice) return;
+  const handleSaveCurrent = (deviceName: string) => {
+    if (!deviceName) return;
     setNewProfileName('custom');
+    setPendingSaveDevice(deviceName);
     setShowSaveDialog(true);
   };
 
   const handleConfirmSave = async () => {
-    console.log('[Profiles] handleConfirmSave called for device:', selectedDevice, 'name:', newProfileName);
-    if (!selectedDevice || !newProfileName.trim()) {
+    console.log('[Profiles] handleConfirmSave called for device:', pendingSaveDevice, 'name:', newProfileName);
+    if (!pendingSaveDevice || !newProfileName.trim()) {
       toast.error('Please enter a profile name');
       return;
     }
 
     try {
       // Get current device settings
-      const deviceInfo = await api.devices.get(selectedDevice);
+      const deviceInfo = await api.devices.get(pendingSaveDevice);
       const profileData = {
         voltage: deviceInfo.voltage,
         frequency: deviceInfo.frequency,
@@ -121,12 +120,12 @@ export default function Profiles() {
       };
       
       // Use saveCustom endpoint which fetches current device settings
-      const result = await api.profiles.saveCustom(selectedDevice);
+      const result = await api.profiles.saveCustom(pendingSaveDevice);
       console.log('[Profiles] Save result:', result);
       toast.success(`Profile "${newProfileName}" saved successfully`);
       setShowSaveDialog(false);
       setNewProfileName('');
-      loadProfiles();
+      loadProfilesForDevice(pendingSaveDevice);
     } catch (error: any) {
       toast.error(error.message || 'Failed to save profile');
     }
@@ -209,16 +208,11 @@ export default function Profiles() {
                   className={`
                     relative p-3 rounded border-2 transition-all text-left
                     ${selectedDevices.has(device.name)
-                      ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/10'
+                      ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/20 shadow-[0_0_0_1px_var(--matrix-green)]'
                       : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] hover:border-[var(--text-muted)]'
                     }
                   `}
                 >
-                  {selectedDevices.has(device.name) && (
-                    <div className="absolute top-1 right-1">
-                      <Check className="w-4 h-4 text-[var(--matrix-green)]" />
-                    </div>
-                  )}
                   <div className="font-bold text-[var(--text-primary)] text-sm">
                     {device.name}
                   </div>
@@ -246,203 +240,208 @@ export default function Profiles() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile List */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Device Selection */}
-          <div className="matrix-card">
-            <Label className="text-[var(--text-secondary)]">Select Device</Label>
-            <Select value={selectedDevice} onValueChange={setSelectedDevice}>
-              <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                <SelectValue placeholder="Select device..." />
-              </SelectTrigger>
-              <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
-                {devices.map((device) => (
-                  <SelectItem key={device.name} value={device.name} className="text-[var(--text-primary)]">
-                    {device.name} ({device.model})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-xl font-bold text-glow-cyan">DEVICE_PROFILES</h3>
+            <p className="text-[var(--text-secondary)] text-sm">
+              Selected devices render below. Use quick apply above or apply per-device.
+            </p>
           </div>
-
-          {/* Profiles */}
-          {loading ? (
-            <div className="matrix-card text-center py-12">
-              <div className="text-[var(--text-muted)] text-lg animate-pulse">
-                LOADING_PROFILES...
-              </div>
-            </div>
-          ) : profileList.length === 0 ? (
-            <div className="matrix-card text-center py-12">
-              <div className="text-[var(--text-muted)] text-lg mb-4">
-                NO_PROFILES_FOUND
-              </div>
-              <p className="text-[var(--text-secondary)] text-sm">
-                Run a benchmark to generate profiles
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {profileList.map(([name, profile]: [string, any]) => {
-                // Skip null or invalid profiles
-                if (!profile || typeof profile !== 'object') return null;
-                
-                console.log('[Profiles] Rendering profile:', { name, profile });
-                
-                return (
-                <div key={name} className="matrix-card">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-bold text-[var(--text-primary)] text-glow-green">
-                          {name.toUpperCase()}
-                        </h3>
-                        {profile?.is_best && (
-                          <span className="px-2 py-0.5 bg-[var(--success-green)] text-black text-xs font-bold rounded">
-                            BEST
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        <div>
-                          <div className="text-[var(--text-secondary)]">Voltage</div>
-                          <div className="font-bold text-[var(--text-primary)]">
-                            {profile.voltage} mV
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[var(--text-secondary)]">Frequency</div>
-                          <div className="font-bold text-[var(--text-primary)]">
-                            {profile.frequency} MHz
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[var(--text-secondary)]">Hashrate</div>
-                          <div className="font-bold text-[var(--success-green)]">
-                            {profile.hashrate?.toFixed(1)} GH/s
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-[var(--text-secondary)]">Efficiency</div>
-                          <div className="font-bold text-[var(--neon-cyan)]">
-                            {profile.efficiency?.toFixed(2)} J/TH
-                          </div>
-                        </div>
-                      </div>
-
-                      {profile.description && (
-                        <div className="mt-2 text-xs text-[var(--text-muted)]">
-                          {profile.description}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        size="sm"
-                        onClick={() => handleApply(name)}
-                        className="btn-matrix text-xs"
-                      >
-                        ✓ APPLY
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedProfile(name);
-                          setShowNanoTune(true);
-                        }}
-                        className="btn-cyan text-xs"
-                      >
-                        🔬 NANO
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setEditingProfile(name);
-                          setEditVoltage(profile.voltage?.toString() || '');
-                          setEditFrequency(profile.frequency?.toString() || '');
-                          setShowEditDialog(true);
-                        }}
-                        className="bg-[var(--warning-amber)] hover:bg-[var(--warning-amber)]/80 text-black text-xs"
-                      >
-                        ✏️ EDIT
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          const json = JSON.stringify(profile, null, 2);
-                          const blob = new Blob([json], { type: 'application/json' });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `${selectedDevice}_${name}_profile.json`;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                          toast.success('Profile exported');
-                        }}
-                        className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
-                      >
-                        📄 JSON
-                      </Button>
-                      {!profile?.is_best && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleDelete(name)}
-                          className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white text-xs"
-                        >
-                          ✕
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-              })}
-            </div>
-          )}
+          <Button
+            variant="outline"
+            onClick={() => loadProfilesForDevices(Array.from(selectedDevices))}
+            disabled={selectedDevices.size === 0}
+            className="btn-cyan"
+          >
+            REFRESH_SELECTED
+          </Button>
         </div>
 
-        {/* Actions Panel */}
-        <div className="space-y-4">
-          <div className="hud-panel">
-            <h3 className="text-xl font-bold text-glow-cyan mb-4">ACTIONS</h3>
-            <div className="space-y-2">
-              <Button
-                onClick={handleSaveCurrent}
-                disabled={!selectedDevice}
-                className="w-full btn-matrix"
-              >
-                💾 SAVE_CURRENT
-              </Button>
-              <Button
-                onClick={loadProfiles}
-                disabled={!selectedDevice}
-                className="w-full btn-cyan"
-              >
-                🔄 REFRESH
-              </Button>
-            </div>
+        {selectedDevices.size === 0 ? (
+          <div className="matrix-card text-center py-10 text-[var(--text-secondary)]">
+            Select one or more devices above to view their profiles.
           </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {Array.from(selectedDevices).map((deviceName) => {
+              const profileData = profilesByDevice[deviceName] || {};
+              const profileList = Object.entries(profileData).filter(
+                ([, profile]) => profile && typeof profile === 'object'
+              ) as [string, any][];
+              const meta = devices.find((d) => d.name === deviceName);
+              const isLoading = loadingDevices[deviceName];
 
-          <div className="matrix-card">
-            <h3 className="text-lg font-bold text-glow-cyan mb-2">INFO</h3>
-            <div className="text-xs text-[var(--text-secondary)] space-y-2">
-              <p>
-                <strong className="text-[var(--text-primary)]">QUICK_APPLY:</strong> Apply profile to multiple devices
-              </p>
-              <p>
-                <strong className="text-[var(--text-primary)]">APPLY:</strong> Set device to profile settings
-              </p>
-              <p>
-                <strong className="text-[var(--text-primary)]">NANO:</strong> Fine-tune with Nano Tune
-              </p>
-              <p>
-                <strong className="text-[var(--text-primary)]">SAVE_CURRENT:</strong> Save current device settings
-              </p>
-            </div>
+              return (
+                <div key={deviceName} className="matrix-card space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-lg font-bold text-[var(--text-primary)]">{deviceName}</div>
+                      <div className="text-xs text-[var(--text-secondary)]">{meta?.model || 'Unknown model'}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSaveCurrent(deviceName)}
+                        className="btn-matrix"
+                      >
+                        SAVE_CURRENT
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => loadProfilesForDevice(deviceName)}
+                        className="btn-cyan"
+                      >
+                        REFRESH
+                      </Button>
+                    </div>
+                  </div>
+
+                  {isLoading ? (
+                    <div className="text-center py-8 text-[var(--text-muted)]">LOADING_PROFILES...</div>
+                  ) : profileList.length === 0 ? (
+                    <div className="text-center py-6 text-[var(--text-secondary)] text-sm">
+                      No profiles found. Run a benchmark to generate profiles.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {profileList.map(([name, profile]) => (
+                        <div key={`${deviceName}-${name}`} className="border border-[var(--grid-gray)] rounded p-3 bg-black/60">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="text-lg font-bold text-[var(--text-primary)] text-glow-green">
+                                  {name.toUpperCase()}
+                                </h3>
+                                {profile?.is_best && (
+                                  <span className="px-2 py-0.5 bg-[var(--success-green)] text-black text-xs font-bold rounded">
+                                    BEST
+                                  </span>
+                                )}
+                              </div>
+                              
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div>
+                                  <div className="text-[var(--text-secondary)]">Voltage</div>
+                                  <div className="font-bold text-[var(--text-primary)]">
+                                    {profile.voltage} mV
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-[var(--text-secondary)]">Frequency</div>
+                                  <div className="font-bold text-[var(--text-primary)]">
+                                    {profile.frequency} MHz
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-[var(--text-secondary)]">Hashrate</div>
+                                  <div className="font-bold text-[var(--success-green)]">
+                                    {profile.hashrate?.toFixed(1)} GH/s
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-[var(--text-secondary)]">Efficiency</div>
+                                  <div className="font-bold text-[var(--neon-cyan)]">
+                                    {profile.efficiency?.toFixed(2)} J/TH
+                                  </div>
+                                </div>
+                              </div>
+
+                              {profile.description && (
+                                <div className="mt-2 text-xs text-[var(--text-muted)]">
+                                  {profile.description}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                onClick={() => handleApply(name, deviceName)}
+                                className="btn-matrix text-xs"
+                              >
+                                APPLY
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedProfile(name);
+                                  setActiveNanoDevice(deviceName);
+                                  setShowNanoTune(true);
+                                }}
+                                className="btn-cyan text-xs"
+                              >
+                                NANO
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setEditingProfile(name);
+                                  setEditingDevice(deviceName);
+                                  setEditVoltage(profile.voltage?.toString() || '');
+                                  setEditFrequency(profile.frequency?.toString() || '');
+                                  setShowEditDialog(true);
+                                }}
+                                className="bg-[var(--warning-amber)] hover:bg-[var(--warning-amber)]/80 text-black text-xs"
+                              >
+                                EDIT
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  const json = JSON.stringify(profile, null, 2);
+                                  const blob = new Blob([json], { type: 'application/json' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${deviceName}_${name}_profile.json`;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                  toast.success('Profile exported');
+                                }}
+                                className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                              >
+                                JSON
+                              </Button>
+                              {!profile?.is_best && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleDelete(name, deviceName)}
+                                  className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white text-xs"
+                                >
+                                  DELETE
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
+        )}
+      </div>
+
+      <div className="matrix-card">
+        <h3 className="text-lg font-bold text-glow-cyan mb-2">INFO</h3>
+        <div className="text-xs text-[var(--text-secondary)] space-y-2">
+          <p>
+            <strong className="text-[var(--text-primary)]">QUICK_APPLY:</strong> Apply profile to multiple devices
+          </p>
+          <p>
+            <strong className="text-[var(--text-primary)]">APPLY:</strong> Set device to profile settings
+          </p>
+          <p>
+            <strong className="text-[var(--text-primary)]">NANO:</strong> Fine-tune with Nano Tune
+          </p>
+          <p>
+            <strong className="text-[var(--text-primary)]">SAVE_CURRENT:</strong> Save current device settings
+          </p>
         </div>
       </div>
 
@@ -450,7 +449,7 @@ export default function Profiles() {
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent className="matrix-card">
           <DialogHeader>
-            <DialogTitle className="text-glow-cyan">💾 SAVE_CURRENT_PROFILE</DialogTitle>
+            <DialogTitle className="text-glow-cyan">SAVE_CURRENT_PROFILE</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -470,10 +469,10 @@ export default function Profiles() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
-              ❌ CANCEL
+              CANCEL
             </Button>
             <Button className="btn-matrix" onClick={handleConfirmSave}>
-              ✅ CONFIRM_SAVE
+              CONFIRM_SAVE
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -483,7 +482,7 @@ export default function Profiles() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="matrix-card">
           <DialogHeader>
-            <DialogTitle className="text-glow-cyan">✏️ EDIT_PROFILE: {editingProfile.toUpperCase()}</DialogTitle>
+            <DialogTitle className="text-glow-cyan">EDIT_PROFILE: {editingProfile.toUpperCase()}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -509,25 +508,25 @@ export default function Profiles() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
-              ❌ CANCEL
+              CANCEL
             </Button>
             <Button className="btn-matrix" onClick={async () => {
-              if (!selectedDevice || !editingProfile) return;
+              if (!editingDevice || !editingProfile) return;
               try {
                 const profileData = {
                   voltage: parseInt(editVoltage),
                   frequency: parseInt(editFrequency),
                   description: `Edited on ${new Date().toLocaleString()}`
                 };
-                await api.profiles.update(selectedDevice, editingProfile, profileData);
+                await api.profiles.update(editingDevice, editingProfile, profileData);
                 toast.success(`Profile "${editingProfile}" updated`);
                 setShowEditDialog(false);
-                loadProfiles();
+                loadProfilesForDevice(editingDevice);
               } catch (error: any) {
                 toast.error(error.message || 'Failed to update profile');
               }
             }}>
-              ✅ SAVE_CHANGES
+              SAVE_CHANGES
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -537,9 +536,9 @@ export default function Profiles() {
       <NanoTuneModal
         open={showNanoTune}
         onClose={() => setShowNanoTune(false)}
-        device={selectedDevice}
+        device={activeNanoDevice}
         profile={selectedProfile}
-        onSuccess={loadProfiles}
+        onSuccess={() => activeNanoDevice && loadProfilesForDevice(activeNanoDevice)}
       />
     </div>
   );

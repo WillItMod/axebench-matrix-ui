@@ -443,6 +443,10 @@ export default function Operations() {
               onStop={() => toggleService('pool', false)}
             />
           </div>
+          <div className="text-[var(--text-muted)] text-xs">
+            Schedulers live on AxeShed (profiles, port 5001) and AxePool (pools, port 5002). If those services are
+            stopped or not deployed, schedule endpoints will fail and appear as connection errors.
+          </div>
         </div>
       </Card>
 
@@ -464,7 +468,9 @@ export default function Operations() {
                 <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
                 <div>
                   <div className="text-sm font-bold text-[var(--neon-cyan)]">Tuning profiles</div>
-                  <div className="text-xs text-[var(--text-muted)]">When off, blocks are saved but not executed.</div>
+                  <div className="text-xs text-[var(--text-muted)]">
+                    Execute on save: when enabled, schedule runs and the active block is applied immediately on save.
+                  </div>
                 </div>
               </div>
               <Switch
@@ -519,7 +525,9 @@ export default function Operations() {
                 <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
                 <div>
                   <div className="text-sm font-bold text-[var(--matrix-green)]">Pool profiles</div>
-                  <div className="text-xs text-[var(--text-muted)]">When off, blocks are saved but not executed.</div>
+                  <div className="text-xs text-[var(--text-muted)]">
+                    Execute on save: when enabled, schedule runs and the active block is applied immediately on save.
+                  </div>
                 </div>
               </div>
               <Switch
