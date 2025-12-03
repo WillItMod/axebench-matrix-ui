@@ -1063,7 +1063,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
           onClick={handleBenchmark}
           disabled={!device.online}
         >
-          🔬 BENCHMARK
+          BENCHMARK
         </Button>
         <Button 
           size="sm" 
@@ -1071,7 +1071,15 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
           onClick={() => onConfig(device)}
           disabled={!device.online}
         >
-          ⚙️ CONFIG
+          CONFIG
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="flex-1 text-xs"
+          onClick={() => onDelete(device)}
+        >
+          DELETE
         </Button>
       </div>
     </div>
