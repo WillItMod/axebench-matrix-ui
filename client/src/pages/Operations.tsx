@@ -79,6 +79,8 @@ export default function Operations() {
   const [poolSchedule, setPoolSchedule] = useState<PoolScheduleState>(blankPoolSchedule());
   const [shedServiceRunning, setShedServiceRunning] = useState<boolean | null>(null);
   const [poolServiceRunning, setPoolServiceRunning] = useState<boolean | null>(null);
+  const [shedUnavailable, setShedUnavailable] = useState(false);
+  const [poolUnavailable, setPoolUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -151,16 +153,20 @@ export default function Operations() {
 
   const loadSchedulersStatus = async () => {
     try {
+      setShedUnavailable(false);
       const status = await api.shed.schedulerStatus();
       setShedServiceRunning(!!status?.running);
-    } catch {
+    } catch (err: any) {
       setShedServiceRunning(false);
+      setShedUnavailable(true);
     }
     try {
+      setPoolUnavailable(false);
       const status = await api.pool.schedulerStatus();
       setPoolServiceRunning(!!status?.running);
-    } catch {
+    } catch (err: any) {
       setPoolServiceRunning(false);
+      setPoolUnavailable(true);
     }
   };
 
@@ -312,6 +318,11 @@ export default function Operations() {
       return;
     }
 
+    if (shedUnavailable && poolUnavailable) {
+      toast.error('Scheduling services are unreachable (AxeShed 5001 / AxePool 5002). Start services or disable schedules.');
+      return;
+    }
+
     setSaving(true);
     const profilePayload = mapProfileToApi(profileSchedule);
     const poolPayload = mapPoolToApi(poolSchedule);
@@ -319,8 +330,8 @@ export default function Operations() {
     const results = await Promise.allSettled(
       selectedDevices.map(async (device) => {
         const [shedRes, poolRes] = await Promise.allSettled([
-          api.shed.setSchedule(device, profilePayload),
-          api.pool.setSchedule(device, poolPayload),
+          shedUnavailable ? Promise.resolve({ skipped: true }) : api.shed.setSchedule(device, profilePayload),
+          poolUnavailable ? Promise.resolve({ skipped: true }) : api.pool.setSchedule(device, poolPayload),
         ]);
         return { device, shedRes, poolRes };
       })
@@ -346,11 +357,11 @@ export default function Operations() {
         return;
       }
       const { device, shedRes, poolRes } = r.value as any;
-      const shedOk = shedRes.status === 'fulfilled';
-      const poolOk = poolRes.status === 'fulfilled';
+      const shedOk = shedUnavailable || shedRes.status === 'fulfilled';
+      const poolOk = poolUnavailable || poolRes.status === 'fulfilled';
 
-      const shedOffline = shedRes.status === 'rejected' && isOffline(shedRes.reason);
-      const poolOffline = poolRes.status === 'rejected' && isOffline(poolRes.reason);
+      const shedOffline = !shedUnavailable && shedRes.status === 'rejected' && isOffline(shedRes.reason);
+      const poolOffline = !poolUnavailable && poolRes.status === 'rejected' && isOffline(poolRes.reason);
       if (shedOffline || poolOffline) {
         offlineDevices.push(device);
       }
@@ -485,7 +496,8 @@ export default function Operations() {
           </div>
           <div className="text-[var(--text-muted)] text-xs">
             Schedulers live on AxeShed (profiles, port 5001) and AxePool (pools, port 5002). If those services are
-            stopped or not deployed, schedule endpoints will fail and appear as connection errors.
+            stopped or not deployed, schedule endpoints will fail and appear as connection errors. You can still save
+            locally; unreachable services are skipped during save.
           </div>
         </div>
       </Card>
