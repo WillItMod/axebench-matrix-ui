@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTheme, themes, palettes, type PaletteName, type ThemeName, fonts } from '@/contexts/ThemeContext';
+import { useTheme, palettes, type PaletteName, fonts } from '@/contexts/ThemeContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -17,7 +17,7 @@ interface LicenseStatus {
 }
 
 export default function Settings() {
-  const { themeName, setTheme, paletteName, setPalette, palette, fontKey, setFontKey } = useTheme();
+  const { paletteName, setPalette, palette, fontKey, setFontKey } = useTheme();
   const [customPalette, setCustomPalette] = useState({
     primary: palette.colors.primary,
     accent: palette.colors.accent,
@@ -99,24 +99,6 @@ export default function Settings() {
               Logout
             </Button>
           </div>
-        </Card>
-
-        {/* Theme */}
-        <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
-          <div className="text-lg font-bold text-[var(--neon-cyan)]">THEME</div>
-          <Select value={themeName} onValueChange={(v) => setTheme(v as ThemeName)}>
-            <SelectTrigger className="bg-black border-[var(--grid-gray)]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(themes).map(([key, value]) => (
-                <SelectItem key={key} value={key}>
-                  {value.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="text-xs text-[var(--text-secondary)]">Choose base skin (keeps Matrix background intact).</div>
         </Card>
 
         {/* Fonts */}
