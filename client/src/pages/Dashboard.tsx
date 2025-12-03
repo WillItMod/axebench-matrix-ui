@@ -85,19 +85,6 @@ const getDevicePsuId = (device: any) => {
   );
 };
 
-const loadStoredAssignments = (): Record<string, string | null> => {
-  try {
-    const raw = localStorage.getItem('axebench:psuAssignments');
-    const parsed = raw ? JSON.parse(raw) : {};
-    if (parsed && typeof parsed === 'object') {
-      return parsed;
-    }
-  } catch (err) {
-    console.warn('Failed to load PSU assignments from storage', err);
-  }
-  return {};
-};
-
 const deviceMatchesPsu = (device: any, psu: any) => {
   const devicePsu = getDevicePsuId(device);
   if (devicePsu == null) return false;
