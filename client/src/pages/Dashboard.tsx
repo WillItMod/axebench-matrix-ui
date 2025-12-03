@@ -547,19 +547,21 @@ const loadPsus = async () => {
     return suffix ? value * multipliers[suffix] : value;
   };
   
-  // Find device with best all-time difficulty
-  const bestDiffDevice = onlineDevices.reduce((max, d) => {
+  const devicesWithStats = devices.filter(d => d.status);
+
+  // Find device with best all-time difficulty across the fleet (even if offline)
+  const bestDiffDevice = devicesWithStats.reduce((max, d) => {
     const diff = parseDifficulty(d.status?.bestDiff || 0);
     const maxDiff = max ? parseDifficulty(max.status?.bestDiff || 0) : 0;
     return diff > maxDiff ? d : max;
-  }, onlineDevices[0] || null);
+  }, devicesWithStats[0] || null);
 
-  // Find device with best difficulty since boot
-  const bestSessionDiffDevice = onlineDevices.reduce((max, d) => {
+  // Find device with best difficulty since boot across the fleet (even if offline)
+  const bestSessionDiffDevice = devicesWithStats.reduce((max, d) => {
     const diff = parseDifficulty(d.status?.bestSessionDiff || 0);
     const maxDiff = max ? parseDifficulty(max.status?.bestSessionDiff || 0) : 0;
     return diff > maxDiff ? d : max;
-  }, onlineDevices[0] || null);
+  }, devicesWithStats[0] || null);
 
   console.log('[Dashboard] Best difficulty stats:', {
     bestDiff: { device: bestDiffDevice?.name, value: bestDiffDevice?.status?.bestDiff },
@@ -719,7 +721,7 @@ const loadPsus = async () => {
                           {metrics.voltage}V @ {metrics.amperage}A
                         </span>
                       ) : (
-                        <span className="text-[var(--text-muted)] italic">Not provided (wattage only)</span>
+                        <span className="text-[var(--text-muted)] italic">-- V @ -- A</span>
                       )}
                     </div>
                     <div className="flex justify-between text-sm">
@@ -995,7 +997,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
             </div>
             <div>
               <div className="text-[var(--text-secondary)]">Fan</div>
-              <div className="font-bold">{device.status.fan_speed}%</div>
+              <div className="font-bold">{Math.round(device.status.fan_speed || 0)}%</div>
             </div>
             <div>
               <div className="text-[var(--text-secondary)]">RV Temp</div>
