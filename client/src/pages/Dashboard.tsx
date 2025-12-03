@@ -10,6 +10,7 @@ import PsuModal from '@/components/PsuModal';
 import { logger } from '@/lib/logger';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Device {
   name: string;
@@ -30,6 +31,15 @@ interface Device {
   };
 }
 
+type WarningLevel = 'warning' | 'danger';
+
+interface WarningItem {
+  id: string;
+  title: string;
+  message: string;
+  level: WarningLevel;
+}
+
 export default function Dashboard() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +57,54 @@ export default function Dashboard() {
   const [scanning, setScanning] = useState(false);
   const [scanResults, setScanResults] = useState<any[]>([]);
   const warningKeysRef = useRef<Set<string>>(new Set());
+  const dismissedWarningsRef = useRef<Set<string>>(new Set());
+  const [warningQueue, setWarningQueue] = useState<WarningItem[]>([]);
+  const [activeWarning, setActiveWarning] = useState<WarningItem | null>(null);
+  const [dontRemind, setDontRemind] = useState(false);
+  const [confirmPsu, setConfirmPsu] = useState<{ id: string; name: string } | null>(null);
+
+  // Load dismissed warning ids from localStorage once
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('axebench:dismissedWarnings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          dismissedWarningsRef.current = new Set(parsed);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load dismissed warnings', error);
+    }
+  }, []);
+
+  const persistDismissed = () => {
+    localStorage.setItem('axebench:dismissedWarnings', JSON.stringify(Array.from(dismissedWarningsRef.current)));
+  };
+
+  const enqueueWarning = (warning: WarningItem) => {
+    if (dismissedWarningsRef.current.has(warning.id) || warningKeysRef.current.has(warning.id)) return;
+    warningKeysRef.current.add(warning.id);
+    setWarningQueue((prev) => [...prev, warning]);
+  };
+
+  // Drive a single active warning modal
+  useEffect(() => {
+    if (!activeWarning && warningQueue.length > 0) {
+      const [next, ...rest] = warningQueue;
+      setActiveWarning(next);
+      setWarningQueue(rest);
+      setDontRemind(false);
+    }
+  }, [warningQueue, activeWarning]);
+
+  const dismissActiveWarning = () => {
+    if (activeWarning && dontRemind) {
+      dismissedWarningsRef.current.add(activeWarning.id);
+      persistDismissed();
+    }
+    setActiveWarning(null);
+  };
 
   // Load devices with status
   const loadDevices = async () => {
@@ -127,10 +185,6 @@ export default function Dashboard() {
   };
   
   const handleDeletePsu = async (psuId: string, psuName: string) => {
-    if (!confirm(`Delete PSU "${psuName}"?\n\nDevices assigned to this PSU will be set to Standalone mode.`)) {
-      return;
-    }
-    
     try {
       await api.psus.delete(psuId);
       toast.success(`PSU "${psuName}" deleted`);
@@ -152,9 +206,19 @@ export default function Dashboard() {
         const loadPercent = (psuLoad / psu.wattage) * 100;
         
         if (loadPercent >= 80) {
-          toast.error(`PSU "${psu.name}" at ${loadPercent.toFixed(0)}% load (DANGER)`, { duration: 10000 });
+          enqueueWarning({
+            id: `psu-${psu.id}-danger`,
+            title: `PSU "${psu.name}" load`,
+            message: `PSU "${psu.name}" is at ${loadPercent.toFixed(0)}% load (${psuLoad.toFixed(1)}W / ${psu.wattage}W). Consider reducing load or redistributing devices.`,
+            level: 'danger',
+          });
         } else if (loadPercent >= 70) {
-          toast.warning(`PSU "${psu.name}" at ${loadPercent.toFixed(0)}% load (WARNING)`, { duration: 5000 });
+          enqueueWarning({
+            id: `psu-${psu.id}-warn`,
+            title: `PSU "${psu.name}" load`,
+            message: `PSU "${psu.name}" is at ${loadPercent.toFixed(0)}% load (${psuLoad.toFixed(1)}W / ${psu.wattage}W).`,
+            level: 'warning',
+          });
         }
       });
     } catch (error) {
@@ -188,26 +252,61 @@ export default function Dashboard() {
       const temp = status.temp;
       const vrTemp = status.vrTemp || status.vr_temp || 0;
       const asicErr = status.asic_errors || status.errors || 0;
+      const poolFailover = status.poolFailover || status.pool_failover;
 
       if (temp >= 70) {
         const k = `${d.name}-temp`;
         if (!keyset.has(k)) {
-          toast.warning(`${d.name} high ASIC temp (${temp}°C)`, { duration: 6000 });
-          keyset.add(k);
+          enqueueWarning({
+            id: k,
+            title: `${d.name} temperature`,
+            message: `High ASIC temperature detected (${temp}C). Consider reducing load or improving cooling.`,
+            level: 'warning',
+          });
         }
       }
       if (vrTemp >= 85) {
         const k = `${d.name}-vr`;
         if (!keyset.has(k)) {
-          toast.warning(`${d.name} high VR temp (${vrTemp}°C)`, { duration: 6000 });
-          keyset.add(k);
+          enqueueWarning({
+            id: k,
+            title: `${d.name} VR temperature`,
+            message: `Voltage regulator temperature is high (${vrTemp}C). Check airflow or reduce power.`,
+            level: 'warning',
+          });
         }
       }
       if (asicErr > 0) {
         const k = `${d.name}-err`;
         if (!keyset.has(k)) {
-          toast.warning(`${d.name} reports ASIC errors (${asicErr})`, { duration: 6000 });
-          keyset.add(k);
+          enqueueWarning({
+            id: k,
+            title: `${d.name} ASIC errors`,
+            message: `Device reported ${asicErr} ASIC errors. Consider applying a safer profile or inspecting the device.`,
+            level: 'warning',
+          });
+        }
+      }
+      if (!d.online) {
+        const k = `${d.name}-offline`;
+        if (!keyset.has(k)) {
+          enqueueWarning({
+            id: k,
+            title: `${d.name} offline`,
+            message: `${d.name} is offline or unreachable.`,
+            level: 'danger',
+          });
+        }
+      }
+      if (poolFailover) {
+        const k = `${d.name}-failover`;
+        if (!keyset.has(k)) {
+          enqueueWarning({
+            id: k,
+            title: `${d.name} pool failover`,
+            message: `${d.name} switched to fallback pool.`,
+            level: 'warning',
+          });
         }
       }
     });
@@ -430,7 +529,7 @@ export default function Dashboard() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => handleDeletePsu(psu.id, psu.name)}
+                        onClick={() => setConfirmPsu({ id: psu.id, name: psu.name })}
                         className="h-6 px-2 text-xs text-[var(--error-red)] hover:bg-[var(--error-red)]/10"
                       >
                         DELETE
@@ -584,6 +683,55 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PSU delete confirmation */}
+      <ConfirmDialog
+        open={!!confirmPsu}
+        title={confirmPsu ? `Delete PSU "${confirmPsu.name}"?` : ''}
+        description="Devices assigned to this PSU will be set to Standalone mode."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        tone="danger"
+        onCancel={() => setConfirmPsu(null)}
+        onConfirm={() => {
+          if (confirmPsu) {
+            handleDeletePsu(confirmPsu.id, confirmPsu.name);
+          }
+          setConfirmPsu(null);
+        }}
+      />
+
+      {/* Warning modal (one at a time) */}
+      <Dialog open={!!activeWarning} onOpenChange={(open) => { if (!open) dismissActiveWarning(); }}>
+        <DialogContent className="matrix-card max-w-xl border-2">
+          <DialogHeader>
+            <DialogTitle className={`text-xl font-bold ${activeWarning?.level === 'danger' ? 'text-[var(--error-red)]' : 'text-[var(--warning-amber)]'}`}>
+              {activeWarning?.title || 'WARNING'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-[var(--text-primary)] text-sm leading-relaxed">
+            {activeWarning?.message}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] mt-3">
+            <input
+              id="dont-remind-warning"
+              type="checkbox"
+              checked={dontRemind}
+              onChange={(e) => setDontRemind(e.target.checked)}
+            />
+            <label htmlFor="dont-remind-warning">Don't remind me again for this warning</label>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={dismissActiveWarning}>Dismiss</Button>
+            <Button
+              className={activeWarning?.level === 'danger' ? 'bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white' : 'btn-matrix'}
+              onClick={dismissActiveWarning}
+            >
+              OK
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

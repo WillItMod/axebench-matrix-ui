@@ -1,298 +1,248 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Play, Square, RefreshCw, Clock, Calendar, ArrowLeftRight, Shield } from 'lucide-react';
+import { Clock, Calendar, Plus, Trash2, AlertCircle, Layers } from 'lucide-react';
 
-interface Schedule {
-  enabled: boolean;
-  entries: ScheduleEntry[];
-}
+type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
-interface ScheduleEntry {
-  time: string; // HH:MM format
+const dayLabels: Record<DayKey, string> = {
+  mon: 'Mon',
+  tue: 'Tue',
+  wed: 'Wed',
+  thu: 'Thu',
+  fri: 'Fri',
+  sat: 'Sat',
+  sun: 'Sun',
+};
+
+interface ProfileSlot {
+  id: string;
+  time: string; // HH:MM
   profile: string;
-  days?: string[]; // ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+  days: DayKey[];
 }
 
-interface Pool {
-  name: string;
-  url: string;
-  port: number;
-  user: string;
-  password?: string;
+interface PoolSlot {
+  id: string;
+  time: string; // HH:MM
+  poolId: string;
+  mode: 'main' | 'fallback';
+  days: DayKey[];
 }
 
-interface PoolInfo {
-  url: string;
-  port: number;
-  user: string;
-  password: string;
-  fallback_url: string;
-  fallback_port: number;
-  fallback_user: string;
-  fallback_password: string;
-  is_using_fallback: boolean;
-  pool_connected: boolean;
+interface SchedulePayload {
+  enabled: boolean;
+  entries: Array<
+    | { kind: 'profile'; time: string; profile: string; days: DayKey[] }
+    | { kind: 'pool'; time: string; poolId: string; mode: 'main' | 'fallback'; days: DayKey[] }
+  >;
 }
 
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState<string>('');
+  const [selectedDevice, setSelectedDevice] = useState('');
   const [profiles, setProfiles] = useState<any[]>([]);
-  const [schedule, setSchedule] = useState<Schedule | null>(null);
-  const [schedulerStatus, setSchedulerStatus] = useState<any>(null);
+  const [pools, setPools] = useState<any[]>([]);
+  const [schedulerEnabled, setSchedulerEnabled] = useState(false);
+  const [profileSlots, setProfileSlots] = useState<ProfileSlot[]>([]);
+  const [poolSlots, setPoolSlots] = useState<PoolSlot[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Pool management state
-  const [pools, setPools] = useState<Record<string, Pool>>({});
-  const [poolInfo, setPoolInfo] = useState<PoolInfo | null>(null);
-  const [selectedPool, setSelectedPool] = useState<string>('');
-  const [selectedFallbackPool, setSelectedFallbackPool] = useState<string>('');
+  const [showRemove, setShowRemove] = useState<{ type: 'profile' | 'pool'; id: string } | null>(null);
 
-  // New schedule entry form
-  const [newEntry, setNewEntry] = useState<ScheduleEntry>({
+  const [newProfileSlot, setNewProfileSlot] = useState<ProfileSlot>({
+    id: crypto.randomUUID(),
     time: '00:00',
     profile: '',
+    days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+  });
+
+  const [newPoolSlot, setNewPoolSlot] = useState<PoolSlot>({
+    id: crypto.randomUUID(),
+    time: '00:00',
+    poolId: '',
+    mode: 'main',
     days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   });
 
   useEffect(() => {
     loadDevices();
     loadPools();
-    const interval = setInterval(() => {
-      loadSchedulerStatus();
-      if (selectedDevice) {
-        loadPoolInfo();
-      }
-    }, 5000);
-    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (selectedDevice) {
-      loadDeviceData();
-      loadPoolInfo();
+      loadProfiles();
+      loadSchedule();
     }
   }, [selectedDevice]);
 
   const loadDevices = async () => {
     try {
-      const devicesData = await api.devices.list();
-      setDevices(devicesData || []);
-      if (devicesData && devicesData.length > 0 && !selectedDevice) {
-        setSelectedDevice(devicesData[0].name);
+      const data = await api.devices.list();
+      setDevices(data || []);
+      if (data?.length && !selectedDevice) {
+        setSelectedDevice(data[0].name);
       }
     } catch (error) {
-      console.error('Failed to load devices:', error);
       toast.error('Failed to load devices');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadDeviceData = async () => {
+  const loadProfiles = async () => {
     if (!selectedDevice) return;
-
     try {
-      const [profilesData, scheduleData] = await Promise.all([
-        api.shed.getProfiles(selectedDevice),
-        api.shed.getSchedule(selectedDevice),
-      ]);
-      setProfiles(profilesData || []);
-      setSchedule(scheduleData || { enabled: false, entries: [] });
+      const data = await api.shed.getProfiles(selectedDevice);
+      setProfiles(data || []);
     } catch (error) {
-      console.error('Failed to load device data:', error);
-      toast.error('Failed to load device data');
+      toast.error('Failed to load profiles');
     }
   };
 
   const loadPools = async () => {
     try {
-      const poolsData = await api.pool.list();
-      // API returns object, not array
-      setPools(poolsData || {});
+      const data = await api.pool.list();
+      const array = Array.isArray(data) ? data : Object.values(data || {});
+      setPools(array);
     } catch (error) {
-      console.error('Failed to load pools:', error);
+      toast.error('Failed to load pools');
     }
   };
 
-  const loadPoolInfo = async () => {
+  const loadSchedule = async () => {
     if (!selectedDevice) return;
-    
     try {
-      const info = await api.pool.getDevicePool(selectedDevice);
-      setPoolInfo(info);
+      const data = await api.shed.getSchedule(selectedDevice);
+      if (!data) return;
+
+      setSchedulerEnabled(Boolean(data.enabled));
+
+      const entries = (data.entries || []) as SchedulePayload['entries'];
+      const pSlots: ProfileSlot[] = [];
+      const poSlots: PoolSlot[] = [];
+
+      entries.forEach((entry: any) => {
+        if (entry.kind === 'pool') {
+          poSlots.push({
+            id: crypto.randomUUID(),
+            time: entry.time || '00:00',
+            poolId: entry.poolId || entry.pool || '',
+            mode: entry.mode === 'fallback' ? 'fallback' : 'main',
+            days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+          });
+        } else {
+          pSlots.push({
+            id: crypto.randomUUID(),
+            time: entry.time || '00:00',
+            profile: entry.profile || '',
+            days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+          });
+        }
+      });
+
+      // Fallback for legacy schedules lacking kind
+      if (!entries?.length && data.entries) {
+        const legacy = data.entries as any[];
+        legacy.forEach((entry) => {
+          pSlots.push({
+            id: crypto.randomUUID(),
+            time: entry.time || '00:00',
+            profile: entry.profile || '',
+            days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+          });
+        });
+      }
+
+      setProfileSlots(pSlots);
+      setPoolSlots(poSlots);
     } catch (error) {
-      console.error('Failed to load pool info:', error);
+      toast.error('Failed to load schedule');
     }
   };
 
-  const loadSchedulerStatus = async () => {
-    try {
-      const status = await api.shed.schedulerStatus();
-      setSchedulerStatus(status);
-    } catch (error) {
-      console.error('Failed to load scheduler status:', error);
-    }
+  const toggleDay = <T extends ProfileSlot | PoolSlot>(slot: T, day: DayKey, setter: (slot: T) => void) => {
+    const hasDay = slot.days.includes(day);
+    const nextDays = hasDay ? slot.days.filter((d) => d !== day) : [...slot.days, day];
+    setter({ ...slot, days: nextDays } as T);
   };
 
-  const handleApplyProfile = async (profileName: string) => {
-    if (!selectedDevice) return;
-
-    try {
-      await api.shed.applyProfile(selectedDevice, profileName);
-      toast.success(`Profile "${profileName}" applied to ${selectedDevice}`);
-    } catch (error) {
-      console.error('Failed to apply profile:', error);
-      toast.error('Failed to apply profile');
-    }
-  };
-
-  const handleAddScheduleEntry = () => {
-    if (!newEntry.profile) {
-      toast.error('Please select a profile');
+  const handleAddProfileSlot = () => {
+    if (!newProfileSlot.profile) {
+      toast.error('Select a profile');
       return;
     }
-
-    const updatedSchedule = {
-      ...schedule,
-      enabled: schedule?.enabled || false,
-      entries: [...(schedule?.entries || []), newEntry],
-    };
-
-    setSchedule(updatedSchedule);
-    setNewEntry({
+    setProfileSlots([...profileSlots, { ...newProfileSlot, id: crypto.randomUUID() }]);
+    setNewProfileSlot({
+      id: crypto.randomUUID(),
       time: '00:00',
       profile: '',
       days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
     });
   };
 
-  const handleRemoveScheduleEntry = (index: number) => {
-    if (!schedule) return;
-
-    const updatedSchedule = {
-      ...schedule,
-      entries: schedule.entries.filter((_, i) => i !== index),
-    };
-
-    setSchedule(updatedSchedule);
+  const handleAddPoolSlot = () => {
+    if (!newPoolSlot.poolId) {
+      toast.error('Select a pool');
+      return;
+    }
+    setPoolSlots([...poolSlots, { ...newPoolSlot, id: crypto.randomUUID() }]);
+    setNewPoolSlot({
+      id: crypto.randomUUID(),
+      time: '00:00',
+      poolId: '',
+      mode: 'main',
+      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+    });
   };
 
   const handleSaveSchedule = async () => {
-    if (!selectedDevice || !schedule) return;
-
-    try {
-      await api.shed.setSchedule(selectedDevice, schedule);
-      toast.success('Schedule saved');
-    } catch (error) {
-      console.error('Failed to save schedule:', error);
-      toast.error('Failed to save schedule');
-    }
-  };
-
-  const handleToggleSchedule = async () => {
-    if (!selectedDevice || !schedule) return;
-
-    const updatedSchedule = {
-      ...schedule,
-      enabled: !schedule.enabled,
+    if (!selectedDevice) return;
+    const payload: SchedulePayload = {
+      enabled: schedulerEnabled,
+      entries: [
+        ...profileSlots.map((slot) => ({
+          kind: 'profile' as const,
+          time: slot.time,
+          profile: slot.profile,
+          days: slot.days,
+        })),
+        ...poolSlots.map((slot) => ({
+          kind: 'pool' as const,
+          time: slot.time,
+          poolId: slot.poolId,
+          mode: slot.mode,
+          days: slot.days,
+        })),
+      ],
     };
 
     try {
-      await api.shed.setSchedule(selectedDevice, updatedSchedule);
-      setSchedule(updatedSchedule);
-      toast.success(`Schedule ${updatedSchedule.enabled ? 'enabled' : 'disabled'}`);
-    } catch (error) {
-      console.error('Failed to toggle schedule:', error);
-      toast.error('Failed to toggle schedule');
+      await api.shed.setSchedule(selectedDevice, payload);
+      toast.success('Schedule saved');
+      loadSchedule();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save schedule');
     }
   };
 
-  const handleStartScheduler = async () => {
-    try {
-      await api.shed.startScheduler();
-      toast.success('Scheduler started');
-      loadSchedulerStatus();
-    } catch (error) {
-      console.error('Failed to start scheduler:', error);
-      toast.error('Failed to start scheduler');
+  const handleRemoveSlot = (type: 'profile' | 'pool', id: string) => {
+    if (type === 'profile') {
+      setProfileSlots(profileSlots.filter((slot) => slot.id !== id));
+    } else {
+      setPoolSlots(poolSlots.filter((slot) => slot.id !== id));
     }
+    setShowRemove(null);
   };
 
-  const handleStopScheduler = async () => {
-    try {
-      await api.shed.stopScheduler();
-      toast.success('Scheduler stopped');
-      loadSchedulerStatus();
-    } catch (error) {
-      console.error('Failed to stop scheduler:', error);
-      toast.error('Failed to stop scheduler');
-    }
-  };
-
-  const handleApplyPool = async () => {
-    if (!selectedDevice || !selectedPool) {
-      toast.error('Please select a device and pool');
-      return;
-    }
-
-    try {
-      await api.pool.applyPool(selectedDevice, selectedPool);
-      toast.success(`Pool applied to ${selectedDevice}`);
-      loadPoolInfo();
-    } catch (error) {
-      console.error('Failed to apply pool:', error);
-      toast.error('Failed to apply pool');
-    }
-  };
-
-  const handleApplyFallbackPool = async () => {
-    if (!selectedDevice || !selectedFallbackPool) {
-      toast.error('Please select a device and fallback pool');
-      return;
-    }
-
-    try {
-      await api.pool.applyFallback(selectedDevice, selectedFallbackPool);
-      toast.success(`Fallback pool applied to ${selectedDevice}`);
-      loadPoolInfo();
-    } catch (error) {
-      console.error('Failed to apply fallback pool:', error);
-      toast.error('Failed to apply fallback pool');
-    }
-  };
-
-  const handleSwapPools = async () => {
-    if (!selectedDevice) {
-      toast.error('Please select a device');
-      return;
-    }
-
-    try {
-      await api.pool.swapPool(selectedDevice);
-      toast.success('Pools swapped successfully');
-      loadPoolInfo();
-    } catch (error) {
-      console.error('Failed to swap pools:', error);
-      toast.error('Failed to swap pools');
-    }
-  };
-
-  const dayLabels: Record<string, string> = {
-    mon: 'M',
-    tue: 'T',
-    wed: 'W',
-    thu: 'T',
-    fri: 'F',
-    sat: 'S',
-    sun: 'S',
-  };
+  const profileOptions = useMemo(() => profiles.map((p: any) => p.name || p.profile || ''), [profiles]);
 
   if (loading) {
     return (
@@ -304,352 +254,269 @@ export default function Operations() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-matrix-green mb-2">⚙️ OPERATIONS</h1>
-          <p className="text-neon-cyan">Profile Scheduling, Pool Management & Failover</p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={() => { loadDeviceData(); loadPools(); loadPoolInfo(); }} variant="outline" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
-            REFRESH
-          </Button>
-          {schedulerStatus?.running ? (
-            <Button onClick={handleStopScheduler} variant="destructive" className="gap-2">
-              <Square className="w-4 h-4" />
-              STOP_SCHEDULER
-            </Button>
-          ) : (
-            <Button onClick={handleStartScheduler} className="gap-2">
-              <Play className="w-4 h-4" />
-              START_SCHEDULER
-            </Button>
-          )}
-        </div>
+      <div className="hud-panel flex flex-col gap-2">
+        <h1 className="text-3xl font-bold text-glow-green">OPERATIONS_SCHEDULER</h1>
+        <p className="text-[var(--text-secondary)] text-sm">
+          Schedule profile modes and pool profiles to run at specific times. Quick applies live on the Pool page.
+        </p>
       </div>
 
-      {/* Scheduler Status */}
-      {schedulerStatus && (
-        <Card className="p-4 bg-black/80 border-matrix-green">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-gray-400">SCHEDULER_STATUS</div>
-              <div className={`text-lg font-bold ${schedulerStatus.running ? 'text-matrix-green' : 'text-gray-500'}`}>
-                {schedulerStatus.running ? '● RUNNING' : '○ STOPPED'}
-              </div>
-            </div>
-            {schedulerStatus.next_event && (
-              <div className="text-right">
-                <div className="text-sm text-gray-400">NEXT_EVENT</div>
-                <div className="text-neon-cyan">{schedulerStatus.next_event}</div>
-              </div>
-            )}
+      {/* Device selection + enable toggle */}
+      <Card className="p-6 bg-black/80 border-[var(--matrix-green)]">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-2">
+            <Label className="text-[var(--text-secondary)]">Target Device</Label>
+            <Select value={selectedDevice} onValueChange={setSelectedDevice}>
+              <SelectTrigger className="w-64 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                <SelectValue placeholder="Select device..." />
+              </SelectTrigger>
+              <SelectContent>
+                {devices.map((d) => (
+                  <SelectItem key={d.name} value={d.name}>
+                    {d.name} ({d.model})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </Card>
-      )}
 
-      {/* Device Selection */}
-      <Card className="p-6 bg-black/80 border-neon-cyan">
-        <Label>SELECT_DEVICE</Label>
-        <div className="flex flex-wrap gap-2 mt-3">
-          {devices.map((device) => (
-            <Button
-              key={device.name}
-              onClick={() => setSelectedDevice(device.name)}
-              variant={selectedDevice === device.name ? 'default' : 'outline'}
-              className={selectedDevice === device.name 
-                ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80 border-[var(--neon-cyan)]'
-                : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--neon-cyan)] hover:text-[var(--neon-cyan)]'
-              }
-            >
-              {device.name}
-              <span className="ml-2 text-xs opacity-60">({device.model})</span>
-            </Button>
-          ))}
+          <div className="flex items-center gap-3 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-4 py-3">
+            <div>
+              <div className="text-sm font-bold text-[var(--text-primary)]">SCHEDULER</div>
+              <div className="text-xs text-[var(--text-muted)]">Enable or disable for this device</div>
+            </div>
+            <Switch checked={schedulerEnabled} onCheckedChange={setSchedulerEnabled} />
+          </div>
+
+          <Button onClick={handleSaveSchedule} className="btn-matrix w-full md:w-auto">
+            SAVE_SCHEDULE
+          </Button>
         </div>
       </Card>
 
-      {selectedDevice && (
-        <>
-          {/* Pool Failover Section */}
-          <Card className="p-6 bg-black/80 border-red-500">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-6 h-6 text-red-500" />
-              <h2 className="text-xl font-bold text-red-500">POOL FAILOVER</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Profile schedule */}
+        <Card className="p-6 bg-black/80 border-[var(--neon-cyan)] space-y-4">
+          <div className="flex items-center gap-3">
+            <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
+            <div>
+              <h2 className="text-xl font-bold text-[var(--neon-cyan)]">PROFILE_SCHEDULE</h2>
+              <p className="text-xs text-[var(--text-muted)]">Set daily times to switch Quiet / Efficient / Balanced / Max.</p>
             </div>
-            
-            {poolInfo && (
-              <Card className="p-4 bg-black/90 border-gray-700 mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-sm text-gray-400 mb-1">MAIN POOL</div>
-                    <div className="font-mono text-matrix-green">
-                      {poolInfo.url}:{poolInfo.port}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">User: {poolInfo.user}</div>
-                    <div className={`text-xs mt-1 ${poolInfo.pool_connected && !poolInfo.is_using_fallback ? 'text-matrix-green' : 'text-gray-500'}`}>
-                      {poolInfo.pool_connected && !poolInfo.is_using_fallback ? '● ACTIVE' : '○ INACTIVE'}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-400 mb-1">FALLBACK POOL</div>
-                    <div className="font-mono text-neon-cyan">
-                      {poolInfo.fallback_url || 'Not configured'}
-                      {poolInfo.fallback_port ? `:${poolInfo.fallback_port}` : ''}
-                    </div>
-                    {poolInfo.fallback_user && (
-                      <div className="text-xs text-gray-500 mt-1">User: {poolInfo.fallback_user}</div>
-                    )}
-                    <div className={`text-xs mt-1 ${poolInfo.is_using_fallback ? 'text-red-500' : 'text-gray-500'}`}>
-                      {poolInfo.is_using_fallback ? '● ACTIVE (FAILOVER)' : '○ STANDBY'}
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <Label>MAIN POOL</Label>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {Object.entries(pools).map(([id, pool]) => (
-                    <Button
-                      key={id}
-                      onClick={() => setSelectedPool(id)}
-                      variant={selectedPool === id ? 'default' : 'outline'}
-                      className={selectedPool === id 
-                        ? 'bg-[var(--matrix-green)] text-black hover:bg-[var(--matrix-green)]/80'
-                        : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--matrix-green)]'
-                      }
-                    >
-                      {pool.name}
-                    </Button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label>Time</Label>
+              <Input type="time" value={newProfileSlot.time} onChange={(e) => setNewProfileSlot({ ...newProfileSlot, time: e.target.value })} />
+            </div>
+            <div>
+              <Label>Profile</Label>
+              <Select value={newProfileSlot.profile} onValueChange={(v) => setNewProfileSlot({ ...newProfileSlot, profile: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select profile..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {profileOptions.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name.toUpperCase()}
+                    </SelectItem>
                   ))}
-                </div>
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <Button onClick={handleApplyPool} className="btn-matrix" disabled={!selectedPool}>
-                    APPLY
-                  </Button>
-                  <Button 
-                    onClick={async () => {
-                      if (!selectedPool) return;
-                      if (!confirm(`Apply pool "${pools[selectedPool]?.name}" to ALL devices?`)) return;
-                      try {
-                        await Promise.all(devices.map(d => api.pool.applyPool(d.name, selectedPool)));
-                        toast.success('Pool applied to all devices');
-                        loadPoolInfo();
-                      } catch (error: any) {
-                        toast.error(error.message || 'Failed to apply pool to all devices');
-                      }
-                    }}
-                    className="btn-matrix bg-yellow-600 hover:bg-yellow-700"
-                    disabled={!selectedPool}
-                  >
-                    APPLY_TO_ALL
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <Label>FALLBACK POOL</Label>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {Object.entries(pools).map(([id, pool]) => (
-                    <Button
-                      key={id}
-                      onClick={() => setSelectedFallbackPool(id)}
-                      variant={selectedFallbackPool === id ? 'default' : 'outline'}
-                      className={selectedFallbackPool === id 
-                        ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80'
-                        : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--neon-cyan)]'
-                      }
-                    >
-                      {pool.name}
-                    </Button>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <Button onClick={handleApplyFallbackPool} className="bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80" disabled={!selectedFallbackPool}>
-                    APPLY
-                  </Button>
-                  <Button 
-                    onClick={async () => {
-                      if (!selectedFallbackPool) return;
-                      if (!confirm(`Apply fallback pool "${pools[selectedFallbackPool]?.name}" to ALL devices?`)) return;
-                      try {
-                        await Promise.all(devices.map(d => api.pool.applyFallback(d.name, selectedFallbackPool)));
-                        toast.success('Fallback pool applied to all devices');
-                        loadPoolInfo();
-                      } catch (error: any) {
-                        toast.error(error.message || 'Failed to apply fallback pool to all devices');
-                      }
-                    }}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                    disabled={!selectedFallbackPool}
-                  >
-                    APPLY_TO_ALL
-                  </Button>
-                </div>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
-
-            <Button 
-              onClick={handleSwapPools} 
-              variant="outline" 
-              className="w-full gap-2 border-red-500 text-red-500 hover:bg-red-500/10"
-            >
-              <ArrowLeftRight className="w-4 h-4" />
-              SWAP_MAIN_↔_FALLBACK
-            </Button>
-          </Card>
-
-          {/* Quick Profile Apply */}
-          <Card className="p-6 bg-black/80 border-matrix-green">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-matrix-green">QUICK_PROFILE_APPLY</h2>
-              <div className="text-xs text-gray-400">Click profile to apply to selected device</div>
-            </div>
-            {profiles.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">
-                NO_PROFILES_AVAILABLE
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {profiles.map((profile) => (
-                  <div key={profile.name} className="space-y-2">
-                    <Button
-                      onClick={() => handleApplyProfile(profile.name)}
-                      variant="outline"
-                      className="w-full h-auto py-3 flex flex-col items-start"
-                    >
-                      <div className="font-bold text-matrix-green">{profile.name}</div>
-                      {profile.voltage && profile.frequency && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          {profile.voltage}mV @ {profile.frequency}MHz
-                        </div>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        if (!confirm(`Apply profile "${profile.name}" to ALL devices?`)) return;
-                        try {
-                          await Promise.all(devices.map(d => api.shed.applyProfile(d.name, profile.name)));
-                          toast.success(`Profile "${profile.name}" applied to all devices`);
-                        } catch (error: any) {
-                          toast.error(error.message || 'Failed to apply profile to all devices');
-                        }
-                      }}
-                      size="sm"
-                      className="w-full bg-yellow-600 hover:bg-yellow-700 text-white text-xs"
-                    >
-                      APPLY_TO_ALL
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
-          {/* Schedule Configuration */}
-          <Card className="p-6 bg-black/80 border-neon-cyan">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-neon-cyan">PROFILE_SCHEDULE</h2>
-              <Button
-                onClick={handleToggleSchedule}
-                variant={schedule?.enabled ? 'default' : 'outline'}
-                size="sm"
-              >
-                {schedule?.enabled ? 'ENABLED' : 'DISABLED'}
+            <div className="flex items-end">
+              <Button onClick={handleAddProfileSlot} className="w-full gap-2">
+                <Plus className="w-4 h-4" /> ADD
               </Button>
             </div>
+          </div>
 
-            {/* Add Schedule Entry */}
-            <Card className="p-4 bg-black/90 border-gray-700 mb-4">
-              <h3 className="font-bold text-matrix-green mb-3">ADD_SCHEDULE_ENTRY</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="entry-time">Time</Label>
-                  <Input
-                    id="entry-time"
-                    type="time"
-                    value={newEntry.time}
-                    onChange={(e) => setNewEntry({ ...newEntry, time: e.target.value })}
+          <DaySelector slot={newProfileSlot} onToggle={(day) => toggleDay(newProfileSlot, day, (slot) => setNewProfileSlot(slot))} />
+
+          {profileSlots.length === 0 ? (
+            <div className="text-[var(--text-muted)] text-sm">No profile schedule entries</div>
+          ) : (
+            <div className="space-y-3">
+              {profileSlots.map((slot) => (
+                <ScheduleRow
+                  key={slot.id}
+                  icon={<Clock className="w-4 h-4 text-[var(--neon-cyan)]" />}
+                  title={slot.profile.toUpperCase()}
+                  subtitle={slot.time}
+                  days={slot.days}
+                  onRemove={() => setShowRemove({ type: 'profile', id: slot.id })}
+                />
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Pool schedule */}
+        <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
+            <div>
+              <h2 className="text-xl font-bold text-[var(--matrix-green)]">POOL_PROFILE_SCHEDULE</h2>
+              <p className="text-xs text-[var(--text-muted)]">Set pool profiles (main/fallback) by time of day.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <Label>Time</Label>
+              <Input type="time" value={newPoolSlot.time} onChange={(e) => setNewPoolSlot({ ...newPoolSlot, time: e.target.value })} />
+            </div>
+            <div>
+              <Label>Pool Profile</Label>
+              <Select value={newPoolSlot.poolId} onValueChange={(v) => setNewPoolSlot({ ...newPoolSlot, poolId: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select pool..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {pools.map((p: any) => (
+                    <SelectItem key={p.id || p.name} value={p.id || p.name}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={newPoolSlot.mode === 'main' ? 'default' : 'outline'}
+                className="w-full"
+                onClick={() => setNewPoolSlot({ ...newPoolSlot, mode: 'main' })}
+              >
+                MAIN
+              </Button>
+              <Button
+                variant={newPoolSlot.mode === 'fallback' ? 'default' : 'outline'}
+                className="w-full"
+                onClick={() => setNewPoolSlot({ ...newPoolSlot, mode: 'fallback' })}
+              >
+                FALLBACK
+              </Button>
+            </div>
+          </div>
+
+          <DaySelector slot={newPoolSlot} onToggle={(day) => toggleDay(newPoolSlot, day, (slot) => setNewPoolSlot(slot))} />
+
+          {poolSlots.length === 0 ? (
+            <div className="text-[var(--text-muted)] text-sm">No pool schedule entries</div>
+          ) : (
+            <div className="space-y-3">
+              {poolSlots.map((slot) => {
+                const poolName = pools.find((p: any) => p.id === slot.poolId || p.name === slot.poolId)?.name || slot.poolId;
+                return (
+                  <ScheduleRow
+                    key={slot.id}
+                    icon={<Clock className="w-4 h-4 text-[var(--matrix-green)]" />}
+                    title={`${poolName} ƒ?½ ${slot.mode.toUpperCase()}`}
+                    subtitle={slot.time}
+                    days={slot.days}
+                    onRemove={() => setShowRemove({ type: 'pool', id: slot.id })}
                   />
-                </div>
-                <div>
-                  <Label htmlFor="entry-profile">Profile</Label>
-                  <Select
-                    value={newEntry.profile}
-                    onValueChange={(value) => setNewEntry({ ...newEntry, profile: value })}
-                  >
-                    <SelectTrigger id="entry-profile">
-                      <SelectValue placeholder="Select profile..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {profiles.map((profile) => (
-                        <SelectItem key={profile.name} value={profile.name}>
-                          {profile.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-end">
-                  <Button onClick={handleAddScheduleEntry} className="w-full">
-                    ADD_ENTRY
-                  </Button>
-                </div>
-              </div>
-            </Card>
+                );
+              })}
+            </div>
+          )}
 
-            {/* Schedule Entries */}
-            {schedule && schedule.entries.length > 0 ? (
-              <div className="space-y-3">
-                {schedule.entries.map((entry, index) => (
-                  <Card key={index} className="p-4 bg-black/90 border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <Clock className="w-5 h-5 text-neon-cyan" />
-                        <div>
-                          <div className="font-bold text-matrix-green">{entry.time}</div>
-                          <div className="text-sm text-gray-400">{entry.profile}</div>
-                        </div>
-                        {entry.days && (
-                          <div className="flex gap-1">
-                            {entry.days.map((day) => (
-                              <span
-                                key={day}
-                                className="text-xs bg-neon-cyan/20 text-neon-cyan px-2 py-1 rounded"
-                              >
-                                {dayLabels[day]}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        onClick={() => handleRemoveScheduleEntry(index)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-red-500 hover:text-red-400"
-                      >
-                        REMOVE
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-                <Button onClick={handleSaveSchedule} className="w-full">
-                  SAVE_SCHEDULE
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                NO_SCHEDULE_ENTRIES
-              </div>
-            )}
-          </Card>
-        </>
-      )}
+          <Button onClick={handleAddPoolSlot} className="w-full gap-2">
+            <Plus className="w-4 h-4" /> ADD POOL SLOT
+          </Button>
+        </Card>
+      </div>
+
+      {/* Remove confirmation */}
+      <Dialog open={!!showRemove} onOpenChange={() => setShowRemove(null)}>
+        <DialogContent className="matrix-card">
+          <DialogHeader>
+            <DialogTitle className="text-glow-red flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" /> Remove entry?
+            </DialogTitle>
+            <DialogDescription>This will delete the scheduled entry.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRemove(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (showRemove) {
+                  handleRemoveSlot(showRemove.type, showRemove.id);
+                }
+              }}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DaySelector<T extends { days: DayKey[] }>({ slot, onToggle }: { slot: T; onToggle: (day: DayKey) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {Object.entries(dayLabels).map(([day, label]) => {
+        const active = slot.days.includes(day as DayKey);
+        return (
+          <button
+            key={day}
+            onClick={() => onToggle(day as DayKey)}
+            className={`px-3 py-1 rounded border text-xs font-bold transition ${
+              active
+                ? 'border-[var(--matrix-green)] text-[var(--matrix-green)] bg-[var(--matrix-green)]/10'
+                : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--matrix-green)]'
+            }`}
+            type="button"
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ScheduleRow({
+  icon,
+  title,
+  subtitle,
+  days,
+  onRemove,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  days: DayKey[];
+  onRemove: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-3 py-2">
+      <div className="flex items-center gap-3">
+        {icon}
+        <div>
+          <div className="text-sm font-bold text-[var(--text-primary)]">{title}</div>
+          <div className="text-xs text-[var(--text-muted)]">{subtitle}</div>
+        </div>
+        <div className="flex gap-1">
+          {days.map((d) => (
+            <span key={d} className="text-[10px] bg-[var(--grid-gray)] text-[var(--text-secondary)] px-2 py-0.5 rounded">
+              {dayLabels[d]}
+            </span>
+          ))}
+        </div>
+      </div>
+      <button
+        onClick={onRemove}
+        className="p-1 rounded hover:bg-red-500/10 text-red-400"
+        aria-label="Remove"
+        type="button"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
     </div>
   );
 }

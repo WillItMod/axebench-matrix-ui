@@ -318,7 +318,7 @@ export default function Benchmark() {
               <div className="matrix-card">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-xl font-bold text-glow-cyan">🤖 AUTO_STEP</h3>
+                <h3 className="text-xl font-bold text-glow-cyan">AUTO_STEP</h3>
                 <p className="text-[var(--text-muted)] text-sm mt-1">
                   Intelligent step adjustment (25→5mV, 50→10MHz)
                 </p>
@@ -455,7 +455,6 @@ export default function Benchmark() {
                     <SelectItem value="efficient">Efficient</SelectItem>
                     <SelectItem value="balanced">Balanced</SelectItem>
                     <SelectItem value="max">Max</SelectItem>
-                    <SelectItem value="quiet">Quiet Mode</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
