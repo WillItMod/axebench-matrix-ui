@@ -61,6 +61,7 @@ const LOCAL_SCHEDULE_PREFIX = 'axebench:schedule:';
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'profiles' | 'pools'>('profiles');
   const [profiles, setProfiles] = useState<any[]>([]);
   const [pools, setPools] = useState<any[]>([]);
   const [schedulerEnabled, setSchedulerEnabled] = useState(false);
@@ -584,163 +585,174 @@ export default function Operations() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Profile schedule */}
-        <Card className="p-6 bg-black/80 border-[var(--neon-cyan)] space-y-4">
-          <div className="flex items-center gap-3">
-            <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
-            <div>
-              <h2 className="text-xl font-bold text-[var(--neon-cyan)]">TUNING PROFILE SCHEDULE</h2>
-              <p className="text-xs text-[var(--text-muted)]">Schedule Quiet / Efficient / Balanced / Max per day.</p>
-            </div>
-          </div>
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <Button variant={activeTab === 'profiles' ? 'default' : 'outline'} onClick={() => setActiveTab('profiles')}>
+            Tuning Schedules
+          </Button>
+          <Button variant={activeTab === 'pools' ? 'default' : 'outline'} onClick={() => setActiveTab('pools')}>
+            Pool Schedules
+          </Button>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <Label>Time</Label>
-              <Input type="time" value={profileForm.time} onChange={(e) => setProfileForm({ ...profileForm, time: e.target.value })} />
+        {activeTab === 'profiles' && (
+          <Card className="p-6 bg-black/80 border-[var(--neon-cyan)] space-y-4">
+            <div className="flex items-center gap-3">
+              <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
+              <div>
+                <h2 className="text-xl font-bold text-[var(--neon-cyan)]">TUNING PROFILE SCHEDULE</h2>
+                <p className="text-xs text-[var(--text-muted)]">Schedule Quiet / Efficient / Balanced / Max per day.</p>
+              </div>
             </div>
-            <div>
-              <Label>Profile</Label>
-              <Select
-                value={profileForm.profile}
-                onValueChange={(val) => setProfileForm({ ...profileForm, profile: val })}
-              >
-                <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                  <SelectValue placeholder="Select profile" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profileOptions.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleAddProfileSlot} className="w-full gap-2">
-                <Plus className="w-4 h-4" /> Add Entry
-              </Button>
-            </div>
-          </div>
 
-          <DaySelector slot={profileForm} onToggle={(day) => toggleDay(profileForm, day, (slot) => setProfileForm(slot))} />
-
-          {profileSlots.length === 0 ? (
-            <div className="text-[var(--text-muted)] text-sm">No profile schedule entries</div>
-          ) : (
-            <div className="space-y-3">
-              {profileSlots.map((slot) => (
-                <ScheduleRow
-                  key={slot.id}
-                  icon={<Clock className="w-4 h-4 text-[var(--neon-cyan)]" />}
-                  title={slot.profile.toUpperCase()}
-                  subtitle={slot.time}
-                  days={slot.days}
-                  onRemove={() => setShowRemove({ type: 'profile', id: slot.id })}
-                />
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Pool schedule */}
-        <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
-          <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
-            <div>
-              <h2 className="text-xl font-bold text-[var(--matrix-green)]">POOL PROFILE SCHEDULE</h2>
-              <p className="text-xs text-[var(--text-muted)]">Set main (and optional fallback) pool profiles by time.</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
                 <Label>Time</Label>
-                <Input type="time" value={poolForm.time} onChange={(e) => setPoolForm({ ...poolForm, time: e.target.value })} />
+                <Input type="time" value={profileForm.time} onChange={(e) => setProfileForm({ ...profileForm, time: e.target.value })} />
               </div>
               <div>
-                <Label>Main Pool</Label>
+                <Label>Profile</Label>
                 <Select
-                  value={poolForm.mainPoolId}
-                  onValueChange={(val) => setPoolForm({ ...poolForm, mainPoolId: val })}
+                  value={profileForm.profile}
+                  onValueChange={(val) => setProfileForm({ ...profileForm, profile: val })}
                 >
                   <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                    <SelectValue placeholder="Select main pool" />
+                    <SelectValue placeholder="Select profile" />
                   </SelectTrigger>
                   <SelectContent>
-                    {pools
-                      .map((p: any) => ({ poolId: p.id || p.name, label: p.name || p.id }))
-                      .filter((p) => p.poolId)
-                      .map((p) => (
-                        <SelectItem key={p.poolId} value={p.poolId}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
+                    {profileOptions.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Fallback Pool (optional)</Label>
-                <Select
-                  value={poolForm.fallbackPoolId || 'none'}
-                  onValueChange={(val) =>
-                    setPoolForm({ ...poolForm, fallbackPoolId: val === 'none' ? '' : val })
-                  }
-                >
-                  <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                    <SelectValue placeholder="Select fallback pool" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {pools
-                      .map((p: any) => ({ poolId: p.id || p.name, label: p.name || p.id }))
-                      .filter((p) => p.poolId)
-                      .map((p) => (
-                        <SelectItem key={p.poolId} value={p.poolId}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex items-end">
+                <Button onClick={handleAddProfileSlot} className="w-full gap-2">
+                  <Plus className="w-4 h-4" /> Add Entry
+                </Button>
               </div>
             </div>
-            <div className="flex flex-col justify-between gap-3">
-              <div className="bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded p-3 text-sm text-[var(--text-muted)]">
-                Adding will create a MAIN entry. If a fallback is selected, a paired FALLBACK entry is added at the same time.
-              </div>
-              <Button onClick={handleAddPoolSlot} className="w-full gap-2">
-                <Plus className="w-4 h-4" /> Add Pool Entry
-              </Button>
-            </div>
-          </div>
 
-          <DaySelector slot={poolForm} onToggle={(day) => toggleDay(poolForm, day, (slot) => setPoolForm(slot))} />
+            <DaySelector slot={profileForm} onToggle={(day) => toggleDay(profileForm, day, (slot) => setProfileForm(slot))} />
 
-          {poolSlots.length === 0 ? (
-            <div className="text-[var(--text-muted)] text-sm">No pool schedule entries</div>
-          ) : (
-            <div className="space-y-3">
-              {poolSlots.map((slot) => {
-                const poolName = pools.find((p: any) => p.id === slot.poolId || p.name === slot.poolId)?.name || slot.poolId;
-                const tooltip = `Pool: ${poolName} (${slot.poolId}) | Mode: ${slot.mode.toUpperCase()} | Time: ${slot.time}`;
-                return (
+            {profileSlots.length === 0 ? (
+              <div className="text-[var(--text-muted)] text-sm">No profile schedule entries</div>
+            ) : (
+              <div className="space-y-3">
+                {profileSlots.map((slot) => (
                   <ScheduleRow
                     key={slot.id}
-                    icon={<Clock className="w-4 h-4 text-[var(--matrix-green)]" />}
-                    title={`${poolName} -> ${slot.mode.toUpperCase()}`}
+                    icon={<Clock className="w-4 h-4 text-[var(--neon-cyan)]" />}
+                    title={slot.profile.toUpperCase()}
                     subtitle={slot.time}
                     days={slot.days}
-                    tooltip={tooltip}
-                    onRemove={() => setShowRemove({ type: 'pool', id: slot.id })}
+                    onRemove={() => setShowRemove({ type: 'profile', id: slot.id })}
                   />
-                );
-              })}
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {activeTab === 'pools' && (
+          <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
+              <div>
+                <h2 className="text-xl font-bold text-[var(--matrix-green)]">POOL PROFILE SCHEDULE</h2>
+                <p className="text-xs text-[var(--text-muted)]">Set main (and optional fallback) pool profiles by time.</p>
+              </div>
             </div>
-          )}
-        </Card>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <Label>Time</Label>
+                  <Input type="time" value={poolForm.time} onChange={(e) => setPoolForm({ ...poolForm, time: e.target.value })} />
+                </div>
+                <div>
+                  <Label>Main Pool</Label>
+                  <Select
+                    value={poolForm.mainPoolId}
+                    onValueChange={(val) => setPoolForm({ ...poolForm, mainPoolId: val })}
+                  >
+                    <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                      <SelectValue placeholder="Select main pool" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pools
+                        .map((p: any) => ({ poolId: p.id || p.name, label: p.name || p.id }))
+                        .filter((p) => p.poolId)
+                        .map((p) => (
+                          <SelectItem key={p.poolId} value={p.poolId}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Fallback Pool (optional)</Label>
+                  <Select
+                    value={poolForm.fallbackPoolId || 'none'}
+                    onValueChange={(val) =>
+                      setPoolForm({ ...poolForm, fallbackPoolId: val === 'none' ? '' : val })
+                    }
+                  >
+                    <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                      <SelectValue placeholder="Select fallback pool" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {pools
+                        .map((p: any) => ({ poolId: p.id || p.name, label: p.name || p.id }))
+                        .filter((p) => p.poolId)
+                        .map((p) => (
+                          <SelectItem key={p.poolId} value={p.poolId}>
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex flex-col justify-between gap-3">
+                <div className="bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded p-3 text-sm text-[var(--text-muted)]">
+                  Adding will create a MAIN entry. If a fallback is selected, a paired FALLBACK entry is added at the same time.
+                </div>
+                <Button onClick={handleAddPoolSlot} className="w-full gap-2">
+                  <Plus className="w-4 h-4" /> Add Pool Entry
+                </Button>
+              </div>
+            </div>
+
+            <DaySelector slot={poolForm} onToggle={(day) => toggleDay(poolForm, day, (slot) => setPoolForm(slot))} />
+
+            {poolSlots.length === 0 ? (
+              <div className="text-[var(--text-muted)] text-sm">No pool schedule entries</div>
+            ) : (
+              <div className="space-y-3">
+                {poolSlots.map((slot) => {
+                  const poolName = pools.find((p: any) => p.id === slot.poolId || p.name === slot.poolId)?.name || slot.poolId;
+                  const tooltip = `Pool: ${poolName} (${slot.poolId}) | Mode: ${slot.mode.toUpperCase()} | Time: ${slot.time}`;
+                  return (
+                    <ScheduleRow
+                      key={slot.id}
+                      icon={<Clock className="w-4 h-4 text-[var(--matrix-green)]" />}
+                      title={`${poolName} -> ${slot.mode.toUpperCase()}`}
+                      subtitle={slot.time}
+                      days={slot.days}
+                      tooltip={tooltip}
+                      onRemove={() => setShowRemove({ type: 'pool', id: slot.id })}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        )}
       </div>
 
       {/* Remove confirmation */}
