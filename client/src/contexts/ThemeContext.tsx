@@ -452,6 +452,8 @@ interface ThemeContextType {
   setFontScale: (scale: number) => void;
   matrixCodeColor: string;
   setMatrixCodeColor: (color: string) => void;
+  matrixBrightness: number;
+  setMatrixBrightness: (val: number) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -462,6 +464,7 @@ const FONT_KEY = 'axebench-font';
 const THEME_KEY = 'axebench-theme';
 const FONT_SCALE_KEY = 'axebench-font-scale';
 const MATRIX_CODE_COLOR_KEY = 'axebench-matrix-code-color';
+const MATRIX_BRIGHTNESS_KEY = 'axebench-matrix-brightness';
 
 function loadCustomPalette(): Partial<Palette['colors']> | null {
   try {
@@ -494,6 +497,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
   const [matrixCodeColor, setMatrixCodeColor] = useState<string>(() => {
     return localStorage.getItem(MATRIX_CODE_COLOR_KEY) || basePalettes['matrix-green'].colors.primary;
+  });
+  const [matrixBrightness, setMatrixBrightness] = useState<number>(() => {
+    const saved = localStorage.getItem(MATRIX_BRIGHTNESS_KEY);
+    const parsed = saved ? Number(saved) : 1;
+    if (!Number.isFinite(parsed)) return 1;
+    return Math.min(Math.max(parsed, 0.2), 1.2);
   });
 
   const palette = useMemo(() => {
@@ -540,6 +549,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [matrixCodeColor]);
 
+  useEffect(() => {
+    const clamped = Math.min(Math.max(matrixBrightness, 0.2), 1.2);
+    document.documentElement.style.setProperty('--matrix-brightness', String(clamped));
+    localStorage.setItem(MATRIX_BRIGHTNESS_KEY, String(clamped));
+  }, [matrixBrightness]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (paletteName === 'blackout') {
+      root.classList.add('blackout-mode');
+    } else {
+      root.classList.remove('blackout-mode');
+    }
+  }, [paletteName]);
+
   const setTheme = (name: ThemeName) => {
     setThemeName(name);
     localStorage.setItem(THEME_KEY, name);
@@ -569,6 +593,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setFontScale,
         matrixCodeColor,
         setMatrixCodeColor,
+        matrixBrightness,
+        setMatrixBrightness,
       }}
     >
       {children}

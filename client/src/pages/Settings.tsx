@@ -16,7 +16,19 @@ interface LicenseStatus {
 }
 
 export default function Settings() {
-  const { paletteName, setPalette, palette, fontKey, setFontKey, fontScale, setFontScale, matrixCodeColor, setMatrixCodeColor } = useTheme();
+  const {
+    paletteName,
+    setPalette,
+    palette,
+    fontKey,
+    setFontKey,
+    fontScale,
+    setFontScale,
+    matrixCodeColor,
+    setMatrixCodeColor,
+    matrixBrightness,
+    setMatrixBrightness,
+  } = useTheme();
   const [darkSurge, setDarkSurge] = useState(false);
   const [customPalette, setCustomPalette] = useState({
     primary: palette.colors.primary,
@@ -139,6 +151,20 @@ export default function Settings() {
               className="w-full accent-[var(--theme-primary)]"
             />
             <div className="text-xs text-[var(--text-secondary)]">Scale: {fontScale.toFixed(2)}x</div>
+          </div>
+
+          <div className="mt-3">
+            <Label className="text-xs text-[var(--text-secondary)]">Digital Rain Brightness</Label>
+            <input
+              type="range"
+              min="0.2"
+              max="1.2"
+              step="0.02"
+              value={matrixBrightness}
+              onChange={(e) => setMatrixBrightness(parseFloat(e.target.value))}
+              className="w-full accent-[var(--theme-primary)]"
+            />
+            <div className="text-xs text-[var(--text-secondary)]">Brightness: {matrixBrightness.toFixed(2)}x</div>
           </div>
         </Card>
       </div>
