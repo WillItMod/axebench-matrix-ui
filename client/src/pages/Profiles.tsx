@@ -7,6 +7,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Zap } from 'lucide-react';
 
+const ACTIVE_PROFILE_KEY = 'axebench:activeProfiles';
+
+function loadActiveProfiles(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(ACTIVE_PROFILE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveActiveProfiles(map: Record<string, string>) {
+  try {
+    localStorage.setItem(ACTIVE_PROFILE_KEY, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
 export default function Profiles() {
   const [devices, setDevices] = useState<any[]>([]);
   const [profilesByDevice, setProfilesByDevice] = useState<Record<string, any>>({});
@@ -22,6 +43,7 @@ export default function Profiles() {
   const [editingDevice, setEditingDevice] = useState<string>('');
   const [editVoltage, setEditVoltage] = useState('');
   const [editFrequency, setEditFrequency] = useState('');
+  const [activeProfiles, setActiveProfiles] = useState<Record<string, string>>(() => loadActiveProfiles());
   
   // Quick Apply state
   const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
@@ -76,6 +98,11 @@ export default function Profiles() {
 
     try {
       await api.profiles.apply(deviceName, profileName);
+      setActiveProfiles((prev) => {
+        const next = { ...prev, [deviceName]: profileName };
+        saveActiveProfiles(next);
+        return next;
+      });
       toast.success(`Applied ${profileName} to ${deviceName}`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to apply profile');
@@ -307,7 +334,14 @@ export default function Profiles() {
                   ) : (
                     <div className="space-y-3">
                       {profileList.map(([name, profile]) => (
-                        <div key={`${deviceName}-${name}`} className="border border-[var(--grid-gray)] rounded p-3 bg-black/60">
+                        <div
+                          key={`${deviceName}-${name}`}
+                          className={`border rounded p-3 bg-black/60 ${
+                            activeProfiles[deviceName]?.toLowerCase() === name.toLowerCase()
+                              ? 'border-[var(--matrix-green)] shadow-[0_0_0_1px_var(--matrix-green)]'
+                              : 'border-[var(--grid-gray)]'
+                          }`}
+                        >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
@@ -317,6 +351,11 @@ export default function Profiles() {
                                 {profile?.is_best && (
                                   <span className="px-2 py-0.5 bg-[var(--success-green)] text-black text-xs font-bold rounded">
                                     BEST
+                                  </span>
+                                )}
+                                {activeProfiles[deviceName]?.toLowerCase() === name.toLowerCase() && (
+                                  <span className="px-2 py-0.5 bg-[var(--matrix-green)]/20 text-[var(--matrix-green)] text-xs font-bold rounded border border-[var(--matrix-green)]">
+                                    ACTIVE
                                   </span>
                                 )}
                               </div>

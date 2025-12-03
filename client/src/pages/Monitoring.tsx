@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import LiveMonitoringPanel from '@/components/LiveMonitoringPanel';
 import { RefreshCw } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 const DEVICE_COLOR_PALETTES = [
   ['#ff0000', '#0000ff', '#ff8800', '#00ff00', '#ffff00', '#0088ff'], // Device 1: RED BLUE ORANGE GREEN YELLOW LIGHTBLUE
@@ -12,6 +13,7 @@ const DEVICE_COLOR_PALETTES = [
 ];
 
 export default function Monitoring() {
+  const [location, setLocation] = useLocation();
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,14 +22,27 @@ export default function Monitoring() {
     loadDevices();
   }, []);
 
+  // Apply preselected device from query ?device=Name
+  useEffect(() => {
+    const params = new URLSearchParams(location.split('?')[1] || '');
+    const preselect = params.get('device');
+    if (preselect) {
+      setSelectedDevices([preselect]);
+    }
+  }, [location]);
+
   const loadDevices = async () => {
     try {
       setLoading(true);
       const deviceList = await api.devices.list();
       setDevices(deviceList || []);
-      
-      // Auto-select first device if none selected
-      if (deviceList && deviceList.length > 0 && selectedDevices.length === 0) {
+
+      // Auto-select first device if none selected and no query override
+      const params = new URLSearchParams(location.split('?')[1] || '');
+      const preselect = params.get('device');
+      if (preselect) {
+        setSelectedDevices([preselect]);
+      } else if (deviceList && deviceList.length > 0 && selectedDevices.length === 0) {
         setSelectedDevices([deviceList[0].name]);
       }
     } catch (error) {

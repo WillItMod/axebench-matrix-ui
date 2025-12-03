@@ -688,6 +688,11 @@ const loadPsus = async () => {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-bold text-glow-cyan">⚡ {psu.name}</h3>
                     <div className="flex items-center gap-2">
+                      {loadPercent >= 80 && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded border border-[var(--error-red)] text-[var(--error-red)]">
+                          WARNING
+                        </span>
+                      )}
                       <span className="text-xs text-[var(--text-muted)]">
                         {assignedCount} DEVICE{assignedCount !== 1 ? 'S' : ''}
                       </span>
@@ -721,7 +726,12 @@ const loadPsus = async () => {
                           {metrics.voltage}V @ {metrics.amperage}A
                         </span>
                       ) : (
-                        <span className="text-[var(--text-muted)] italic">-- V @ -- A</span>
+                        <span className="text-[var(--text-primary)] font-bold">
+                          {(psu.capacity_watts ?? metrics.wattage ?? 0).toFixed(0)}W
+                          <span className="text-[var(--text-muted)] text-xs ml-1">
+                            {psu.safe_watts ? `safe ${psu.safe_watts}W` : ''}
+                          </span>
+                        </span>
                       )}
                     </div>
                     <div className="flex justify-between text-sm">
@@ -943,15 +953,22 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
     setLocation('/benchmark?device=' + encodeURIComponent(device.name));
   };
 
+  const handleMonitor = () => {
+    setLocation('/monitoring?device=' + encodeURIComponent(device.name));
+  };
+
   return (
-    <div className={`matrix-card ${!device.online ? 'opacity-60' : ''}`}>
+    <div
+      className={`matrix-card ${!device.online ? 'opacity-60' : ''} cursor-pointer`}
+      onClick={handleMonitor}
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="text-xl font-bold text-[var(--text-primary)] text-glow-green">
             {device.name}
           </div>
-          <div className="text-xs text-[var(--text-muted)]">{device.ip}</div>
+          <div className="text-sm text-[var(--text-muted)]">{device.ip}</div>
         </div>
         <div
           className="px-3 py-1 rounded text-xs font-bold"
@@ -964,19 +981,24 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
       {/* Status */}
       <div className="flex items-center gap-2 mb-3">
         <div
-          className={`w-2 h-2 rounded-full ${
+          className={`w-3 h-3 rounded-full ${
             device.online ? 'bg-[var(--success-green)] pulse-green' : 'bg-[var(--error-red)]'
           }`}
         />
-        <span className={device.online ? 'status-online' : 'status-error'}>
+        <span className={`${device.online ? 'status-online' : 'status-error'} text-sm`}>
           {device.online ? 'ONLINE' : 'OFFLINE'}
         </span>
+        {!device.online && (
+          <span className="text-xs text-[var(--error-red)] font-bold border border-[var(--error-red)] px-2 py-0.5 rounded">
+            WARNING
+          </span>
+        )}
       </div>
 
       {/* Stats */}
       {device.online && device.status && (
         <>
-          <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+          <div className="grid grid-cols-2 gap-2 mb-3 text-base">
             <div>
               <div className="text-[var(--text-secondary)]">Hashrate</div>
               <div className="font-bold text-[var(--matrix-green)]">
@@ -1062,7 +1084,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
         <Button 
           size="sm" 
           className="flex-1 btn-matrix text-xs"
-          onClick={handleBenchmark}
+          onClick={(e) => { e.stopPropagation(); handleBenchmark(); }}
           disabled={!device.online}
         >
           BENCHMARK
@@ -1070,7 +1092,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
         <Button 
           size="sm" 
           className="flex-1 btn-cyan text-xs"
-          onClick={() => onConfig(device)}
+          onClick={(e) => { e.stopPropagation(); onConfig(device); }}
           disabled={!device.online}
         >
           CONFIG
@@ -1079,7 +1101,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
           size="sm"
           variant="destructive"
           className="flex-1 text-xs"
-          onClick={() => onDelete(device)}
+          onClick={(e) => { e.stopPropagation(); onDelete(device); }}
         >
           DELETE
         </Button>

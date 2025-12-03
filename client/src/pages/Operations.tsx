@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'wouter';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,8 +12,8 @@ import { Calendar, Layers, Play, RefreshCcw, Square, Trash2 } from 'lucide-react
 
 type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
-type ProfileBlock = { id: string; start: string; end?: string; profile: string; days: DayKey[] };
-type PoolBlock = { id: string; start: string; end?: string; pool: string; fallback?: string; days: DayKey[] };
+type ProfileBlock = { id: string; start: string; profile: string; days: DayKey[] };
+type PoolBlock = { id: string; start: string; pool: string; fallback?: string; days: DayKey[] };
 
 type ProfileScheduleState = { enabled: boolean; defaultProfile: string; blocks: ProfileBlock[] };
 type PoolScheduleState = { enabled: boolean; defaultPool: string; blocks: PoolBlock[] };
@@ -85,6 +86,7 @@ export default function Operations() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const settingFromLoad = useRef(false);
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     loadDevices();
@@ -175,7 +177,6 @@ export default function Operations() {
     const blocks: ProfileBlock[] = (payload?.time_blocks || []).map((block: any) => ({
       id: generateId(),
       start: block.start || block.time || '00:00',
-      end: block.end,
       profile: block.profile || defaultProfile || '',
       days: toDayKeys(block.days),
     }));
@@ -187,7 +188,6 @@ export default function Operations() {
     const blocks: PoolBlock[] = (payload?.time_blocks || []).map((block: any) => ({
       id: generateId(),
       start: block.start || block.time || '00:00',
-      end: block.end,
       pool: block.pool || defaultPool || '',
       fallback: block.fallback || block.fallback_pool || '',
       days: toDayKeys(block.days),
@@ -197,10 +197,9 @@ export default function Operations() {
 
   const mapProfileToApi = (schedule: ProfileScheduleState) => ({
     enabled: schedule.enabled,
-    default_profile: schedule.defaultProfile || null,
+    default_profile: null, // start-only blocks; default handled by blocks
     time_blocks: schedule.blocks.map((b) => ({
       start: b.start || '00:00',
-      end: b.end || null,
       profile: b.profile,
       days: toFullDays(b.days),
     })),
@@ -208,10 +207,9 @@ export default function Operations() {
 
   const mapPoolToApi = (schedule: PoolScheduleState) => ({
     enabled: schedule.enabled,
-    default_pool: schedule.defaultPool || null,
+    default_pool: null, // start-only blocks; default handled by blocks
     time_blocks: schedule.blocks.map((b) => ({
       start: b.start || '00:00',
-      end: b.end || null,
       pool: b.pool,
       fallback_pool: b.fallback || null,
       days: toFullDays(b.days),
@@ -254,11 +252,10 @@ export default function Operations() {
   };
 
   const addProfileBlock = () => {
-    const profile = profileSchedule.defaultProfile || profiles[0] || '';
+    const profile = profiles[0] || profileSchedule.defaultProfile || '';
     const newBlock: ProfileBlock = {
       id: generateId(),
       start: '00:00',
-      end: '',
       profile,
       days: [...allDays],
     };
@@ -266,11 +263,10 @@ export default function Operations() {
   };
 
   const addPoolBlock = () => {
-    const pool = poolSchedule.defaultPool || pools[0]?.id || '';
+    const pool = pools[0]?.id || poolSchedule.defaultPool || '';
     const newBlock: PoolBlock = {
       id: generateId(),
       start: '00:00',
-      end: '',
       pool,
       fallback: '',
       days: [...allDays],
@@ -534,9 +530,7 @@ export default function Operations() {
                 <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
                 <div>
                   <div className="text-sm font-bold text-[var(--neon-cyan)]">Tuning profiles</div>
-                  <div className="text-xs text-[var(--text-muted)]">
-                    Execute on save: when enabled, schedule runs and the active block is applied immediately on save.
-                  </div>
+                  <div className="text-xs text-[var(--text-muted)]">Start-only blocks; nearest previous start stays active.</div>
                 </div>
               </div>
               <Switch
@@ -549,30 +543,10 @@ export default function Operations() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <Label>Default profile (when no block matches)</Label>
-                <Select
-                  value={profileSchedule.defaultProfile || ''}
-                  onValueChange={(val) => setProfileSchedule((prev) => ({ ...prev, defaultProfile: val }))}
-                >
-                  <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
-                    <SelectValue placeholder="Choose default profile" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {profileOptions.map((name) => (
-                      <SelectItem key={name} value={name}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <Button variant="outline" onClick={addProfileBlock} className="w-full">
-                  Add time block
-                </Button>
-              </div>
+            <div className="flex items-end">
+              <Button variant="outline" onClick={addProfileBlock} className="w-full">
+                Add time block
+              </Button>
             </div>
 
             <BlockTable
@@ -591,9 +565,7 @@ export default function Operations() {
                 <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
                 <div>
                   <div className="text-sm font-bold text-[var(--matrix-green)]">Pool profiles</div>
-                  <div className="text-xs text-[var(--text-muted)]">
-                    Execute on save: when enabled, schedule runs and the active block is applied immediately on save.
-                  </div>
+                  <div className="text-xs text-[var(--text-muted)]">Start-only blocks; nearest previous start stays active.</div>
                 </div>
               </div>
               <Switch
@@ -606,30 +578,10 @@ export default function Operations() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <Label>Default pool</Label>
-                <Select
-                  value={poolSchedule.defaultPool || ''}
-                  onValueChange={(val) => setPoolSchedule((prev) => ({ ...prev, defaultPool: val }))}
-                >
-                  <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
-                    <SelectValue placeholder="Choose default pool" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pools.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name || p.id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-end">
-                <Button variant="outline" onClick={addPoolBlock} className="w-full">
-                  Add time block
-                </Button>
-              </div>
+            <div className="flex items-end">
+              <Button variant="outline" onClick={addPoolBlock} className="w-full">
+                Add time block
+              </Button>
             </div>
 
             <BlockTable
@@ -655,23 +607,33 @@ export default function Operations() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {selectedList.map(({ name, schedule }) => (
             <Card key={name} className="p-4 bg-[var(--dark-gray)] border-[var(--grid-gray)] space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-bold text-[var(--text-primary)]">{name}</div>
-                {!schedule && <span className="text-xs text-amber-400">Not loaded</span>}
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                    onClick={() => setLocation(`/profiles?device=${encodeURIComponent(name)}`)}
+                  >
+                    Edit profiles
+                  </Button>
+                  {!schedule && <span className="text-xs text-amber-400">Not loaded</span>}
+                </div>
               </div>
               {schedule && (
                 <div className="space-y-3 text-xs">
                   <div>
                     <div className="font-semibold text-[var(--neon-cyan)]">Tuning</div>
                     <div className="text-[var(--text-muted)]">
-                      {schedule.profile.enabled ? 'Enabled' : 'Disabled'} - Default: {schedule.profile.defaultProfile || 'None'}
+                      {schedule.profile.enabled ? 'Enabled' : 'Disabled'}
                     </div>
                     <ScheduleList blocks={schedule.profile.blocks} labelKey="profile" />
                   </div>
                   <div>
                     <div className="font-semibold text-[var(--matrix-green)]">Pool</div>
                     <div className="text-[var(--text-muted)]">
-                      {schedule.pool.enabled ? 'Enabled' : 'Disabled'} - Default: {schedule.pool.defaultPool || 'None'}
+                      {schedule.pool.enabled ? 'Enabled' : 'Disabled'}
                     </div>
                     <ScheduleList blocks={schedule.pool.blocks} labelKey="pool" />
                   </div>
@@ -741,7 +703,7 @@ function BlockTable({
           key={block.id}
           className="border border-[var(--grid-gray)] rounded p-3 bg-black/60 space-y-2"
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 items-center">
             <div>
               <Label>Start</Label>
               <Input
@@ -862,9 +824,7 @@ function ScheduleList({
       {blocks.map((b) => (
         <div key={b.id} className="border border-[var(--grid-gray)] rounded px-2 py-1 bg-black/40">
           <div className="flex items-center justify-between text-[var(--text-primary)]">
-            <span>
-              {b.start} {b.end ? `- ${b.end}` : ''}
-            </span>
+            <span>{b.start}</span>
             <span className="font-semibold">{(b as any)[labelKey]}</span>
           </div>
           {'fallback' in b && (b as any).fallback ? (

@@ -276,6 +276,8 @@ const normalizeLogs = (logData: any): string => {
 export default function Sessions() {
   const [, setLocation] = useLocation();
   const [sessions, setSessions] = useState<any[]>([]);
+  const [deviceFilter, setDeviceFilter] = useState<string>('');
+  const [modeFilter, setModeFilter] = useState<'all' | 'auto' | 'manual'>('all');
   const [loading, setLoading] = useState(true);
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -291,6 +293,23 @@ export default function Sessions() {
   useEffect(() => {
     loadSessions();
   }, []);
+
+  const deviceOptions = useMemo(() => {
+    const set = new Set<string>();
+    sessions.forEach((s) => set.add(s.device));
+    return Array.from(set).sort();
+  }, [sessions]);
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      const deviceMatch = deviceFilter ? s.device === deviceFilter : true;
+      const tune = (s.tune_type || s.mode || '').toLowerCase();
+      const isAuto = tune.includes('auto');
+      const modeMatch =
+        modeFilter === 'all' ? true : modeFilter === 'auto' ? isAuto : !isAuto;
+      return deviceMatch && modeMatch;
+    });
+  }, [sessions, deviceFilter, modeFilter]);
 
   const loadSessions = async () => {
     try {
@@ -461,7 +480,57 @@ export default function Sessions() {
         </div>
       </div>
 
-      {sessions.length === 0 ? (
+      {/* Filters */}
+      {sessions.length > 0 && (
+        <div className="matrix-card p-4 space-y-3">
+          <div className="flex flex-wrap gap-3 items-center justify-between">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant={modeFilter === 'all' ? 'default' : 'outline'}
+                onClick={() => setModeFilter('all')}
+                className="text-xs"
+              >
+                ALL_MODES
+              </Button>
+              <Button
+                size="sm"
+                variant={modeFilter === 'auto' ? 'default' : 'outline'}
+                onClick={() => setModeFilter('auto')}
+                className="text-xs"
+              >
+                AUTO_TUNE
+              </Button>
+              <Button
+                size="sm"
+                variant={modeFilter === 'manual' ? 'default' : 'outline'}
+                onClick={() => setModeFilter('manual')}
+                className="text-xs"
+              >
+                MANUAL
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {deviceOptions.map((dev) => (
+                <Button
+                  key={dev}
+                  size="sm"
+                  variant={deviceFilter === dev ? 'default' : 'outline'}
+                  onClick={() => setDeviceFilter(deviceFilter === dev ? '' : dev)}
+                  className="text-xs"
+                >
+                  {dev}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="text-[var(--text-muted)] text-xs">
+            Showing {filteredSessions.length} of {sessions.length} sessions
+          </div>
+        </div>
+      )}
+
+      {filteredSessions.length === 0 ? (
         <div className="matrix-card text-center py-12">
           <div className="text-[var(--text-muted)] text-lg mb-4">
             NO_SESSIONS_FOUND
@@ -472,7 +541,7 @@ export default function Sessions() {
         </div>
       ) : (
         <div className="space-y-4">
-          {sessions.map((session) => (
+          {filteredSessions.map((session) => (
             <SessionCard
               key={session.id}
               session={session}
@@ -481,15 +550,23 @@ export default function Sessions() {
               onGenerateProfiles={() => handleGenerateProfiles(session.id)}
               generating={processingSessionId === session.id}
               onDownloadJson={() => {
-                const jsonData = JSON.stringify(session, null, 2);
-                const blob = new Blob([jsonData], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `session_${session.id.substring(0, 8)}_${session.device}_${new Date(session.start_time).toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-                toast.success('JSON downloaded');
+                (async () => {
+                  try {
+                    const detail = await api.sessions.get(session.id);
+                    const normalized = normalizeSession(detail);
+                    const jsonData = JSON.stringify(normalized, null, 2);
+                    const blob = new Blob([jsonData], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `session_${session.id.substring(0, 8)}_${session.device}_${new Date(session.start_time).toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    toast.success('JSON downloaded');
+                  } catch (error: any) {
+                    toast.error(error.message || 'Failed to export JSON');
+                  }
+                })();
               }}
             />
           ))}
