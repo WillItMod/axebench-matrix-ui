@@ -745,14 +745,55 @@ def set_fan_speed(device_name):
 profiles_dir = config_dir / "profiles"
 
 
+def _profile_path_candidates(device_name: str):
+    """
+    Generate possible profile file paths for a device, normalising common
+    variants (spaces vs hyphens). Returns unique candidates in priority order.
+    """
+    name_variants = [
+        device_name,
+        device_name.replace(" ", "-"),
+        device_name.replace("-", " "),
+    ]
+    seen = set()
+    deduped = []
+    for n in name_variants:
+        if n not in seen:
+            deduped.append(n)
+            seen.add(n)
+    return [profiles_dir / f"{n}.json" for n in deduped]
+
+
+def _find_existing_profile_file(device_name: str):
+    """Return the first existing profile file for the given device name (with fallbacks)."""
+    for candidate in _profile_path_candidates(device_name):
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def _canonical_profile_file(device_name: str):
+    """
+    Choose a canonical path to write new profiles.
+    Prefer existing file if present; otherwise normalise spaces to hyphens to
+    avoid duplicate files for the same device.
+    """
+    existing = _find_existing_profile_file(device_name)
+    if existing:
+        return existing
+    # default: favour hyphenated filename to keep consistency
+    canonical_name = device_name.replace(" ", "-")
+    return profiles_dir / f"{canonical_name}.json"
+
+
 @app.route('/api/profiles/<device_name>', methods=['GET'])
 @require_patreon_auth
 def get_profiles(device_name):
     """Get profiles for a device"""
     profiles_dir.mkdir(parents=True, exist_ok=True)
-    profile_file = profiles_dir / f"{device_name}.json"
-    
-    if not profile_file.exists():
+    profile_file = _find_existing_profile_file(device_name)
+
+    if not profile_file:
         return jsonify({'device': device_name, 'profiles': None, 'exists': False})
     
     with open(profile_file, 'r') as f:
@@ -767,7 +808,7 @@ def get_profiles(device_name):
 def save_profile(device_name):
     """Save profiles for a device"""
     profiles_dir.mkdir(parents=True, exist_ok=True)
-    profile_file = profiles_dir / f"{device_name}.json"
+    profile_file = _canonical_profile_file(device_name)
     
     data = request.json
     overwrite = data.get('overwrite', False)
@@ -800,8 +841,8 @@ def apply_profile(device_name, profile_name):
     if not device:
         return jsonify({'error': 'Device not found'}), 404
     
-    profile_file = profiles_dir / f"{device_name}.json"
-    if not profile_file.exists():
+    profile_file = _find_existing_profile_file(device_name)
+    if not profile_file:
         return jsonify({'error': 'No profiles found for device'}), 404
     
     with open(profile_file, 'r') as f:
@@ -935,7 +976,7 @@ def save_custom_profile(device_name):
         return jsonify({'error': 'Device not found'}), 404
     
     profiles_dir.mkdir(parents=True, exist_ok=True)
-    profile_file = profiles_dir / f"{device_name}.json"
+    profile_file = _canonical_profile_file(device_name)
     
     # Get current device settings
     loop = asyncio.new_event_loop()
@@ -990,7 +1031,7 @@ def save_custom_profile(device_name):
 def update_profile(device_name):
     """Update or create a profile for a device"""
     profiles_dir.mkdir(parents=True, exist_ok=True)
-    profile_file = profiles_dir / f"{device_name}.json"
+    profile_file = _canonical_profile_file(device_name)
     
     data = request.json
     original_name = data.get('original_name', '')  # Empty if creating new
@@ -1069,9 +1110,9 @@ def update_profile(device_name):
 @require_patreon_auth
 def delete_profile(device_name, profile_name):
     """Delete a profile from a device"""
-    profile_file = profiles_dir / f"{device_name}.json"
-    
-    if not profile_file.exists():
+    profile_file = _find_existing_profile_file(device_name)
+
+    if not profile_file:
         return jsonify({'error': 'No profiles found for device'}), 404
     
     with open(profile_file, 'r') as f:
