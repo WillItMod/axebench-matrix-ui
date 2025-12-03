@@ -13,7 +13,8 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
-  const [uptime, setUptime] = useState<string>('…');
+  const [uptime, setUptime] = useState<string>('N/A');
+  const [uptimeAvailable, setUptimeAvailable] = useState(true);
   const [licenseTier, setLicenseTier] = useState<'free' | 'premium' | 'ultimate'>('free');
   const [deviceCount, setDeviceCount] = useState<number>(0);
 
@@ -22,6 +23,11 @@ export default function Layout({ children }: LayoutProps) {
     const fetchUptime = async () => {
       try {
         const data = await api.system.uptime();
+        if ((data as any)?.skipped) {
+          setUptimeAvailable(false);
+          setUptime('N/A');
+          return;
+        }
         const seconds = Number(data?.uptime_seconds);
         if (!Number.isFinite(seconds) || seconds <= 0) {
           setUptime('N/A');
@@ -29,6 +35,7 @@ export default function Layout({ children }: LayoutProps) {
           setUptime(formatUptime(seconds));
         }
       } catch (error) {
+        setUptimeAvailable(false);
         setUptime('N/A');
         console.warn('Failed to fetch uptime:', error);
       }
@@ -38,9 +45,13 @@ export default function Layout({ children }: LayoutProps) {
     fetchUptime();
 
     // Update every 30 seconds
-    const interval = setInterval(fetchUptime, 30000);
+    const interval = setInterval(() => {
+      if (uptimeAvailable) {
+        fetchUptime();
+      }
+    }, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [uptimeAvailable]);
 
   // License tier + device count (for limits and messaging)
   useEffect(() => {
