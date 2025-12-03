@@ -355,11 +355,11 @@ export default function Profiles() {
                               )}
                             </div>
 
-                            <div className="flex flex-col gap-2 ml-4">
+                            <div className="flex flex-wrap gap-2 ml-4 justify-end">
                               <Button
                                 size="sm"
                                 onClick={() => handleApply(name, deviceName)}
-                                className="btn-matrix text-xs"
+                                className="btn-matrix text-xs min-w-[90px]"
                               >
                                 APPLY
                               </Button>
@@ -370,7 +370,7 @@ export default function Profiles() {
                                   setActiveNanoDevice(deviceName);
                                   setShowNanoTune(true);
                                 }}
-                                className="btn-cyan text-xs"
+                                className="btn-cyan text-xs min-w-[90px]"
                               >
                                 NANO
                               </Button>
@@ -383,7 +383,7 @@ export default function Profiles() {
                                   setEditFrequency(profile.frequency?.toString() || '');
                                   setShowEditDialog(true);
                                 }}
-                                className="bg-[var(--warning-amber)] hover:bg-[var(--warning-amber)]/80 text-black text-xs"
+                                className="bg-[var(--warning-amber)] hover:bg-[var(--warning-amber)]/80 text-black text-xs min-w-[90px]"
                               >
                                 EDIT
                               </Button>
@@ -400,7 +400,7 @@ export default function Profiles() {
                                   URL.revokeObjectURL(url);
                                   toast.success('Profile exported');
                                 }}
-                                className="bg-purple-600 hover:bg-purple-700 text-white text-xs"
+                                className="bg-purple-600 hover:bg-purple-700 text-white text-xs min-w-[90px]"
                               >
                                 JSON
                               </Button>
@@ -408,7 +408,7 @@ export default function Profiles() {
                                 <Button
                                   size="sm"
                                   onClick={() => handleDelete(name, deviceName)}
-                                  className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white text-xs"
+                                  className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white text-xs min-w-[90px]"
                                 >
                                   DELETE
                                 </Button>
