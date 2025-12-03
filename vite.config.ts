@@ -31,24 +31,20 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      // AxePool - Pool Management (port 5002)
-      // Must come BEFORE the catch-all /api route
-      '/api/pools': {
-        target: process.env.AXEPOOL_URL || 'http://127.0.0.1:5002',
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-      },
-      '/api/scheduler': {
-        target: process.env.AXEPOOL_URL || 'http://127.0.0.1:5002',
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-      },
-
-      // AxeBench - Main backend (port 5000)
-      // This catches all other /api requests
+      // Unified Flask backend on a single port (default 5000)
       '/api': {
+        target: process.env.AXEBENCH_URL || 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
+      '/pool': {
+        target: process.env.AXEBENCH_URL || 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
+      '/shed': {
         target: process.env.AXEBENCH_URL || 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false,

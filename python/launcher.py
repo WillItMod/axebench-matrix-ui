@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
+"""
+Unified AxeBench Launcher
+Starts the single unified Flask app (bench + shed + pool) and serves the built frontend.
+
+Env:
+  AXE_PORT (default 5000) - port to bind (set 80 if you want HTTP on port 80)
+"""
+
 import json
+import os
+import signal
+import sys
+import time
+import webbrowser
+from multiprocessing import Process
 from pathlib import Path
 
 # Clear stale benchmark state if no engine is running
@@ -13,202 +27,58 @@ if state_file.exists():
         with open(state_file, "w") as f:
             json.dump(state, f, indent=2)
 
+
+def print_banner(port: int):
+    print(
+        f"""
+==============================================================
+            AxeBench Unified Launcher
+==============================================================
+
+  Starting unified app on: http://localhost:{port}
+  Components:
+    - AxeBench (benchmark/device)
+    - AxeShed  (profile scheduler) mounted at /shed
+    - AxePool  (pool scheduler)    mounted at /pool
+
+  Press Ctrl+C to stop.
+==============================================================
 """
-AxeBench Suite Launcher
-Starts all three web applications (AxeBench, AxeShed, AxePool) simultaneously
-"""
-
-import sys
-import time
-import signal
-import logging
-import webbrowser
-import subprocess
-import shutil
-import os
-from pathlib import Path
-from threading import Thread
-from multiprocessing import Process
-
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(asctime)s] %(levelname)s: %(message)s',
-    datefmt='%H:%M:%S'
-)
-logger = logging.getLogger(__name__)
-
-# Store process references for cleanup
-processes = []
-
-def print_banner():
-    """Print startup banner"""
-    print("""
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║       ⚡ AxeBench Suite Launcher ⚡                       ║
-║                                                           ║
-╠═══════════════════════════════════════════════════════════╣
-║                                                           ║
-║   Starting all services...                                ║
-║                                                           ║
-║   ⚡ AxeBench:  http://localhost:5000  (Benchmark/Tune)   ║
-║   🏠 AxeShed:   http://localhost:5001  (Profile Sched)    ║
-║   🎱 AxePool:   http://localhost:5002  (Pool Manager)     ║
-║                                                           ║
-║   Press Ctrl+C to stop all services                       ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-    """)
-
-def start_axebench():
-    """Start AxeBench web server"""
-    try:
-        logger.info("Starting AxeBench on port 5000...")
-        from web_interface import run_web_server
-        run_web_server(host='localhost', port=5000)
-    except Exception as e:
-        logger.error(f"AxeBench failed to start: {e}")
-        sys.exit(1)
-
-def start_axeshed():
-    """Start AxeShed web server"""
-    try:
-        logger.info("Starting AxeShed on port 5001...")
-        from axeshed import run_axeshed
-        run_axeshed(host='localhost', port=5001)
-    except Exception as e:
-        logger.error(f"AxeShed failed to start: {e}")
-        sys.exit(1)
-
-def start_axepool():
-    """Start AxePool web server"""
-    try:
-        logger.info("Starting AxePool on port 5002...")
-        from axepool import run_axepool
-        run_axepool(host='localhost', port=5002)
-    except Exception as e:
-        logger.error(f"AxePool failed to start: {e}")
-        sys.exit(1)
-
-def _resolve_runner() -> list:
-    """
-    Resolve a package runner that works on Windows and Linux/macOS.
-    Prefers pnpm, falls back to npm, then yarn.
-    """
-    is_windows = os.name == "nt"
-    candidates = [
-        ("pnpm", ["dev"]),
-        ("npm", ["run", "dev"]),
-        ("yarn", ["dev"]),
-    ]
-    for tool, args in candidates:
-        exe = f"{tool}.cmd" if is_windows else tool
-        path = shutil.which(exe) or shutil.which(tool)
-        if path:
-            return [path, *args]
-    raise FileNotFoundError("No package runner found (pnpm/npm/yarn)")
+    )
 
 
-def start_frontend():
-    """Start Vite frontend dev server"""
-    try:
-        logger.info("Starting Vite frontend on port 5173...")
-        project_root = Path(__file__).parent.parent
-        cmd = _resolve_runner()
-        logger.info(f"Frontend command: {' '.join(cmd)} (cwd={project_root})")
+def start_unified(port: int):
+    """Start unified Flask app (bench + shed + pool)."""
+    from unified_app import create_unified_app
 
-        node_modules = project_root / 'node_modules'
-        if not node_modules.exists():
-            installer = cmd[0]
-            install_cmd = [installer, "install"]
-            logger.info(f"node_modules missing; installing dependencies with {installer}...")
-            install_result = subprocess.run(
-                install_cmd,
-                cwd=str(project_root),
-                capture_output=True,
-                text=True
-            )
-            if install_result.returncode != 0:
-                logger.error(f"Failed to install dependencies: {install_result.stderr}")
-                sys.exit(1)
+    app = create_unified_app()
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
 
-        process = subprocess.Popen(
-            cmd,
-            cwd=str(project_root),
-            stdout=None,
-            stderr=None,
-        )
-        process.wait()
-    except Exception as e:
-        logger.error(f"Frontend failed to start: {e}")
-        sys.exit(1)
-
-def signal_handler(sig, frame):
-    """Handle Ctrl+C gracefully"""
-    logger.info("\nShutting down all services...")
-    for process in processes:
-        if process.is_alive():
-            process.terminate()
-    
-    # Wait for processes to terminate
-    for process in processes:
-        process.join(timeout=5)
-        if process.is_alive():
-            process.kill()
-    
-    logger.info("All services stopped.")
-    sys.exit(0)
 
 def main():
-    """Main launcher function"""
-    print_banner()
-    
-    # Set up signal handler for Ctrl+C
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
-    # Change to script directory
-    script_dir = Path(__file__).parent
-    sys.path.insert(0, str(script_dir))
-    
-    # Create processes for each app
-    logger.info("Initializing services...")
-    
-    axebench_process = Process(target=start_axebench, name='AxeBench')
-    axeshed_process = Process(target=start_axeshed, name='AxeShed')
-    axepool_process = Process(target=start_axepool, name='AxePool')
-    frontend_process = Process(target=start_frontend, name='Frontend')
-    
-    processes = [axebench_process, axeshed_process, axepool_process, frontend_process]
-    
-    # Start all processes
-    for process in processes:
-        process.start()
-        time.sleep(1)  # Small delay between starts to avoid port conflicts
-    
-    logger.info("All services started!")
-    logger.info("")
-    
-    # Wait a moment for services to fully initialize
-    time.sleep(2)
-    
-    # Open browser to frontend (port 5173)
-    logger.info("Opening AxeBench Matrix UI in browser...")
-    try:
-        webbrowser.open('http://localhost:5173')
-    except Exception as e:
-        logger.warning(f"Could not open browser automatically: {e}")
-        logger.info("Please open http://localhost:5000 in your browser manually")
-    
-    logger.info("")
-    
-    # Wait for all processes
-    try:
-        for process in processes:
-            process.join()
-    except KeyboardInterrupt:
-        signal_handler(None, None)
+    port = int(os.environ.get("AXE_PORT", "5000"))
+    print_banner(port)
 
-if __name__ == '__main__':
+    proc = Process(target=start_unified, args=(port,), name="AxeBench-Unified")
+    proc.start()
+
+    # Open browser to unified app
+    try:
+        time.sleep(1)
+        webbrowser.open(f"http://localhost:{port}")
+    except Exception:
+        pass
+
+    def handle_signal(sig, frame):
+        if proc.is_alive():
+            proc.terminate()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+
+    proc.join()
+
+
+if __name__ == "__main__":
     main()
