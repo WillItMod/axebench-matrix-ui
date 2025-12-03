@@ -37,9 +37,6 @@ def create_unified_app():
   @bench_app.route("/", defaults={"path": ""})
   @bench_app.route("/<path:path>")
   def serve_frontend(path):
-    # Bypass for API namespaces
-    if path.startswith("api") or path.startswith("shed") or path.startswith("pool"):
-      return bench_app.view_functions.get(path, (lambda: ("Not found", 404)))()
     target = static_dir / path
     if target.is_file():
       return send_from_directory(static_dir, path)

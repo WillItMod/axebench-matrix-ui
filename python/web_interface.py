@@ -202,10 +202,20 @@ def save_schedule(device_name: str, schedule: dict):
         json.dump(sched, f, indent=2)
 
 
-@app.route('/')
-def index():
-    """Root served by unified app SPA; keep backend minimal here."""
-    return "OK", 200
+if os.environ.get("EXPOSE_LEGACY_HTML"):
+    @app.route('/')
+    def index():
+        """Legacy HTML dashboard (disabled by default)."""
+        template_path = Path(__file__).parent / "templates" / "dashboard.html"
+        if template_path.exists():
+            with open(template_path, 'r', encoding='utf-8') as f:
+                html = f.read()
+            response = app.make_response(html)
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
+        return "Template not found.", 404
 
 
 @app.route('/api/version')
