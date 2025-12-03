@@ -71,11 +71,15 @@ benchmark_status = {
     'safety_limits': None,  # Safety limits used for this run
 }
 
+process_start_time = time.time()
+
 
 
 
 config_dir = Path.home() / ".bitaxe-benchmark"
 benchmark_state_file = config_dir / "benchmark_state.json"
+profiles_dir = config_dir / "profiles"
+schedules_dir = config_dir / "schedules"
 
 def save_benchmark_state() -> None:
     """Persist benchmark_status to disk so the UI can restore after refresh/restart."""
@@ -119,6 +123,83 @@ def load_devices():
                 dev_data['ip_address'],
                 dev_data.get('model', 'Unknown')
             )
+
+
+def load_device_profiles(device_name: str):
+    """Load saved profiles for a device from shared config."""
+    profile_file = profiles_dir / f"{device_name}.json"
+    if profile_file.exists():
+        with open(profile_file, "r") as f:
+            return json.load(f)
+    return {"profiles": {}}
+
+
+def _normalize_time_blocks(blocks):
+    """Ensure start/end exist; support start-only by deriving end from the next block or 23:59."""
+    if not isinstance(blocks, list):
+        return []
+
+    def to_minutes(t: str):
+        try:
+            h, m = t.split(":")
+            return int(h) * 60 + int(m)
+        except Exception:
+            return 0
+
+    sorted_blocks = sorted(blocks, key=lambda b: to_minutes(b.get("start", "00:00")))
+    normalized = []
+    for idx, block in enumerate(sorted_blocks):
+        start = block.get("start") or block.get("time") or "00:00"
+        end = block.get("end")
+        profile = (
+            block.get("profile")
+            or block.get("default_profile")
+            or block.get("defaultProfile")
+            or block.get("name")
+        )
+        days = block.get("days") or [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday",
+        ]
+
+        if not end:
+            if idx + 1 < len(sorted_blocks):
+                end = sorted_blocks[idx + 1].get("start") or "23:59"
+            else:
+                end = "23:59"
+
+        normalized.append(
+            {
+                "start": start,
+                "end": end,
+                "profile": profile,
+                "days": days,
+            }
+        )
+    return normalized
+
+
+def load_schedule(device_name: str):
+    schedules_dir.mkdir(parents=True, exist_ok=True)
+    schedule_file = schedules_dir / f"{device_name}.json"
+    if schedule_file.exists():
+        with open(schedule_file, "r") as f:
+            return json.load(f)
+    return None
+
+
+def save_schedule(device_name: str, schedule: dict):
+    schedules_dir.mkdir(parents=True, exist_ok=True)
+    schedule_file = schedules_dir / f"{device_name}.json"
+    sched = dict(schedule) if isinstance(schedule, dict) else {}
+    sched["time_blocks"] = _normalize_time_blocks(sched.get("time_blocks", []))
+    with open(schedule_file, "w") as f:
+        json.dump(sched, f, indent=2)
 
 
 @app.route('/')
@@ -169,6 +250,12 @@ def license_status():
     licensing = get_licensing()
     
     return jsonify(licensing.get_status())
+
+
+@app.route("/api/uptime")
+def api_uptime():
+    """Simple uptime endpoint for the UI."""
+    return jsonify({"uptime_seconds": time.time() - process_start_time})
 
 
 @app.route('/auth/patreon/callback')
@@ -323,6 +410,33 @@ def devices():
                 'psu': psu_config or {'type': 'standalone', 'capacity_watts': 25, 'safe_watts': 20, 'warning_watts': 17.5}
             })
     return jsonify(devices)
+
+
+@app.route("/api/devices/<device_name>/profiles")
+@require_patreon_auth
+def api_device_profiles(device_name):
+    """Expose stored profiles for a device (used by Operations page)."""
+    return jsonify(load_device_profiles(device_name) or {"profiles": {}})
+
+
+@app.route("/api/devices/<device_name>/schedule", methods=["GET", "POST"])
+@require_patreon_auth
+def api_device_schedule(device_name):
+    """Get or set a device's profile schedule."""
+    if request.method == "POST":
+        schedule = request.json or {}
+        save_schedule(device_name, schedule)
+        return jsonify({"status": "saved"})
+
+    schedule = load_schedule(device_name)
+    if not schedule:
+        schedule = {
+            "device": device_name,
+            "enabled": False,
+            "default_profile": "max",
+            "time_blocks": [],
+        }
+    return jsonify(schedule)
 
 
 def load_devices_with_psu():
