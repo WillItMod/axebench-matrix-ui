@@ -212,9 +212,9 @@ export default function Operations() {
       setPoolSlots(poSlots);
     } catch (error) {
       if (isNotFoundError(error)) {
-        setProfileSlots([]);
-        setPoolSlots([]);
+        // keep existing drafts if present
         setSchedulerEnabled(false);
+        toast.warning(`No schedule endpoint for ${deviceName}; using local draft only.`);
         return;
       }
       toast.error('Failed to load schedule');
@@ -300,12 +300,38 @@ export default function Operations() {
       ],
     };
 
-    try {
-      await Promise.all(selectedDevices.map((device) => api.shed.setSchedule(device, payload)));
-      toast.success(`Schedule saved for ${selectedDevices.length} device(s)`);
+    const results = await Promise.allSettled(
+      selectedDevices.map(async (device) => {
+        try {
+          const res = await api.shed.setSchedule(device, payload);
+          return { device, res };
+        } catch (error) {
+          return { device, error };
+        }
+      })
+    );
+
+    const failures = results
+      .filter((r: any) => r.status === 'fulfilled' ? r.value?.error : (r as any).reason)
+      .map((r: any) => (r.status === 'fulfilled' ? r.value : r.reason));
+    const successCount = results.length - failures.length;
+
+    if (successCount > 0) {
+      toast.success(`Schedule saved for ${successCount} device(s)`);
+    }
+    if (failures.length) {
+      const notFound = failures.filter((f: any) => isNotFoundError(f?.error || f));
+      const other = failures.filter((f: any) => !isNotFoundError(f?.error || f));
+      if (notFound.length) {
+        toast.warning(`Schedule API missing for ${notFound.length} device(s); skipped.`);
+      }
+      if (other.length) {
+        toast.error('Failed to save schedule for some devices');
+      }
+    }
+
+    if (successCount > 0) {
       loadSchedule(selectedDevices[0]);
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to save schedule');
     }
   };
 

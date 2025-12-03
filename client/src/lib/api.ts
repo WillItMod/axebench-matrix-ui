@@ -279,13 +279,32 @@ export const api = {
     // Pool scheduling
     getSchedule: (deviceName: string) => {
       const dev = encodeURIComponent(deviceName);
-      return apiFetch<any>(`/api/devices/${dev}/schedule`);
+      const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
+      return fetch(url).then(async (res) => {
+        if (res.status === 404) {
+          return { enabled: false, entries: [] };
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        return res.json();
+      });
     },
     setSchedule: (deviceName: string, schedule: any) => {
       const dev = encodeURIComponent(deviceName);
-      return apiFetch<any>(`/api/devices/${dev}/schedule`, { 
-        method: 'POST', 
-        body: JSON.stringify(schedule) 
+      const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schedule),
+      }).then(async (res) => {
+        if (res.status === 404) return { skipped: true };
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        return res.json().catch(() => ({}));
       });
     },
     
@@ -318,9 +337,20 @@ export const api = {
     },
     setSchedule: (deviceName: string, schedule: any) => {
       const dev = encodeURIComponent(deviceName);
-      return apiFetch<any>(`/api/devices/${dev}/schedule`, { 
-        method: 'POST', 
-        body: JSON.stringify(schedule) 
+      const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schedule),
+      }).then(async (res) => {
+        if (res.status === 404) {
+          return { skipped: true };
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        return res.json().catch(() => ({}));
       });
     },
     
