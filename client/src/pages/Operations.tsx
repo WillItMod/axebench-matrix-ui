@@ -6,11 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Clock, Calendar, Plus, Trash2, AlertCircle, Layers, Play, Square } from 'lucide-react';
+import { Calendar, Layers, Play, Square, Trash2, RefreshCcw } from 'lucide-react';
 
 type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+type ProfileBlock = { id: string; start: string; end: string; profile: string; days: DayKey[] };
+type PoolBlock = { id: string; start: string; end: string; pool: string; days: DayKey[] };
+
+type ProfileScheduleState = { enabled: boolean; defaultProfile: string; blocks: ProfileBlock[] };
+type PoolScheduleState = { enabled: boolean; defaultPool: string; blocks: PoolBlock[] };
+
+type DeviceScheduleState = { profile: ProfileScheduleState; pool: PoolScheduleState };
 
 const dayLabels: Record<DayKey, string> = {
   mon: 'Mon',
@@ -22,114 +29,94 @@ const dayLabels: Record<DayKey, string> = {
   sun: 'Sun',
 };
 
-interface ProfileSlot {
-  id: string;
-  time: string; // HH:MM
-  profile: string;
-  days: DayKey[];
-}
-
-interface PoolSlot {
-  id: string;
-  time: string; // HH:MM
-  poolId: string;
-  mode: 'main' | 'fallback';
-  days: DayKey[];
-}
-
-interface SchedulePayload {
-  enabled: boolean;
-  entries: Array<
-    | { kind: 'profile'; time: string; profile: string; days: DayKey[] }
-    | { kind: 'pool'; time: string; poolId: string; mode: 'main' | 'fallback'; days: DayKey[] }
-  >;
-}
-
-const generateId = () =>
-  (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
-    ? crypto.randomUUID()
-    : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-const isNotFoundError = (error: any) =>
-  typeof error?.message === 'string' && error.message.toUpperCase().includes('NOT FOUND');
+const fullDayNames: Record<DayKey, string> = {
+  mon: 'monday',
+  tue: 'tuesday',
+  wed: 'wednesday',
+  thu: 'thursday',
+  fri: 'friday',
+  sat: 'saturday',
+  sun: 'sunday',
+};
 
 const DEFAULT_PROFILES = ['Quiet', 'Efficient', 'Balanced', 'Max'];
-const PROFILE_DRAFT_KEY = 'axebench:draft:profiles';
-const POOL_DRAFT_KEY = 'axebench:draft:pools';
-const LOCAL_SCHEDULE_PREFIX = 'axebench:schedule:';
+const allDays: DayKey[] = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+const generateId = () =>
+  typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function'
+    ? (crypto as any).randomUUID()
+    : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const toDayKeys = (days?: string[]): DayKey[] => {
+  if (!days || !Array.isArray(days) || days.length === 0) return allDays;
+  return days
+    .map((d) => d.toLowerCase())
+    .map((d) => Object.entries(fullDayNames).find(([, full]) => full === d)?.[0] as DayKey)
+    .filter(Boolean);
+};
+
+const toFullDays = (days: DayKey[]) => days.map((d) => fullDayNames[d]);
+
+const blankProfileSchedule = (defaultProfile = ''): ProfileScheduleState => ({
+  enabled: false,
+  defaultProfile,
+  blocks: [],
+});
+
+const blankPoolSchedule = (defaultPool = ''): PoolScheduleState => ({
+  enabled: false,
+  defaultPool,
+  blocks: [],
+});
 
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [pools, setPools] = useState<any[]>([]);
-  const [schedulerEnabled, setSchedulerEnabled] = useState(false);
-  const [poolSchedulerRunning, setPoolSchedulerRunning] = useState(false);
-  const [profileSlots, setProfileSlots] = useState<ProfileSlot[]>([]);
-  const [poolSlots, setPoolSlots] = useState<PoolSlot[]>([]);
+  const [profiles, setProfiles] = useState<string[]>(DEFAULT_PROFILES);
+  const [pools, setPools] = useState<Array<{ id: string; name: string }>>([]);
+  const [deviceSchedules, setDeviceSchedules] = useState<Record<string, DeviceScheduleState>>({});
+  const [profileSchedule, setProfileSchedule] = useState<ProfileScheduleState>(blankProfileSchedule());
+  const [poolSchedule, setPoolSchedule] = useState<PoolScheduleState>(blankPoolSchedule());
+  const [shedServiceRunning, setShedServiceRunning] = useState<boolean | null>(null);
+  const [poolServiceRunning, setPoolServiceRunning] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showRemove, setShowRemove] = useState<{ type: 'profile' | 'pool'; id: string } | null>(null);
-
-  const [profileForm, setProfileForm] = useState<ProfileSlot>({
-    id: generateId(),
-    time: '00:00',
-    profile: '',
-    days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-  });
-
-  const [poolForm, setPoolForm] = useState<{
-    time: string;
-    mainPoolId: string;
-    fallbackPoolId: string;
-    days: DayKey[];
-  }>({
-    time: '00:00',
-    mainPoolId: '',
-    fallbackPoolId: '',
-    days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-  });
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const settingFromLoad = useRef(false);
 
   useEffect(() => {
-    // restore drafts early so refresh doesn't wipe unsaved entries
-    const profileDraft = localStorage.getItem(PROFILE_DRAFT_KEY);
-    if (profileDraft) {
-      try {
-        const parsed = JSON.parse(profileDraft);
-        if (Array.isArray(parsed)) setProfileSlots(parsed);
-      } catch {}
-    }
-    const poolDraft = localStorage.getItem(POOL_DRAFT_KEY);
-    if (poolDraft) {
-      try {
-        const parsed = JSON.parse(poolDraft);
-        if (Array.isArray(parsed)) setPoolSlots(parsed);
-      } catch {}
-    }
-
     loadDevices();
     loadPools();
-    loadSchedulerStatus();
+    loadSchedulersStatus();
   }, []);
 
   useEffect(() => {
-    if (selectedDevices.length) {
-      const deviceName = selectedDevices[0];
-      // Only auto-load if we have no local data yet (avoid wiping work in progress)
-      if (profileSlots.length === 0 && poolSlots.length === 0) {
-        loadProfiles(deviceName);
-        loadSchedule(deviceName);
-      }
+    if (!selectedDevices.length) {
+      setProfileSchedule(blankProfileSchedule());
+      setPoolSchedule(blankPoolSchedule());
+      return;
     }
-  }, [selectedDevices, profileSlots.length, poolSlots.length]);
+    const first = selectedDevices[0];
+    loadProfiles(first);
+    loadSchedules(selectedDevices);
+  }, [selectedDevices]);
+
+  useEffect(() => {
+    if (settingFromLoad.current) {
+      settingFromLoad.current = false;
+      return;
+    }
+    setDirty(true);
+  }, [profileSchedule, poolSchedule]);
 
   const loadDevices = async () => {
     try {
       const data = await api.devices.list();
       setDevices(data || []);
-      if (data?.length && !selectedDevices.length) {
+      if (data?.length) {
         setSelectedDevices([data[0].name]);
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to load devices');
     } finally {
       setLoading(false);
@@ -137,345 +124,243 @@ export default function Operations() {
   };
 
   const loadProfiles = async (deviceName: string) => {
-    if (!deviceName) return;
     try {
       const data = await api.shed.getProfiles(deviceName);
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        setProfiles(DEFAULT_PROFILES.map((name) => ({ name })));
-        toast.warning('Device has no profiles; using default Quiet/Efficient/Balanced/Max.');
-        return;
-      }
-      setProfiles(data || []);
-    } catch (error) {
-      if (isNotFoundError(error)) {
-        setProfiles(DEFAULT_PROFILES.map((name) => ({ name })));
-        toast.warning('Profiles not found on device; using default Quiet/Efficient/Balanced/Max.');
-        return;
-      }
-      toast.error('Failed to load profiles');
+      const names = Array.isArray(data) ? data.map((p: any) => p.name || p.profile).filter(Boolean) : [];
+      setProfiles(names.length ? names : DEFAULT_PROFILES);
+    } catch {
+      setProfiles(DEFAULT_PROFILES);
     }
   };
 
   const loadPools = async () => {
     try {
       const data = await api.pool.list();
-      const array = Array.isArray(data) ? data : Object.values(data || {});
-      setPools(array);
-      if (array.length) {
-        const firstId = (array[0] as any).id || (array[0] as any).name || '';
-        if (!poolForm.mainPoolId && firstId) {
-          setPoolForm((form) => ({ ...form, mainPoolId: firstId }));
-        }
+      const array = Array.isArray(data)
+        ? data
+        : Object.entries(data || {}).map(([id, item]: any) => ({ id, ...(item as any) }));
+      const mapped = array.map((p: any) => ({ id: p.id || p.name, name: p.name || p.id })).filter((p) => p.id);
+      setPools(mapped);
+      if (!poolSchedule.defaultPool && mapped[0]) {
+        setPoolSchedule((prev) => ({ ...prev, defaultPool: mapped[0].id }));
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to load pools');
     }
   };
 
-  const loadSchedulerStatus = async () => {
+  const loadSchedulersStatus = async () => {
+    try {
+      const status = await api.shed.schedulerStatus();
+      setShedServiceRunning(!!status?.running);
+    } catch {
+      setShedServiceRunning(false);
+    }
     try {
       const status = await api.pool.schedulerStatus();
-      setPoolSchedulerRunning(!!status?.running);
+      setPoolServiceRunning(!!status?.running);
     } catch {
-      setPoolSchedulerRunning(false);
+      setPoolServiceRunning(false);
     }
   };
 
-  const loadSchedule = async (deviceName: string) => {
-    if (!deviceName) return;
-    try {
-      const data = await api.shed.getSchedule(deviceName);
-      if (!data || (data as any).skipped) {
-        // Fallback: load from local storage if present
-        const localRaw = localStorage.getItem(`${LOCAL_SCHEDULE_PREFIX}${deviceName}`);
-        if (localRaw) {
-          try {
-            const parsed = JSON.parse(localRaw) as SchedulePayload;
-            hydrateSlotsFromEntries(parsed.entries || []);
-            setSchedulerEnabled(Boolean(parsed.enabled));
-            toast.success(`Loaded local schedule for ${deviceName} (no API)`);
-          } catch {
-            toast.warning(`No schedule endpoint for ${deviceName}; keeping local entries.`);
-          }
-        } else {
-          toast.warning(`No schedule endpoint for ${deviceName}; keeping local entries.`);
-        }
-        return;
-      }
-
-      setSchedulerEnabled(Boolean(data.enabled));
-
-      hydrateSlotsFromEntries(data.entries || []);
-    } catch (error) {
-      if (isNotFoundError(error)) {
-        // keep existing drafts if present
-        setSchedulerEnabled(false);
-        toast.warning(`No schedule endpoint for ${deviceName}; using local draft only.`);
-        return;
-      }
-      toast.error('Failed to load schedule');
-    }
-  };
-
-  const hydrateSlotsFromEntries = (entries: SchedulePayload['entries']) => {
-    const pSlots: ProfileSlot[] = [];
-    const poSlots: PoolSlot[] = [];
-
-    entries.forEach((entry: any) => {
-      if (entry.kind === 'pool') {
-        poSlots.push({
-          id: generateId(),
-          time: entry.time || '00:00',
-          poolId: entry.poolId || entry.pool || '',
-          mode: entry.mode === 'fallback' ? 'fallback' : 'main',
-          days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-        });
-      } else {
-        pSlots.push({
-          id: generateId(),
-          time: entry.time || '00:00',
-          profile: entry.profile || '',
-          days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-        });
-      }
-    });
-
-    if (pSlots.length || poSlots.length) {
-      setProfileSlots(pSlots);
-      setPoolSlots(poSlots);
-    }
-  };
-
-  const toggleDay = <T extends { days: DayKey[] }>(slot: T, day: DayKey, setter: (slot: T) => void) => {
-    const hasDay = slot.days.includes(day);
-    const nextDays = hasDay ? slot.days.filter((d) => d !== day) : [...slot.days, day];
-    setter({ ...slot, days: nextDays } as T);
-  };
-
-  const handleAddProfileSlot = () => {
-    if (!profileForm.profile) {
-      toast.error('Select a profile');
-      return;
-    }
-    setProfileSlots([...profileSlots, { ...profileForm, id: generateId() }]);
-    setProfileForm({
+  const mapProfileFromApi = (payload: any): ProfileScheduleState => {
+    const defaultProfile = payload?.default_profile || '';
+    const blocks: ProfileBlock[] = (payload?.time_blocks || []).map((block: any) => ({
       id: generateId(),
-      time: '00:00',
-      profile: '',
-      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-    });
+      start: block.start || '00:00',
+      end: block.end || '23:59',
+      profile: block.profile || defaultProfile || '',
+      days: toDayKeys(block.days),
+    }));
+    return { enabled: !!payload?.enabled, defaultProfile, blocks };
   };
 
-  const handleAddPoolSlot = () => {
-    if (!poolForm.mainPoolId) {
-      toast.error('Select a main pool');
-      return;
-    }
+  const mapPoolFromApi = (payload: any): PoolScheduleState => {
+    const defaultPool = payload?.default_pool || '';
+    const blocks: PoolBlock[] = (payload?.time_blocks || []).map((block: any) => ({
+      id: generateId(),
+      start: block.start || '00:00',
+      end: block.end || '23:59',
+      pool: block.pool || defaultPool || '',
+      days: toDayKeys(block.days),
+    }));
+    return { enabled: !!payload?.enabled, defaultPool, blocks };
+  };
 
-    const newSlots: PoolSlot[] = [
-      {
-        id: generateId(),
-        time: poolForm.time,
-        poolId: poolForm.mainPoolId,
-        mode: 'main',
-        days: poolForm.days,
-      },
-    ];
+  const mapProfileToApi = (schedule: ProfileScheduleState) => ({
+    enabled: schedule.enabled,
+    default_profile: schedule.defaultProfile || null,
+    time_blocks: schedule.blocks.map((b) => ({
+      start: b.start || '00:00',
+      end: b.end || '23:59',
+      profile: b.profile,
+      days: toFullDays(b.days),
+    })),
+  });
 
-    if (poolForm.fallbackPoolId) {
-      newSlots.push({
-        id: generateId(),
-        time: poolForm.time,
-        poolId: poolForm.fallbackPoolId,
-        mode: 'fallback',
-        days: poolForm.days,
+  const mapPoolToApi = (schedule: PoolScheduleState) => ({
+    enabled: schedule.enabled,
+    default_pool: schedule.defaultPool || null,
+    time_blocks: schedule.blocks.map((b) => ({
+      start: b.start || '00:00',
+      end: b.end || '23:59',
+      pool: b.pool,
+      days: toFullDays(b.days),
+    })),
+  });
+
+  const loadSchedules = async (devicesToLoad: string[]) => {
+    if (!devicesToLoad.length) return;
+    const promises = devicesToLoad.map(async (name) => {
+      try {
+        const [profileRaw, poolRaw] = await Promise.all([
+          api.shed.getSchedule(name),
+          api.pool.getSchedule(name),
+        ]);
+        const profile = profileRaw?.skipped ? blankProfileSchedule() : mapProfileFromApi(profileRaw);
+        const pool = poolRaw?.skipped ? blankPoolSchedule() : mapPoolFromApi(poolRaw);
+        return { name, profile, pool };
+      } catch (error) {
+        toast.warning(`Schedule unavailable for ${name}`);
+        return { name, profile: blankProfileSchedule(), pool: blankPoolSchedule() };
+      }
+    });
+
+    const results = await Promise.all(promises);
+    setDeviceSchedules((prev) => {
+      const next = { ...prev } as Record<string, DeviceScheduleState>;
+      results.forEach(({ name, profile, pool }) => {
+        next[name] = { profile, pool };
       });
-    }
-
-    setPoolSlots([...poolSlots, ...newSlots]);
-    setPoolForm({
-      time: '00:00',
-      mainPoolId: '',
-      fallbackPoolId: '',
-      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+      return next;
     });
+
+    const primary = results[0];
+    if (primary && !dirty) {
+      settingFromLoad.current = true;
+      setProfileSchedule(primary.profile);
+      setPoolSchedule(primary.pool);
+      setDirty(false);
+    }
   };
 
-  const handleSaveSchedule = async () => {
+  const addProfileBlock = () => {
+    const profile = profileSchedule.defaultProfile || profiles[0] || '';
+    const newBlock: ProfileBlock = {
+      id: generateId(),
+      start: '00:00',
+      end: '06:00',
+      profile,
+      days: [...allDays],
+    };
+    setProfileSchedule((prev) => ({ ...prev, blocks: [...prev.blocks, newBlock] }));
+  };
+
+  const addPoolBlock = () => {
+    const pool = poolSchedule.defaultPool || pools[0]?.id || '';
+    const newBlock: PoolBlock = {
+      id: generateId(),
+      start: '00:00',
+      end: '06:00',
+      pool,
+      days: [...allDays],
+    };
+    setPoolSchedule((prev) => ({ ...prev, blocks: [...prev.blocks, newBlock] }));
+  };
+
+  const updateProfileBlock = (id: string, field: keyof ProfileBlock, value: string | DayKey[]) => {
+    setProfileSchedule((prev) => ({
+      ...prev,
+      blocks: prev.blocks.map((b) => (b.id === id ? { ...b, [field]: value } : b)),
+    }));
+  };
+
+  const updatePoolBlock = (id: string, field: keyof PoolBlock, value: string | DayKey[]) => {
+    setPoolSchedule((prev) => ({
+      ...prev,
+      blocks: prev.blocks.map((b) => (b.id === id ? { ...b, [field]: value } : b)),
+    }));
+  };
+
+  const removeProfileBlock = (id: string) => {
+    setProfileSchedule((prev) => ({ ...prev, blocks: prev.blocks.filter((b) => b.id !== id) }));
+  };
+
+  const removePoolBlock = (id: string) => {
+    setPoolSchedule((prev) => ({ ...prev, blocks: prev.blocks.filter((b) => b.id !== id) }));
+  };
+
+  const toggleProfileDay = (block: ProfileBlock, day: DayKey) => {
+    const has = block.days.includes(day);
+    const nextDays = has ? block.days.filter((d) => d !== day) : [...block.days, day];
+    updateProfileBlock(block.id, 'days', nextDays);
+  };
+
+  const togglePoolDay = (block: PoolBlock, day: DayKey) => {
+    const has = block.days.includes(day);
+    const nextDays = has ? block.days.filter((d) => d !== day) : [...block.days, day];
+    updatePoolBlock(block.id, 'days', nextDays);
+  };
+
+  const handleSave = async () => {
     if (!selectedDevices.length) {
       toast.error('Select at least one device');
       return;
     }
-    const payload: SchedulePayload = {
-      enabled: schedulerEnabled,
-      entries: [
-        ...profileSlots.map((slot) => ({
-          kind: 'profile' as const,
-          time: slot.time,
-          profile: slot.profile,
-          days: slot.days,
-        })),
-        ...poolSlots.map((slot) => ({
-          kind: 'pool' as const,
-          time: slot.time,
-          poolId: slot.poolId,
-          mode: slot.mode,
-          days: slot.days,
-        })),
-      ],
-    };
 
-    // Always persist locally per-device
-    selectedDevices.forEach((device) => {
-      localStorage.setItem(`${LOCAL_SCHEDULE_PREFIX}${device}`, JSON.stringify(payload));
-    });
+    setSaving(true);
+    const profilePayload = mapProfileToApi(profileSchedule);
+    const poolPayload = mapPoolToApi(poolSchedule);
 
-    const profileResults = await Promise.allSettled(
+    const results = await Promise.allSettled(
       selectedDevices.map(async (device) => {
-        try {
-          const res = await api.shed.setSchedule(device, payload);
-          return { device, res };
-        } catch (error) {
-          return { device, error };
-        }
+        const [shedRes, poolRes] = await Promise.allSettled([
+          api.shed.setSchedule(device, profilePayload),
+          api.pool.setSchedule(device, poolPayload),
+        ]);
+        return { device, shedRes, poolRes };
       })
     );
 
-    const poolResults = await Promise.allSettled(
-      selectedDevices.map(async (device) => {
-        try {
-          const res = await api.pool.setSchedule(device, payload);
-          return { device, res };
-        } catch (error) {
-          return { device, error };
-        }
-      })
-    );
+    const success = results.filter(
+      (r) =>
+        r.status === 'fulfilled' &&
+        (r as any).value.shedRes.status === 'fulfilled' &&
+        (r as any).value.poolRes.status === 'fulfilled'
+    ).length;
 
-    const allResults = [...profileResults, ...poolResults];
+    const failures = results.length - success;
 
-    const successDevices = new Set<string>();
-    allResults.forEach((r: any) => {
-      if (r.status === 'fulfilled' && !(r.value as any)?.error) {
-        const device = (r.value as any)?.device;
-        if (device) successDevices.add(device);
-      }
+    selectedDevices.forEach((name) => {
+      setDeviceSchedules((prev) => ({
+        ...prev,
+        [name]: { profile: profileSchedule, pool: poolSchedule },
+      }));
     });
 
-    const failures = allResults
-      .filter((r: any) => r.status === 'fulfilled' ? r.value?.error : (r as any).reason)
-      .map((r: any) => (r.status === 'fulfilled' ? r.value : r.reason));
-    const successCount = successDevices.size;
-
-    const savedLocally = selectedDevices.length;
-    if (savedLocally > 0) {
-      toast.success(`Schedule stored locally for ${savedLocally} device(s)`);
-    }
-    if (successCount > 0) {
-      toast.success(`Schedule pushed to ${successCount} device(s) with API`);
-    }
-    if (failures.length) {
-      const notFound = failures.filter((f: any) => isNotFoundError(f?.error || f));
-      const other = failures.filter((f: any) => !isNotFoundError(f?.error || f));
-      if (notFound.length) {
-        toast.warning(`Schedule API missing for ${notFound.length} device(s); kept local only.`);
-      }
-      if (other.length) {
-        toast.error('Failed to push schedule for some devices');
-      }
-    }
-
-    if (successCount > 0) {
-      loadSchedule(selectedDevices[0]);
-    }
+    if (success) toast.success(`Saved schedules to ${success} device(s)`);
+    if (failures) toast.warning(`${failures} device(s) did not accept schedules`);
+    setDirty(false);
+    setSaving(false);
   };
 
-  const handleRemoveSlot = (type: 'profile' | 'pool', id: string) => {
-    if (type === 'profile') {
-      setProfileSlots(profileSlots.filter((slot) => slot.id !== id));
-    } else {
-      setPoolSlots(poolSlots.filter((slot) => slot.id !== id));
-    }
-    setShowRemove(null);
-  };
-
-  const handlePoolSchedulerToggle = async (start: boolean) => {
+  const toggleService = async (kind: 'shed' | 'pool', start: boolean) => {
     try {
-      if (start) {
-        await api.pool.startScheduler();
-        setPoolSchedulerRunning(true);
-        toast.success('Pool scheduler started');
+      if (kind === 'shed') {
+        start ? await api.shed.startScheduler() : await api.shed.stopScheduler();
+        setShedServiceRunning(start);
       } else {
-        await api.pool.stopScheduler();
-        setPoolSchedulerRunning(false);
-        toast.success('Pool scheduler stopped');
+        start ? await api.pool.startScheduler() : await api.pool.stopScheduler();
+        setPoolServiceRunning(start);
       }
-    } catch (error) {
-      toast.error('Failed to update pool scheduler');
+      toast.success(`${kind === 'shed' ? 'Profile' : 'Pool'} scheduler ${start ? 'started' : 'stopped'}`);
+    } catch {
+      toast.error('Failed to update scheduler service');
     }
   };
 
-  // persist drafts locally so refresh doesn't lose schedule
-  useEffect(() => {
-    localStorage.setItem(PROFILE_DRAFT_KEY, JSON.stringify(profileSlots));
-  }, [profileSlots]);
-
-  useEffect(() => {
-    localStorage.setItem(POOL_DRAFT_KEY, JSON.stringify(poolSlots));
-  }, [poolSlots]);
-
-  const profileOptions = useMemo(() => {
-    const names = profiles.map((p: any) => p.name || p.profile || '').filter(Boolean);
-    return names.length ? names : DEFAULT_PROFILES;
-  }, [profiles]);
-
-  const mergedSchedule = useMemo(() => {
-    const rows = [
-      ...profileSlots.map((slot) => ({
-        id: slot.id,
-        type: 'Profile',
-        target: slot.profile,
-        time: slot.time,
-        days: slot.days,
-        mode: '',
-        remove: () => setShowRemove({ type: 'profile', id: slot.id }),
-      })),
-      ...poolSlots.map((slot) => ({
-        id: slot.id,
-        type: 'Pool',
-        target: slot.poolId,
-        time: slot.time,
-        days: slot.days,
-        mode: slot.mode,
-        remove: () => setShowRemove({ type: 'pool', id: slot.id }),
-      })),
-    ];
-    return rows.sort((a, b) => a.time.localeCompare(b.time));
-  }, [profileSlots, poolSlots]);
-
-  // warn on unsaved changes before unload
-  const [dirty, setDirty] = useState(false);
-  useEffect(() => {
-    if (profileSlots.length || poolSlots.length) {
-      setDirty(true);
-    }
-  }, [profileSlots, poolSlots]);
-
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (!dirty) return;
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [dirty]);
-
-  const toggleDevice = (deviceName: string) => {
-    setSelectedDevices((prev) =>
-      prev.includes(deviceName) ? prev.filter((d) => d !== deviceName) : [...prev, deviceName]
-    );
-  };
+  const profileOptions = useMemo(() => (profiles.length ? profiles : DEFAULT_PROFILES), [profiles]);
 
   if (loading) {
     return (
@@ -485,21 +370,34 @@ export default function Operations() {
     );
   }
 
+  const selectedList = selectedDevices.map((name) => ({
+    name,
+    schedule: deviceSchedules[name],
+  }));
+
   return (
     <div className="space-y-6">
       <div className="hud-panel flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-glow-green">SCHEDULING CONTROL CENTER</h1>
+        <h1 className="text-3xl font-bold text-glow-green">Operations & Scheduling</h1>
         <p className="text-[var(--text-secondary)] text-sm">
-          Set when pools and tuning profiles run. Select devices, edit schedules, and push changes together.
+          Choose devices, set tuning and pool schedules, and push them together.
         </p>
       </div>
 
-      {/* Device selection + scheduler toggles */}
       <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
         <div className="flex flex-col gap-3">
-          <div>
-            <Label className="text-[var(--text-secondary)]">Target Devices</Label>
-            <div className="text-xs text-[var(--text-muted)]">Click one or several to edit/apply schedules.</div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Label className="text-[var(--text-secondary)] mr-2">Devices</Label>
+            <Button size="sm" variant="outline" onClick={() => setSelectedDevices(devices.map((d) => d.name))}>
+              Select all
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setSelectedDevices([])}>
+              Clear
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => loadSchedules(selectedDevices)}>
+              <RefreshCcw className="w-4 h-4 mr-1" /> Reload schedules
+            </Button>
+            {dirty && <span className="text-xs text-amber-400">Unsaved changes</span>}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -510,8 +408,12 @@ export default function Operations() {
                   key={d.name}
                   size="sm"
                   variant={active ? 'default' : 'outline'}
-                  className={active ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--neon-cyan)]'}
-                  onClick={() => toggleDevice(d.name)}
+                  className={active ? 'bg-[var(--neon-cyan)] text-black' : 'text-[var(--text-secondary)]'}
+                  onClick={() =>
+                    setSelectedDevices((prev) =>
+                      prev.includes(d.name) ? prev.filter((n) => n !== d.name) : [...prev, d.name]
+                    )
+                  }
                 >
                   {d.name}
                   <span className="ml-1 text-xs opacity-60">({d.model})</span>
@@ -521,272 +423,324 @@ export default function Operations() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="flex items-center gap-3 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-4 py-3">
-              <div>
-                <div className="text-sm font-bold text-[var(--text-primary)]">PROFILE SCHEDULER</div>
-                <div className="text-xs text-[var(--text-muted)]">Enable/disable when saving schedules.</div>
-              </div>
-              <Switch checked={schedulerEnabled} onCheckedChange={setSchedulerEnabled} />
-            </div>
-            <div className="flex items-center gap-3 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-4 py-3 justify-between">
-              <div>
-                <div className="text-sm font-bold text-[var(--text-primary)]">POOL SCHEDULER SERVICE</div>
-                <div className="text-xs text-[var(--text-muted)]">Start/stop service (persists across reboots).</div>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant={poolSchedulerRunning ? 'default' : 'outline'} onClick={() => handlePoolSchedulerToggle(true)}>
-                  <Play className="w-4 h-4 mr-1" /> Start
-                </Button>
-                <Button size="sm" variant={!poolSchedulerRunning ? 'default' : 'outline'} onClick={() => handlePoolSchedulerToggle(false)}>
-                  <Square className="w-4 h-4 mr-1" /> Stop
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={handleSaveSchedule} className="btn-matrix w-full md:w-auto">
-              SAVE SCHEDULES TO SELECTED
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedDevices([]);
-              }}
-            >
-              Clear Selection
-            </Button>
+            <ServiceToggle
+              title="Profile scheduler service"
+              running={shedServiceRunning}
+              onStart={() => toggleService('shed', true)}
+              onStop={() => toggleService('shed', false)}
+            />
+            <ServiceToggle
+              title="Pool scheduler service"
+              running={poolServiceRunning}
+              onStart={() => toggleService('pool', true)}
+              onStop={() => toggleService('pool', false)}
+            />
           </div>
         </div>
       </Card>
 
-      {/* Unified schedule view and editors */}
       <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-xl font-bold text-[var(--neon-cyan)]">Current Schedule</h2>
+            <h2 className="text-xl font-bold text-[var(--neon-cyan)]">Schedule editor</h2>
             <p className="text-xs text-[var(--text-muted)]">
-              Applies to: {selectedDevices.length ? selectedDevices.join(', ') : 'No devices selected'}
+              Editing applies to: {selectedDevices.length ? selectedDevices.join(', ') : 'None'}
             </p>
           </div>
-          {selectedDevices.length > 0 && (
-            <Button size="sm" variant="outline" onClick={() => loadSchedule(selectedDevices[0])}>
-              Refresh from scheduler
-            </Button>
-          )}
+          <Button onClick={handleSave} disabled={saving || !selectedDevices.length} className="btn-matrix">
+            {saving ? 'Saving...' : 'Save to selected'}
+          </Button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-xs">
-            <thead>
-              <tr className="border-b border-[var(--grid-gray)] text-[var(--text-secondary)]">
-                <th className="text-left py-2 px-2">Type</th>
-                <th className="text-left py-2 px-2">Target</th>
-                <th className="text-left py-2 px-2">Time</th>
-                <th className="text-left py-2 px-2">Days</th>
-                <th className="text-left py-2 px-2">Mode</th>
-                <th className="text-left py-2 px-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mergedSchedule.length === 0 ? (
-                <tr>
-                  <td className="py-3 px-2 text-[var(--text-muted)]" colSpan={6}>No scheduled entries.</td>
-                </tr>
-              ) : (
-                mergedSchedule.map((row) => (
-                  <tr key={row.id} className="border-b border-[var(--grid-gray)]">
-                    <td className="py-2 px-2">{row.type}</td>
-                    <td className="py-2 px-2">{row.target}</td>
-                    <td className="py-2 px-2">{row.time}</td>
-                    <td className="py-2 px-2">
-                      <div className="flex flex-wrap gap-1">
-                        {row.days.map((d) => (
-                          <span key={d} className="px-2 py-0.5 text-[10px] bg-[var(--grid-gray)] rounded">
-                            {dayLabels[d]}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-2 px-2">{row.type === 'Pool' ? row.mode : '-'}</td>
-                    <td className="py-2 px-2">
-                      <Button size="sm" variant="destructive" onClick={row.remove}>
-                        Remove
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <Card className="p-4 bg-[var(--dark-gray)] border-[var(--neon-cyan)] space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
+                <div>
+                  <div className="text-sm font-bold text-[var(--neon-cyan)]">Tuning profiles</div>
+                  <div className="text-xs text-[var(--text-muted)]">Enable schedule and define blocks.</div>
+                </div>
+              </div>
+              <Switch
+                checked={profileSchedule.enabled}
+                onCheckedChange={(v) => {
+                  settingFromLoad.current = true;
+                  setProfileSchedule((prev) => ({ ...prev, enabled: v }));
+                  setDirty(true);
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label>Default profile (when no block matches)</Label>
+                <Select
+                  value={profileSchedule.defaultProfile || ''}
+                  onValueChange={(val) => setProfileSchedule((prev) => ({ ...prev, defaultProfile: val }))}
+                >
+                  <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
+                    <SelectValue placeholder="Choose default profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profileOptions.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button variant="outline" onClick={addProfileBlock} className="w-full">
+                  Add time block
+                </Button>
+              </div>
+            </div>
+
+            <BlockTable
+              type="profile"
+              blocks={profileSchedule.blocks}
+              profileOptions={profileOptions}
+              onChange={(id, field, value) => updateProfileBlock(id, field as keyof ProfileBlock, value)}
+              onRemove={removeProfileBlock}
+              onToggleDay={toggleProfileDay}
+            />
+          </Card>
+
+          <Card className="p-4 bg-[var(--dark-gray)] border-[var(--matrix-green)] space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
+                <div>
+                  <div className="text-sm font-bold text-[var(--matrix-green)]">Pool profiles</div>
+                  <div className="text-xs text-[var(--text-muted)]">Default + time blocks for main/fallback.</div>
+                </div>
+              </div>
+              <Switch
+                checked={poolSchedule.enabled}
+                onCheckedChange={(v) => {
+                  settingFromLoad.current = true;
+                  setPoolSchedule((prev) => ({ ...prev, enabled: v }));
+                  setDirty(true);
+                }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <Label>Default pool</Label>
+                <Select
+                  value={poolSchedule.defaultPool || ''}
+                  onValueChange={(val) => setPoolSchedule((prev) => ({ ...prev, defaultPool: val }))}
+                >
+                  <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
+                    <SelectValue placeholder="Choose default pool" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pools.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name || p.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-end">
+                <Button variant="outline" onClick={addPoolBlock} className="w-full">
+                  Add time block
+                </Button>
+              </div>
+            </div>
+
+            <BlockTable
+              type="pool"
+              blocks={poolSchedule.blocks}
+              poolOptions={pools}
+              onChange={(id, field, value) => updatePoolBlock(id, field as keyof PoolBlock, value)}
+              onRemove={removePoolBlock}
+              onToggleDay={togglePoolDay}
+            />
+          </Card>
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Profile editor */}
-        <Card className="p-6 bg-black/80 border-[var(--neon-cyan)] space-y-4">
-          <div className="flex items-center gap-3">
-            <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
-            <div>
-              <h2 className="text-xl font-bold text-[var(--neon-cyan)]">Add Tuning Slot</h2>
-              <p className="text-xs text-[var(--text-muted)]">Pick a profile, time, and days.</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <Label>Time</Label>
-              <Input type="time" value={profileForm.time} onChange={(e) => setProfileForm({ ...profileForm, time: e.target.value })} />
-            </div>
-            <div>
-              <Label>Profile</Label>
-              <Select
-                value={profileForm.profile}
-                onValueChange={(val) => setProfileForm({ ...profileForm, profile: val })}
-              >
-                <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                  <SelectValue placeholder="Select profile" />
-                </SelectTrigger>
-                <SelectContent>
-                  {profileOptions.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleAddProfileSlot} className="w-full gap-2">
-                <Plus className="w-4 h-4" /> Add
-              </Button>
-            </div>
-          </div>
-
-          <DaySelector slot={profileForm} onToggle={(day) => toggleDay(profileForm, day, (slot) => setProfileForm(slot))} />
-        </Card>
-
-        {/* Pool editor */}
-        <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
-          <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
-            <div>
-              <h2 className="text-xl font-bold text-[var(--matrix-green)]">Add Pool Slot</h2>
-              <p className="text-xs text-[var(--text-muted)]">Main (and optional fallback) at a time.</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <Label>Time</Label>
-                <Input type="time" value={poolForm.time} onChange={(e) => setPoolForm({ ...poolForm, time: e.target.value })} />
+      <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">Per-device schedules</h2>
+          <Button size="sm" variant="outline" onClick={() => loadSchedules(selectedDevices)}>
+            <RefreshCcw className="w-4 h-4 mr-1" /> Reload selected
+          </Button>
+        </div>
+        {selectedList.length === 0 && <div className="text-[var(--text-muted)] text-sm">No devices selected.</div>}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {selectedList.map(({ name, schedule }) => (
+            <Card key={name} className="p-4 bg-[var(--dark-gray)] border-[var(--grid-gray)] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-bold text-[var(--text-primary)]">{name}</div>
+                {!schedule && <span className="text-xs text-amber-400">Not loaded</span>}
               </div>
-              <div>
-                <Label>Main Pool</Label>
-                <Select
-                  value={poolForm.mainPoolId}
-                  onValueChange={(val) => setPoolForm({ ...poolForm, mainPoolId: val })}
-                >
-                  <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                    <SelectValue placeholder="Select main pool" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {pools
-                      .map((p: any) => ({ poolId: p.id || p.name, label: p.name || p.id }))
-                      .filter((p) => p.poolId)
-                      .map((p) => (
-                        <SelectItem key={p.poolId} value={p.poolId}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Fallback Pool (optional)</Label>
-                <Select
-                  value={poolForm.fallbackPoolId || 'none'}
-                  onValueChange={(val) =>
-                    setPoolForm({ ...poolForm, fallbackPoolId: val === 'none' ? '' : val })
-                  }
-                >
-                  <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                    <SelectValue placeholder="Select fallback pool" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {pools
-                      .map((p: any) => ({ poolId: p.id || p.name, label: p.name || p.id }))
-                      .filter((p) => p.poolId)
-                      .map((p) => (
-                        <SelectItem key={p.poolId} value={p.poolId}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex flex-col justify-between gap-3">
-              <div className="bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded p-3 text-sm text-[var(--text-muted)]">
-                Adding will create a MAIN entry. If a fallback is selected, a paired FALLBACK entry is added at the same time.
-              </div>
-              <Button onClick={handleAddPoolSlot} className="w-full gap-2">
-                <Plus className="w-4 h-4" /> Add
-              </Button>
-            </div>
-          </div>
-
-          <DaySelector slot={poolForm} onToggle={(day) => toggleDay(poolForm, day, (slot) => setPoolForm(slot))} />
-        </Card>
-      </div>
-
-      {/* Remove confirmation */}
-      <Dialog open={!!showRemove} onOpenChange={() => setShowRemove(null)}>
-        <DialogContent className="matrix-card">
-          <DialogHeader>
-            <DialogTitle className="text-glow-red flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" /> Remove entry?
-            </DialogTitle>
-            <DialogDescription>This will delete the scheduled entry.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRemove(null)}>Cancel</Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (showRemove) {
-                  handleRemoveSlot(showRemove.type, showRemove.id);
-                }
-              }}
-            >
-              Remove
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              {schedule && (
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <div className="font-semibold text-[var(--neon-cyan)]">Tuning</div>
+                    <div className="text-[var(--text-muted)]">
+                      {schedule.profile.enabled ? 'Enabled' : 'Disabled'} • Default: {schedule.profile.defaultProfile || 'None'}
+                    </div>
+                    <ScheduleList blocks={schedule.profile.blocks} labelKey="profile" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-[var(--matrix-green)]">Pool</div>
+                    <div className="text-[var(--text-muted)]">
+                      {schedule.pool.enabled ? 'Enabled' : 'Disabled'} • Default: {schedule.pool.defaultPool || 'None'}
+                    </div>
+                    <ScheduleList blocks={schedule.pool.blocks} labelKey="pool" />
+                  </div>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
 
-function DaySelector<T extends { days: DayKey[] }>({ slot, onToggle }: { slot: T; onToggle: (day: DayKey) => void }) {
+function ServiceToggle({
+  title,
+  running,
+  onStart,
+  onStop,
+}: {
+  title: string;
+  running: boolean | null;
+  onStart: () => void;
+  onStop: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-4 py-3">
+      <div>
+        <div className="text-sm font-bold text-[var(--text-primary)]">{title}</div>
+        <div className="text-xs text-[var(--text-muted)]">
+          Status: {running === null ? '...' : running ? 'Running' : 'Stopped'}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" variant={running ? 'outline' : 'default'} onClick={onStart}>
+          <Play className="w-4 h-4 mr-1" /> Start
+        </Button>
+        <Button size="sm" variant={!running ? 'outline' : 'default'} onClick={onStop}>
+          <Square className="w-4 h-4 mr-1" /> Stop
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function BlockTable({
+  type,
+  blocks,
+  profileOptions,
+  poolOptions,
+  onChange,
+  onRemove,
+  onToggleDay,
+}: {
+  type: 'profile' | 'pool';
+  blocks: Array<ProfileBlock | PoolBlock>;
+  profileOptions?: string[];
+  poolOptions?: Array<{ id: string; name: string }>;
+  onChange: (id: string, field: string, value: any) => void;
+  onRemove: (id: string) => void;
+  onToggleDay: (block: any, day: DayKey) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {blocks.length === 0 && <div className="text-xs text-[var(--text-muted)]">No blocks yet.</div>}
+      {blocks.map((block) => (
+        <div
+          key={block.id}
+          className="border border-[var(--grid-gray)] rounded p-3 bg-black/60 space-y-2"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+            <div>
+              <Label>Start</Label>
+              <Input
+                type="time"
+                value={block.start}
+                onChange={(e) => onChange(block.id, 'start', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>End</Label>
+              <Input type="time" value={block.end} onChange={(e) => onChange(block.id, 'end', e.target.value)} />
+            </div>
+            <div className="md:col-span-2">
+              <Label>{type === 'profile' ? 'Profile' : 'Pool'}</Label>
+              {type === 'profile' ? (
+                <Select
+                  value={(block as ProfileBlock).profile}
+                  onValueChange={(val) => onChange(block.id, 'profile', val)}
+                >
+                  <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
+                    <SelectValue placeholder="Select profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(profileOptions || DEFAULT_PROFILES).map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select
+                  value={(block as PoolBlock).pool}
+                  onValueChange={(val) => onChange(block.id, 'pool', val)}
+                >
+                  <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
+                    <SelectValue placeholder="Select pool" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(poolOptions || []).map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name || p.id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div className="flex justify-end">
+              <Button size="sm" variant="ghost" className="text-red-400" onClick={() => onRemove(block.id)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <DaySelector days={block.days} onToggle={(day) => onToggleDay(block, day)} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DaySelector({ days, onToggle }: { days: DayKey[]; onToggle: (day: DayKey) => void }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {Object.entries(dayLabels).map(([day, label]) => {
-        const active = slot.days.includes(day as DayKey);
+      {allDays.map((day) => {
+        const active = days.includes(day);
         return (
           <button
             key={day}
-            onClick={() => onToggle(day as DayKey)}
+            onClick={() => onToggle(day)}
+            type="button"
             className={`px-3 py-1 rounded border text-xs font-bold transition ${
               active
                 ? 'border-[var(--matrix-green)] text-[var(--matrix-green)] bg-[var(--matrix-green)]/10'
                 : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--matrix-green)]'
             }`}
-            type="button"
           >
-            {label}
+            {dayLabels[day]}
           </button>
         );
       })}
@@ -794,50 +748,35 @@ function DaySelector<T extends { days: DayKey[] }>({ slot, onToggle }: { slot: T
   );
 }
 
-function ScheduleRow({
-  icon,
-  title,
-  subtitle,
-  days,
-  tooltip,
-  onRemove,
+function ScheduleList({
+  blocks,
+  labelKey,
 }: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  days: DayKey[];
-  tooltip?: string;
-  onRemove: () => void;
+  blocks: Array<ProfileBlock | PoolBlock>;
+  labelKey: 'profile' | 'pool';
 }) {
+  if (!blocks.length) {
+    return <div className="text-[var(--text-muted)]">No time blocks.</div>;
+  }
   return (
-    <div
-      className="flex items-center justify-between bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-3 py-2"
-      title={tooltip}
-    >
-      <div className="flex items-center gap-3">
-        {icon}
-        <div>
-          <div className="text-sm font-bold text-[var(--text-primary)]">{title}</div>
-          <div className="text-xs text-[var(--text-muted)]">{subtitle}</div>
-        </div>
-        <div className="flex gap-1 flex-wrap">
-          {days.map((d) => (
-            <span key={d} className="text-[10px] bg-[var(--grid-gray)] text-[var(--text-secondary)] px-2 py-0.5 rounded">
-              {dayLabels[d]}
+    <div className="space-y-2 mt-1">
+      {blocks.map((b) => (
+        <div key={b.id} className="border border-[var(--grid-gray)] rounded px-2 py-1 bg-black/40">
+          <div className="flex items-center justify-between text-[var(--text-primary)]">
+            <span>
+              {b.start} - {b.end}
             </span>
-          ))}
+            <span className="font-semibold">{(b as any)[labelKey]}</span>
+          </div>
+          <div className="flex flex-wrap gap-1 text-[10px] text-[var(--text-muted)]">
+            {b.days.map((d) => (
+              <span key={d} className="px-1 py-0.5 bg-[var(--grid-gray)] rounded">
+                {dayLabels[d]}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
-      <button
-        onClick={onRemove}
-        className="p-1 rounded hover:bg-red-500/10 text-red-400"
-        aria-label="Remove"
-        type="button"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      ))}
     </div>
   );
 }
-
-
