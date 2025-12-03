@@ -321,6 +321,17 @@ export default function Dashboard() {
     setSelectedDevice(device);
     setShowConfigModal(true);
   };
+
+  const handleDeleteDevice = async (device: Device) => {
+    if (!confirm(`Delete device "${device.name}"?`)) return;
+    try {
+      await api.devices.delete(device.name);
+      toast.success(`Deleted ${device.name}`);
+      loadDevices();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to delete device');
+    }
+  };
   
   const handleEditPsu = (psu: any) => {
     setEditingPsu(psu);
@@ -794,7 +805,13 @@ const loadPsus = async () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {devices.map((device) => (
-            <DeviceCard key={device.name} device={device} onRefresh={loadDevices} onConfig={handleConfigClick} />
+            <DeviceCard
+              key={device.name}
+              device={device}
+              onRefresh={loadDevices}
+              onConfig={handleConfigClick}
+              onDelete={handleDeleteDevice}
+            />
           ))}
         </div>
       )}
@@ -914,7 +931,7 @@ const loadPsus = async () => {
   );
 }
 
-function DeviceCard({ device, onRefresh, onConfig }: { device: Device; onRefresh: () => void; onConfig: (device: Device) => void }) {
+function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device; onRefresh: () => void; onConfig: (device: Device) => void; onDelete: (device: Device) => void }) {
   const [, setLocation] = useLocation();
   const modelColor = MODEL_COLORS[device.model?.toLowerCase()] || '#666';
   const modelName = MODEL_NAMES[device.model?.toLowerCase()] || device.model?.toUpperCase() || 'UNKNOWN';
