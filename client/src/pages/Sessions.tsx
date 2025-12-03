@@ -311,6 +311,28 @@ export default function Sessions() {
     });
   }, [sessions, deviceFilter, modeFilter]);
 
+  const groupedSessions = useMemo(() => {
+    const groups: Record<string, { auto: any[]; manual: any[] }> = {};
+    filteredSessions.forEach((session) => {
+      const deviceName = session.device || 'UNKNOWN_DEVICE';
+      const tune = (session.tune_type || session.mode || '').toLowerCase();
+      const bucket = tune.includes('auto') ? 'auto' : 'manual';
+      if (!groups[deviceName]) {
+        groups[deviceName] = { auto: [], manual: [] };
+      }
+      groups[deviceName][bucket].push(session);
+    });
+
+    // Sort newest first inside each bucket
+    Object.values(groups).forEach((group) => {
+      (['auto', 'manual'] as const).forEach((bucket) => {
+        group[bucket].sort((a, b) => (new Date(b.start_time).getTime()) - (new Date(a.start_time).getTime()));
+      });
+    });
+
+    return groups;
+  }, [filteredSessions]);
+
   const loadSessions = async () => {
     try {
       setLoading(true);
@@ -394,6 +416,24 @@ export default function Sessions() {
     } finally {
       setProfileDialogLoading(false);
       setProcessingSessionId(null);
+    }
+  };
+
+  const handleDownloadJson = async (session: any) => {
+    try {
+      const detail = await api.sessions.get(session.id);
+      const normalized = normalizeSession(detail);
+      const jsonData = JSON.stringify(normalized, null, 2);
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `session_${session.id.substring(0, 8)}_${session.device}_${new Date(session.start_time).toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('JSON downloaded');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to export JSON');
     }
   };
 
@@ -488,11 +528,7 @@ export default function Sessions() {
               <Button
                 size="sm"
                 variant="outline"
-                className={
-                  modeFilter === 'all'
-                    ? 'btn-matrix text-xs shadow-[0_0_0_1px_var(--matrix-green)]'
-                    : 'text-xs border-[var(--grid-gray)]'
-                }
+                className={`text-xs ${modeFilter === 'all' ? 'btn-matrix shadow-[0_0_0_1px_var(--matrix-green)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
                 aria-pressed={modeFilter === 'all'}
                 onClick={() => setModeFilter('all')}
               >
@@ -501,11 +537,7 @@ export default function Sessions() {
               <Button
                 size="sm"
                 variant="outline"
-                className={
-                  modeFilter === 'auto'
-                    ? 'btn-matrix text-xs shadow-[0_0_0_1px_var(--matrix-green)]'
-                    : 'text-xs border-[var(--grid-gray)]'
-                }
+                className={`text-xs ${modeFilter === 'auto' ? 'btn-matrix shadow-[0_0_0_1px_var(--matrix-green)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
                 aria-pressed={modeFilter === 'auto'}
                 onClick={() => setModeFilter('auto')}
               >
@@ -514,11 +546,7 @@ export default function Sessions() {
               <Button
                 size="sm"
                 variant="outline"
-                className={
-                  modeFilter === 'manual'
-                    ? 'btn-matrix text-xs shadow-[0_0_0_1px_var(--matrix-green)]'
-                    : 'text-xs border-[var(--grid-gray)]'
-                }
+                className={`text-xs ${modeFilter === 'manual' ? 'btn-matrix shadow-[0_0_0_1px_var(--matrix-green)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
                 aria-pressed={modeFilter === 'manual'}
                 onClick={() => setModeFilter('manual')}
               >
@@ -531,11 +559,7 @@ export default function Sessions() {
                   key={dev}
                   size="sm"
                   variant="outline"
-                  className={
-                    deviceFilter === dev
-                      ? 'btn-matrix text-xs shadow-[0_0_0_1px_var(--matrix-green)]'
-                      : 'text-xs border-[var(--grid-gray)]'
-                  }
+                  className={`text-xs ${deviceFilter === dev ? 'btn-matrix shadow-[0_0_0_1px_var(--matrix-green)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
                   aria-pressed={deviceFilter === dev}
                   onClick={() => setDeviceFilter(deviceFilter === dev ? '' : dev)}
                 >
@@ -560,35 +584,65 @@ export default function Sessions() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredSessions.map((session) => (
-            <SessionCard
-              key={session.id}
-              session={session}
-              onView={() => handleViewDetails(session.id)}
-              onDelete={() => handleDelete(session.id)}
-              onGenerateProfiles={() => handleGenerateProfiles(session.id)}
-              generating={processingSessionId === session.id}
-              onDownloadJson={() => {
-                (async () => {
-                  try {
-                    const detail = await api.sessions.get(session.id);
-                    const normalized = normalizeSession(detail);
-                    const jsonData = JSON.stringify(normalized, null, 2);
-                    const blob = new Blob([jsonData], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `session_${session.id.substring(0, 8)}_${session.device}_${new Date(session.start_time).toISOString().split('T')[0]}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    toast.success('JSON downloaded');
-                  } catch (error: any) {
-                    toast.error(error.message || 'Failed to export JSON');
-                  }
-                })();
-              }}
-            />
+        <div className="space-y-6">
+          {Object.entries(groupedSessions).sort(([a], [b]) => a.localeCompare(b)).map(([deviceName, buckets]) => (
+            <div key={deviceName} className="matrix-card p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-glow-green">{deviceName}</h2>
+                  <div className="text-[var(--text-secondary)] text-xs">
+                    {buckets.auto.length + buckets.manual.length} sessions · {buckets.auto.length} AUTO / {buckets.manual.length} MANUAL
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={loadSessions} className="text-xs">
+                  REFRESH_DEVICE
+                </Button>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="text-[var(--text-secondary)] text-xs">AUTO_TUNE</div>
+                  {buckets.auto.length === 0 ? (
+                    <div className="text-[var(--text-muted)] text-xs border border-dashed border-[var(--grid-gray)] rounded px-3 py-2">
+                      NO_AUTO_TUNE_SESSIONS
+                    </div>
+                  ) : (
+                    buckets.auto.map((session) => (
+                      <SessionCard
+                        key={session.id}
+                        session={session}
+                        onView={() => handleViewDetails(session.id)}
+                        onDelete={() => handleDelete(session.id)}
+                        onGenerateProfiles={() => handleGenerateProfiles(session.id)}
+                        generating={processingSessionId === session.id}
+                        onDownloadJson={() => handleDownloadJson(session)}
+                      />
+                    ))
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-[var(--text-secondary)] text-xs">MANUAL_TUNE</div>
+                  {buckets.manual.length === 0 ? (
+                    <div className="text-[var(--text-muted)] text-xs border border-dashed border-[var(--grid-gray)] rounded px-3 py-2">
+                      NO_MANUAL_SESSIONS
+                    </div>
+                  ) : (
+                    buckets.manual.map((session) => (
+                      <SessionCard
+                        key={session.id}
+                        session={session}
+                        onView={() => handleViewDetails(session.id)}
+                        onDelete={() => handleDelete(session.id)}
+                        onGenerateProfiles={() => handleGenerateProfiles(session.id)}
+                        generating={processingSessionId === session.id}
+                        onDownloadJson={() => handleDownloadJson(session)}
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -639,6 +693,12 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
     }
   };
 
+  const tuneLabel = (session.tune_type || session.mode || 'BENCHMARK').toString().toUpperCase();
+  const isAuto = tuneLabel.includes('AUTO');
+  const tuneClass = isAuto
+    ? 'bg-[var(--neon-cyan)]/15 text-[var(--neon-cyan)]'
+    : 'bg-[var(--matrix-green)]/15 text-[var(--matrix-green)]';
+
   return (
     <div className="matrix-card">
       <div className="flex items-start justify-between">
@@ -649,6 +709,9 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
             </h3>
             <span className={`text-sm font-bold ${getStatusColor(session.status)}`}>
               {session.status?.toUpperCase() || 'UNKNOWN'}
+            </span>
+            <span className={`text-[10px] px-2 py-1 rounded-full font-semibold ${tuneClass}`}>
+              {tuneLabel}
             </span>
           </div>
 

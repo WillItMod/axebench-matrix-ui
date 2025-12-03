@@ -137,10 +137,6 @@ export default function Pool() {
     );
   };
 
-  const togglePool = (poolId: string) => {
-    setSelectedPoolId((prev) => (prev === poolId ? '' : poolId));
-  };
-
   const isNotFoundError = (error: any) =>
     typeof error?.message === 'string' && error.message.toUpperCase().includes('NOT FOUND');
 
@@ -370,6 +366,72 @@ export default function Pool() {
         </Card>
       )}
 
+      {/* Quick Apply (multi-device) */}
+      {devices.length > 0 && pools.length > 0 && (
+        <Card className="p-6 bg-black/80 border-[var(--neon-cyan)] space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="text-2xl font-bold text-glow-cyan">QUICK_POOL_APPLY</div>
+          </div>
+
+          <div className="mb-3">
+            <div className="text-xs text-[var(--text-secondary)] mb-2">SELECT_DEVICES</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {devices.map((device) => (
+                <button
+                  key={device.name}
+                  onClick={() => toggleDevice(device.name)}
+                  className={`
+                    relative p-3 rounded border-2 transition-all text-left
+                    ${selectedDevices.includes(device.name)
+                      ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/20 shadow-[0_0_0_1px_var(--matrix-green)]'
+                      : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] hover:border-[var(--text-muted)]'
+                    }
+                  `}
+                >
+                  <div className="font-bold text-[var(--text-primary)] text-sm">
+                    {device.name}
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)]">
+                    {device.model}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-xs text-[var(--text-secondary)]">SELECT_POOL</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {pools.map((pool) => (
+                <Button
+                  key={pool.id}
+                  onClick={() => setSelectedPoolId(pool.id)}
+                  variant={selectedPoolId === pool.id ? 'default' : 'outline'}
+                  className="w-full btn-matrix text-sm py-3 uppercase"
+                  aria-pressed={selectedPoolId === pool.id}
+                >
+                  {pool.name}
+                </Button>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleBulkApply} className="btn-matrix" disabled={!selectedPoolId || selectedDevices.length === 0}>
+                APPLY_TO_SELECTED
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedDevices([]);
+                  setSelectedPoolId('');
+                }}
+              >
+                CLEAR_SELECTION
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Existing Pools */}
       <Card className="p-6 bg-black/80 border-matrix-green">
         <h2 className="text-xl font-bold text-matrix-green mb-4">CONFIGURED_POOLS</h2>
@@ -409,104 +471,72 @@ export default function Pool() {
         )}
       </Card>
 
-      {/* Bulk Apply: Device + Pool multi-select */}
-      {devices.length > 0 && pools.length > 0 && (
-        <Card className="p-6 bg-black/80 border-neon-cyan">
-          <h2 className="text-xl font-bold text-neon-cyan mb-4">BULK_POOL_APPLY</h2>
-          <div className="space-y-3">
-            <div className="text-sm text-gray-400">Select Devices</div>
-            <div className="flex flex-wrap gap-2">
-              {devices.map((device) => {
-                const active = selectedDevices.includes(device.name);
-                return (
-                  <Button
-                    key={device.name}
-                    size="sm"
-                    variant={active ? 'default' : 'outline'}
-                    className={active ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--neon-cyan)]'}
-                    onClick={() => toggleDevice(device.name)}
-                  >
-                    {device.name}
-                    <span className="ml-1 text-xs opacity-60">({device.model})</span>
-                  </Button>
-                );
-              })}
-            </div>
-
-            <div className="text-sm text-gray-400 mt-4">Select Pool</div>
-            <div className="flex flex-wrap gap-2">
-              {pools.map((pool) => {
-                const active = selectedPoolId === pool.id;
-                return (
-                  <Button
-                    key={pool.id}
-                    size="sm"
-                    variant={active ? 'default' : 'outline'}
-                    className={active ? 'bg-[var(--matrix-green)] text-black hover:bg-[var(--matrix-green)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--matrix-green)]'}
-                    onClick={() => togglePool(pool.id)}
-                  >
-                    {pool.name}
-                  </Button>
-                );
-              })}
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button onClick={handleBulkApply} className="btn-matrix">
-                APPLY_TO_SELECTED
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedDevices([]);
-                  setSelectedPoolId('');
-                }}
-              >
-                CLEAR_SELECTION
-              </Button>
-            </div>
+      {/* Per-device pools (similar to Profiles) */}
+      {selectedDevices.length > 0 && pools.length > 0 && (
+        <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">DEVICE_POOLS</h2>
+            <Button size="sm" variant="outline" onClick={() => loadData()}>
+              <RefreshCw className="w-4 h-4 mr-1" /> RELOAD
+            </Button>
           </div>
-        </Card>
-      )}
-
-      {/* Device Pool Assignment */}
-      {devices.length > 0 && (
-        <Card className="p-6 bg-black/80 border-neon-cyan">
-          <h2 className="text-xl font-bold text-neon-cyan mb-4">DEVICE_POOL_ASSIGNMENT</h2>
-          <div className="space-y-4">
-            {devices.map((device) => (
-              <Card key={device.name} className="p-4 bg-black/90 border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-matrix-green">{device.name}</div>
-                    <div className="text-sm text-gray-400">{device.model}</div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {selectedDevices.map((deviceName) => {
+              const device = devices.find((d) => d.name === deviceName);
+              const currentPool =
+                (device?.status as any)?.poolName ||
+                device?.pool ||
+                (device?.status as any)?.pool ||
+                'N/A';
+              return (
+                <Card key={deviceName} className="p-4 bg-black/90 border-[var(--grid-gray)] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-[var(--text-primary)]">{deviceName}</div>
+                      <div className="text-xs text-[var(--text-secondary)]">{device?.model || 'Unknown model'}</div>
+                    </div>
+                    <div className="text-xs text-[var(--text-muted)]">
+                      Current: <span className="text-[var(--neon-cyan)]">{currentPool}</span>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     <Select
-                      onValueChange={(value) => handleApplyPool(device.name, value)}
+                      value={selectedPoolId || ''}
+                      onValueChange={(val) => setSelectedPoolId(val)}
                     >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Select pool..." />
+                      <SelectTrigger className="bg-black border-[var(--grid-gray)]">
+                        <SelectValue placeholder="SELECT_POOL" />
                       </SelectTrigger>
                       <SelectContent>
-                        {pools.map((pool) => (
-                          <SelectItem key={pool.id} value={pool.id}>
-                            {pool.name}
+                        {pools.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button
-                      onClick={() => handleSwapPool(device.name)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      SWAP
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="btn-matrix flex-1"
+                        onClick={() => selectedPoolId && handleApplyPool(deviceName, selectedPoolId)}
+                        disabled={!selectedPoolId}
+                      >
+                        APPLY_POOL
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleSwapPool(deviceName)}
+                      >
+                        SWAP_POOL
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
           </div>
         </Card>
       )}

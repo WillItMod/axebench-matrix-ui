@@ -48,6 +48,7 @@ const DEFAULT_COLORS = ['#ff0000', '#0000ff', '#ff8800', '#00ff00', '#ffff00', '
 export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT_COLORS }: LiveMonitoringPanelProps) {
   const [stats, setStats] = useState<LiveStats | null>(null);
   const [history, setHistory] = useState<LiveStats[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!deviceName) return;
@@ -76,6 +77,7 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
           const updated = [...prev, newStats];
           return updated.slice(-MAX_HISTORY); // Keep last MAX_HISTORY readings
         });
+        setLoading(false);
       } catch (error) {
         console.error('Failed to fetch live stats:', error);
       }
@@ -91,10 +93,14 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
 
   if (!stats) {
     return (
-      <div className="hud-panel">
+      <div className="hud-panel relative overflow-hidden">
         <h3 className="text-xl font-bold text-glow-cyan mb-4">LIVE_MONITORING</h3>
-        <div className="text-center text-[var(--text-muted)] py-8">
-          Loading device stats...
+        <div className="relative min-h-[220px] flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--neon-cyan)]/10 via-transparent to-[var(--matrix-green)]/10 animate-pulse-slow" />
+          <div className="relative text-center space-y-2">
+            <div className="w-14 h-14 border-4 border-[var(--neon-cyan)] border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="text-[var(--text-muted)] text-sm">LOADING_DEVICE_STATS...</div>
+          </div>
         </div>
       </div>
     );

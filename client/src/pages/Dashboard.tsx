@@ -157,19 +157,34 @@ const getPsuMetrics = (psu: any, assignedDevices: Device[]) => {
   const wattage = wattageFromPsu ?? (wattageFromDevices > 0 ? wattageFromDevices : 0);
 
   // Voltage/amps are optional; provide hints if present, otherwise omit.
-  const voltage =
+  let voltage =
     normalizeNumber(psu?.voltage, null) ??
     normalizeNumber(psu?.input_voltage, null) ??
     null;
-  const amperage =
+  let amperage =
     normalizeNumber(psu?.amperage, null) ??
     normalizeNumber(psu?.input_amperage, null) ??
     null;
+
+  let hint: { voltage?: number; amperage?: number; note?: string } | undefined;
+  if (voltage === null || amperage === null) {
+    // Try to derive from the first assigned device model
+    const hintModel = assignedDevices
+      .map((d) => d.model?.toLowerCase())
+      .find((m) => m && MODEL_POWER_HINTS[m]);
+    if (hintModel && MODEL_POWER_HINTS[hintModel]) {
+      const suggested = MODEL_POWER_HINTS[hintModel];
+      voltage = voltage ?? suggested.volts;
+      amperage = amperage ?? suggested.amps;
+      hint = { voltage, amperage, note: suggested.note };
+    }
+  }
 
   return {
     voltage: voltage ?? undefined,
     amperage: amperage ?? undefined,
     wattage,
+    hint,
   };
 };
 
@@ -722,16 +737,30 @@ const loadPsus = async () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)]">Input</span>
                       {metrics.voltage && metrics.amperage ? (
-                        <span className="text-[var(--text-primary)] font-bold">
-                          {metrics.voltage}V @ {metrics.amperage}A
-                        </span>
+                        <div className="text-right">
+                          <div className="text-[var(--text-primary)] font-bold">
+                            {metrics.voltage}V @ {metrics.amperage}A
+                          </div>
+                          {metrics.hint?.note && (
+                            <div className="text-[var(--text-muted)] text-[10px]">
+                              {metrics.hint.note}
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <span className="text-[var(--text-primary)] font-bold">
-                          {(psu.capacity_watts ?? metrics.wattage ?? 0).toFixed(0)}W
-                          <span className="text-[var(--text-muted)] text-xs ml-1">
-                            {psu.safe_watts ? `safe ${psu.safe_watts}W` : ''}
-                          </span>
-                        </span>
+                        <div className="text-right">
+                          <div className="text-[var(--text-primary)] font-bold">
+                            {(psu.capacity_watts ?? metrics.wattage ?? 0).toFixed(0)}W
+                            <span className="text-[var(--text-muted)] text-xs ml-1">
+                              {psu.safe_watts ? `safe ${psu.safe_watts}W` : ''}
+                            </span>
+                          </div>
+                          {metrics.hint && (
+                            <div className="text-[var(--text-muted)] text-[10px]">
+                              ~{metrics.hint.voltage}V @ {metrics.hint.amperage}A (derived from device model)
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="flex justify-between text-sm">
@@ -947,6 +976,16 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
   const [, setLocation] = useLocation();
   const modelColor = MODEL_COLORS[device.model?.toLowerCase()] || '#666';
   const modelName = MODEL_NAMES[device.model?.toLowerCase()] || device.model?.toUpperCase() || 'UNKNOWN';
+  const warnings: string[] = [];
+
+  const temp = (device.status as any)?.temp ?? 0;
+  const vrTemp = (device.status as any)?.vrTemp ?? 0;
+  const power = (device.status as any)?.power ?? 0;
+
+  if (!device.online) warnings.push('OFFLINE');
+  if (temp > 70) warnings.push('HIGH_TEMP');
+  if (vrTemp > 80) warnings.push('VR_HOT');
+  if (power > 30) warnings.push('POWER_HIGH');
 
   const handleBenchmark = () => {
     // Navigate to benchmark page with device pre-selected
@@ -961,6 +1000,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
     <div
       className={`matrix-card ${!device.online ? 'opacity-60' : ''} cursor-pointer`}
       onClick={handleMonitor}
+      title={warnings.length ? warnings.join(' • ') : undefined}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
@@ -981,17 +1021,24 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
       {/* Status */}
       <div className="flex items-center gap-2 mb-3">
         <div
-          className={`w-3 h-3 rounded-full ${
+          className={`w-4 h-4 rounded-full ${
             device.online ? 'bg-[var(--success-green)] pulse-green' : 'bg-[var(--error-red)]'
           }`}
         />
-        <span className={`${device.online ? 'status-online' : 'status-error'} text-sm`}>
+        <span className={`${device.online ? 'status-online' : 'status-error'} text-base`}>
           {device.online ? 'ONLINE' : 'OFFLINE'}
         </span>
-        {!device.online && (
-          <span className="text-xs text-[var(--error-red)] font-bold border border-[var(--error-red)] px-2 py-0.5 rounded">
-            WARNING
-          </span>
+        {warnings.length > 0 && (
+          <div className="flex flex-wrap gap-1 ml-auto">
+            {warnings.map((warn) => (
+              <span
+                key={warn}
+                className="text-[10px] tracking-wide font-bold px-2 py-0.5 rounded border border-[var(--warning-amber)] bg-[var(--warning-amber)]/10 text-[var(--warning-amber)]"
+              >
+                {warn}
+              </span>
+            ))}
+          </div>
         )}
       </div>
 
