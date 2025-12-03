@@ -47,7 +47,7 @@ interface SchedulePayload {
 
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState('');
+  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [pools, setPools] = useState<any[]>([]);
   const [schedulerEnabled, setSchedulerEnabled] = useState(false);
@@ -70,6 +70,7 @@ export default function Operations() {
     mode: 'main',
     days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   });
+  const [selectedPoolIds, setSelectedPoolIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadDevices();
@@ -77,18 +78,19 @@ export default function Operations() {
   }, []);
 
   useEffect(() => {
-    if (selectedDevice) {
-      loadProfiles();
-      loadSchedule();
+    if (selectedDevices.length) {
+      const deviceName = selectedDevices[0];
+      loadProfiles(deviceName);
+      loadSchedule(deviceName);
     }
-  }, [selectedDevice]);
+  }, [selectedDevices]);
 
   const loadDevices = async () => {
     try {
       const data = await api.devices.list();
       setDevices(data || []);
-      if (data?.length && !selectedDevice) {
-        setSelectedDevice(data[0].name);
+      if (data?.length && !selectedDevices.length) {
+        setSelectedDevices([data[0].name]);
       }
     } catch (error) {
       toast.error('Failed to load devices');
@@ -97,10 +99,10 @@ export default function Operations() {
     }
   };
 
-  const loadProfiles = async () => {
-    if (!selectedDevice) return;
+  const loadProfiles = async (deviceName: string) => {
+    if (!deviceName) return;
     try {
-      const data = await api.shed.getProfiles(selectedDevice);
+      const data = await api.shed.getProfiles(deviceName);
       setProfiles(data || []);
     } catch (error) {
       toast.error('Failed to load profiles');
@@ -112,15 +114,19 @@ export default function Operations() {
       const data = await api.pool.list();
       const array = Array.isArray(data) ? data : Object.values(data || {});
       setPools(array);
+      if (!selectedPoolIds.length && array.length) {
+        const firstId = (array[0] as any).id || (array[0] as any).name;
+        if (firstId) setSelectedPoolIds([firstId]);
+      }
     } catch (error) {
       toast.error('Failed to load pools');
     }
   };
 
-  const loadSchedule = async () => {
-    if (!selectedDevice) return;
+  const loadSchedule = async (deviceName: string) => {
+    if (!deviceName) return;
     try {
-      const data = await api.shed.getSchedule(selectedDevice);
+      const data = await api.shed.getSchedule(deviceName);
       if (!data) return;
 
       setSchedulerEnabled(Boolean(data.enabled));
@@ -189,11 +195,17 @@ export default function Operations() {
   };
 
   const handleAddPoolSlot = () => {
-    if (!newPoolSlot.poolId) {
-      toast.error('Select a pool');
+    if (!selectedPoolIds.length) {
+      toast.error('Select at least one pool');
       return;
     }
-    setPoolSlots([...poolSlots, { ...newPoolSlot, id: crypto.randomUUID() }]);
+    const slotsToAdd = selectedPoolIds.map((poolId) => ({
+      ...newPoolSlot,
+      id: crypto.randomUUID(),
+      poolId,
+    }));
+    setPoolSlots([...poolSlots, ...slotsToAdd]);
+    setSelectedPoolIds([]);
     setNewPoolSlot({
       id: crypto.randomUUID(),
       time: '00:00',
@@ -204,7 +216,7 @@ export default function Operations() {
   };
 
   const handleSaveSchedule = async () => {
-    if (!selectedDevice) return;
+    if (!selectedDevices.length) return;
     const payload: SchedulePayload = {
       enabled: schedulerEnabled,
       entries: [
@@ -225,9 +237,9 @@ export default function Operations() {
     };
 
     try {
-      await api.shed.setSchedule(selectedDevice, payload);
-      toast.success('Schedule saved');
-      loadSchedule();
+      await Promise.all(selectedDevices.map((device) => api.shed.setSchedule(device, payload)));
+      toast.success(`Schedule saved for ${selectedDevices.length} device(s)`);
+      loadSchedule(selectedDevices[0]);
     } catch (error: any) {
       toast.error(error?.message || 'Failed to save schedule');
     }
@@ -243,6 +255,12 @@ export default function Operations() {
   };
 
   const profileOptions = useMemo(() => profiles.map((p: any) => p.name || p.profile || ''), [profiles]);
+
+  const toggleDevice = (deviceName: string) => {
+    setSelectedDevices((prev) =>
+      prev.includes(deviceName) ? prev.filter((d) => d !== deviceName) : [...prev, deviceName]
+    );
+  };
 
   if (loading) {
     return (
@@ -262,35 +280,46 @@ export default function Operations() {
       </div>
 
       {/* Device selection + enable toggle */}
-      <Card className="p-6 bg-black/80 border-[var(--matrix-green)]">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-2">
-            <Label className="text-[var(--text-secondary)]">Target Device</Label>
-            <Select value={selectedDevice} onValueChange={setSelectedDevice}>
-              <SelectTrigger className="w-64 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                <SelectValue placeholder="Select device..." />
-              </SelectTrigger>
-              <SelectContent>
-                {devices.map((d) => (
-                  <SelectItem key={d.name} value={d.name}>
-                    {d.name} ({d.model})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
+        <div className="flex flex-col gap-3">
+          <Label className="text-[var(--text-secondary)]">Target Devices</Label>
+          <div className="flex flex-wrap gap-2">
+            {devices.map((d) => {
+              const active = selectedDevices.includes(d.name);
+              return (
+                <Button
+                  key={d.name}
+                  size="sm"
+                  variant={active ? 'default' : 'outline'}
+                  className={active ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--neon-cyan)]'}
+                  onClick={() => toggleDevice(d.name)}
+                >
+                  {d.name}
+                  <span className="ml-1 text-xs opacity-60">({d.model})</span>
+                </Button>
+              );
+            })}
           </div>
-
           <div className="flex items-center gap-3 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-4 py-3">
             <div>
               <div className="text-sm font-bold text-[var(--text-primary)]">SCHEDULER</div>
-              <div className="text-xs text-[var(--text-muted)]">Enable or disable for this device</div>
+              <div className="text-xs text-[var(--text-muted)]">Enable or disable for selected devices</div>
             </div>
             <Switch checked={schedulerEnabled} onCheckedChange={setSchedulerEnabled} />
           </div>
-
-          <Button onClick={handleSaveSchedule} className="btn-matrix w-full md:w-auto">
-            SAVE_SCHEDULE
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleSaveSchedule} className="btn-matrix w-full md:w-auto">
+              SAVE_SCHEDULE
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedDevices(devices[0] ? [devices[0].name] : []);
+              }}
+            >
+              RESET_SELECTION
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -312,18 +341,23 @@ export default function Operations() {
             </div>
             <div>
               <Label>Profile</Label>
-              <Select value={newProfileSlot.profile} onValueChange={(v) => setNewProfileSlot({ ...newProfileSlot, profile: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select profile..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {profileOptions.map((name) => (
-                    <SelectItem key={name} value={name}>
+              <div className="flex flex-wrap gap-2">
+                {profileOptions.map((name) => {
+                  const active = newProfileSlot.profile === name;
+                  return (
+                    <Button
+                      key={name}
+                      type="button"
+                      size="sm"
+                      variant={active ? 'default' : 'outline'}
+                      className={active ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--neon-cyan)]'}
+                      onClick={() => setNewProfileSlot({ ...newProfileSlot, profile: name })}
+                    >
                       {name.toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
             <div className="flex items-end">
               <Button onClick={handleAddProfileSlot} className="w-full gap-2">
@@ -369,18 +403,28 @@ export default function Operations() {
             </div>
             <div>
               <Label>Pool Profile</Label>
-              <Select value={newPoolSlot.poolId} onValueChange={(v) => setNewPoolSlot({ ...newPoolSlot, poolId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select pool..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {pools.map((p: any) => (
-                    <SelectItem key={p.id || p.name} value={p.id || p.name}>
+              <div className="flex flex-wrap gap-2">
+                {pools.map((p: any) => {
+                  const poolId = p.id || p.name;
+                  const active = selectedPoolIds.includes(poolId);
+                  return (
+                    <Button
+                      key={poolId}
+                      type="button"
+                      size="sm"
+                      variant={active ? 'default' : 'outline'}
+                      className={active ? 'bg-[var(--matrix-green)] text-black hover:bg-[var(--matrix-green)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--matrix-green)]'}
+                      onClick={() =>
+                        setSelectedPoolIds((prev) =>
+                          prev.includes(poolId) ? prev.filter((id) => id !== poolId) : [...prev, poolId]
+                        )
+                      }
+                    >
                       {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button

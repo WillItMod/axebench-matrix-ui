@@ -173,6 +173,106 @@ const buildGeneratedProfiles = (session: any): Record<ProfileKey, GeneratedProfi
   };
 };
 
+const parseTimestamp = (value: any): Date | null => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const computeDurationSeconds = (session: any): number | null => {
+  const explicit = toNumber(session?.duration ?? session?.elapsed ?? session?.elapsed_seconds);
+  if (explicit && explicit > 0) return explicit;
+
+  const start = parseTimestamp(session?.start_time ?? session?.started_at ?? session?.start);
+  const end =
+    parseTimestamp(session?.end_time ?? session?.finished_at ?? session?.end ?? session?.stop_time) ??
+    parseTimestamp(session?.completed_at);
+
+  if (start && end) {
+    return Math.max(0, Math.round((end.getTime() - start.getTime()) / 1000));
+  }
+
+  return null;
+};
+
+const computeTests = (session: any) => {
+  const resultsCount = Array.isArray(session?.results) ? session.results.length : null;
+  const testsCompleted = toNumber(
+    session?.tests_completed ?? session?.completed_tests ?? session?.tests_run ?? resultsCount
+  );
+  const testsTotal = toNumber(
+    session?.tests_total ?? session?.total_tests ?? session?.planned_tests ?? resultsCount
+  );
+
+  return {
+    tests_completed: testsCompleted ?? resultsCount ?? 0,
+    tests_total: testsTotal ?? resultsCount ?? 0,
+  };
+};
+
+const deriveBestProfile = (session: any) => {
+  if (session?.best_profile) return session.best_profile;
+  const results = Array.isArray(session?.results) ? session.results : [];
+  const normalized = results.map(normalizeResult).filter((r): r is SessionResult => Boolean(r));
+  if (!normalized.length) return null;
+  const best = [...normalized].sort((a, b) => (b.avg_hashrate ?? 0) - (a.avg_hashrate ?? 0))[0];
+  if (!best) return null;
+  const efficiency =
+    best.efficiency ??
+    (best.avg_power && best.avg_hashrate ? best.avg_power / (best.avg_hashrate / 1000) : undefined);
+  return {
+    voltage: best.voltage,
+    frequency: best.frequency,
+    hashrate: best.avg_hashrate,
+    efficiency,
+  };
+};
+
+const normalizeSession = (session: any) => {
+  const duration = computeDurationSeconds(session);
+  const tests = computeTests(session);
+  const device =
+    session?.device_configs?.[0]?.name ||
+    session?.device ||
+    session?.device_name ||
+    session?.device_model ||
+    'Unknown Device';
+
+  return {
+    ...session,
+    device,
+    duration: duration ?? session?.duration ?? null,
+    tests_completed: tests.tests_completed,
+    tests_total: tests.tests_total,
+    best_profile: deriveBestProfile(session),
+    has_plots: session?.has_plots ?? Boolean(session?.plots),
+  };
+};
+
+const formatDuration = (seconds?: number | null) => {
+  if (!seconds || Number.isNaN(seconds)) return 'N/A';
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return remainingSeconds ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+};
+
+const normalizeLogs = (logData: any): string => {
+  if (!logData) return '';
+  if (typeof logData === 'string') return logData;
+  if (Array.isArray(logData)) return logData.join('\n');
+  if (typeof logData === 'object') {
+    if (typeof logData.logs === 'string') return logData.logs;
+    if (Array.isArray(logData.logs)) return logData.logs.join('\n');
+    if (typeof logData.data === 'string') return logData.data;
+  }
+  try {
+    return JSON.stringify(logData, null, 2);
+  } catch {
+    return String(logData);
+  }
+};
+
 export default function Sessions() {
   const [, setLocation] = useLocation();
   const [sessions, setSessions] = useState<any[]>([]);
@@ -196,7 +296,8 @@ export default function Sessions() {
     try {
       setLoading(true);
       const data = await api.sessions.list();
-      setSessions(data || []);
+      const normalized = Array.isArray(data) ? data.map(normalizeSession) : [];
+      setSessions(normalized);
     } catch (error) {
       console.error('Failed to load sessions:', error);
       setSessions([]);
@@ -220,7 +321,7 @@ export default function Sessions() {
   const handleViewDetails = async (sessionId: string) => {
     try {
       const details = await api.sessions.get(sessionId);
-      setSelectedSession(details);
+      setSelectedSession(normalizeSession(details));
       setShowDetails(true);
     } catch (error: any) {
       toast.error(error.message || 'Failed to load session details');
@@ -470,7 +571,7 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
             <div>
               <div className="text-[var(--text-secondary)]">Duration</div>
               <div className="font-bold text-[var(--text-primary)]">
-                {session.duration ? `${Math.round(session.duration / 60)}m` : 'N/A'}
+                {formatDuration(session.duration)}
               </div>
             </div>
             <div>
@@ -562,7 +663,7 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
     try {
       setLoadingLogs(true);
       const logData = await api.sessions.getLogs(session.id);
-      setLogs(logData);
+      setLogs(normalizeLogs(logData));
     } catch (error) {
       console.error('Failed to load logs:', error);
       setLogs('Failed to load logs');
@@ -605,7 +706,7 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
             <div>
               <div className="text-[var(--text-secondary)]">Duration</div>
               <div className="font-bold text-[var(--text-primary)]">
-                {session.duration ? `${Math.round(session.duration / 60)} minutes` : 'N/A'}
+                {formatDuration(session.duration)}
               </div>
             </div>
             <div>

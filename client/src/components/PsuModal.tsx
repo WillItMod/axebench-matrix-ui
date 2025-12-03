@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -10,22 +10,39 @@ interface PsuModalProps {
   open: boolean;
   onClose: () => void;
   onSave: () => void;
-  editPsu?: { id: string; name: string; wattage: number } | null;
+  editPsu?: { id: string; name: string; wattage: number; voltage?: number; amperage?: number } | null;
 }
 
 export default function PsuModal({ open, onClose, onSave, editPsu }: PsuModalProps) {
   const [name, setName] = useState('');
-  const [wattage, setWattage] = useState(25);
+  const [voltage, setVoltage] = useState(5);
+  const [amperage, setAmperage] = useState(3);
   const [loading, setLoading] = useState(false);
+
+  const derivedWattage = useMemo(() => {
+    const watts = voltage * amperage;
+    if (!Number.isFinite(watts) || watts <= 0) return 0;
+    return Number(watts.toFixed(1));
+  }, [voltage, amperage]);
   
   // Update form when editPsu changes
   useEffect(() => {
     if (editPsu) {
       setName(editPsu.name);
-      setWattage(editPsu.wattage);
+      if (editPsu.voltage && editPsu.amperage) {
+        setVoltage(editPsu.voltage);
+        setAmperage(editPsu.amperage);
+      } else {
+        // Derive a reasonable default voltage/amp from stored wattage (assume 5V profile if unknown)
+        const assumedVoltage = 5;
+        const derivedAmp = Number((editPsu.wattage / assumedVoltage).toFixed(1));
+        setVoltage(assumedVoltage);
+        setAmperage(derivedAmp || 3);
+      }
     } else {
       setName('');
-      setWattage(25);
+      setVoltage(5);
+      setAmperage(3);
     }
   }, [editPsu, open]);
 
@@ -35,8 +52,13 @@ export default function PsuModal({ open, onClose, onSave, editPsu }: PsuModalPro
       return;
     }
 
-    if (wattage < 10 || wattage > 1000) {
-      toast.error('Wattage must be between 10W and 1000W');
+    if (voltage <= 0 || amperage <= 0) {
+      toast.error('Enter valid voltage and amperage values');
+      return;
+    }
+
+    if (derivedWattage < 5 || derivedWattage > 2000) {
+      toast.error('Calculated wattage must be between 5W and 2000W');
       return;
     }
 
@@ -45,13 +67,17 @@ export default function PsuModal({ open, onClose, onSave, editPsu }: PsuModalPro
       if (editPsu) {
         await api.psus.update(editPsu.id, {
           name: name.trim(),
-          wattage,
+          wattage: derivedWattage,
+          voltage,
+          amperage,
         });
         toast.success('PSU updated successfully');
       } else {
         await api.psus.create({
           name: name.trim(),
-          wattage,
+          wattage: derivedWattage,
+          voltage,
+          amperage,
         });
         toast.success('PSU created successfully');
       }
@@ -66,7 +92,8 @@ export default function PsuModal({ open, onClose, onSave, editPsu }: PsuModalPro
 
   const handleClose = () => {
     setName('');
-    setWattage(25);
+    setVoltage(5);
+    setAmperage(3);
     onClose();
   };
 
@@ -89,20 +116,48 @@ export default function PsuModal({ open, onClose, onSave, editPsu }: PsuModalPro
             />
           </div>
 
+          {/* Voltage / Amperage */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-[var(--text-secondary)]">Voltage (V)</Label>
+              <Input
+                type="number"
+                value={voltage}
+                onChange={(e) => setVoltage(parseFloat(e.target.value) || 0)}
+                min={1}
+                max={60}
+                step="0.1"
+                className="mt-1 bg-[var(--bg-primary)] border-[var(--grid-gray)] text-[var(--text-primary)]"
+              />
+            </div>
+            <div>
+              <Label className="text-[var(--text-secondary)]">Amperage (A)</Label>
+              <Input
+                type="number"
+                value={amperage}
+                onChange={(e) => setAmperage(parseFloat(e.target.value) || 0)}
+                min={0.1}
+                max={100}
+                step="0.1"
+                className="mt-1 bg-[var(--bg-primary)] border-[var(--grid-gray)] text-[var(--text-primary)]"
+              />
+            </div>
+          </div>
+
           {/* Wattage */}
           <div>
-            <Label className="text-[var(--text-secondary)]">Maximum Wattage (W)</Label>
-            <Input
-              type="number"
-              value={wattage}
-              onChange={(e) => setWattage(parseInt(e.target.value) || 25)}
-              min={10}
-              max={1000}
-              className="mt-1 bg-[var(--bg-primary)] border-[var(--grid-gray)] text-[var(--text-primary)]"
-            />
-            <p className="text-xs text-[var(--text-muted)] mt-1">
-              Stock BitAxe PSU: 25W | Upgraded PSU: 30-50W
-            </p>
+            <Label className="text-[var(--text-secondary)]">Calculated Wattage</Label>
+            <div className="mt-1 flex items-center justify-between rounded border border-[var(--grid-gray)] bg-[var(--bg-primary)] px-3 py-2">
+              <div>
+                <div className="text-[var(--text-primary)] font-semibold">{derivedWattage || 0} W</div>
+                <div className="text-[var(--text-muted)] text-xs">
+                  Based on Voltage × Amperage
+                </div>
+              </div>
+              <div className="text-[var(--text-secondary)] text-xs">
+                (Stock Gamma USB-C: 5V, 3A ≈ 15W)
+              </div>
+            </div>
           </div>
 
           {/* Info Box */}

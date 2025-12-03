@@ -34,13 +34,30 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
   const [psus, setPsus] = useState<any[]>([]);
   const [selectedPsu, setSelectedPsu] = useState<string>('standalone');
   const [ipAddress, setIpAddress] = useState(device.ip || '');
+
+  const getPsuMetrics = (psu: any) => {
+    const toNum = (v: any) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const voltage = toNum(psu?.voltage);
+    const amperage = toNum(psu?.amperage);
+    const wattage =
+      toNum(psu?.wattage) ??
+      (voltage && amperage ? Number((voltage * amperage).toFixed(1)) : null) ??
+      0;
+    return { voltage: voltage ?? undefined, amperage: amperage ?? undefined, wattage };
+  };
   
   // Load PSUs and current device PSU assignment
   useEffect(() => {
     const loadPsus = async () => {
       try {
         const psuList = await api.psus.list();
-        setPsus(psuList);
+        const normalized = Array.isArray(psuList)
+          ? psuList.map((p: any) => ({ ...p, ...getPsuMetrics(p) }))
+          : [];
+        setPsus(normalized);
         
         // Get current device PSU assignment
         const deviceData = await api.devices.get(device.name);
@@ -175,7 +192,7 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
                 <SelectItem value="standalone">Standalone (Own PSU)</SelectItem>
                 {psus.map((psu: any) => (
                   <SelectItem key={psu.id} value={psu.id}>
-                    {psu.name} ({psu.wattage}W)
+                    {psu.name} ({psu.wattage}W{psu.voltage ? `, ${psu.voltage}V@${psu.amperage ?? '?'}A` : ''})
                   </SelectItem>
                 ))}
               </SelectContent>

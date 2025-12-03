@@ -40,6 +40,25 @@ interface WarningItem {
   level: WarningLevel;
 }
 
+const normalizeNumber = (value: any, fallback: number | null = null) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
+const getPsuMetrics = (psu: any) => {
+  const voltage = normalizeNumber(psu?.voltage, null);
+  const amperage = normalizeNumber(psu?.amperage, null);
+  const wattage =
+    normalizeNumber(psu?.wattage, null) ??
+    (voltage && amperage ? Number((voltage * amperage).toFixed(1)) : null) ??
+    0;
+  return {
+    voltage: voltage ?? undefined,
+    amperage: amperage ?? undefined,
+    wattage,
+  };
+};
+
 export default function Dashboard() {
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +69,7 @@ export default function Dashboard() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showPsuModal, setShowPsuModal] = useState(false);
-  const [editingPsu, setEditingPsu] = useState<{id: string; name: string; wattage: number} | null>(null);
+  const [editingPsu, setEditingPsu] = useState<{id: string; name: string; wattage: number; voltage?: number; amperage?: number} | null>(null);
   const [psus, setPsus] = useState<any[]>([]);
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanSubnet, setScanSubnet] = useState('');
@@ -197,26 +216,30 @@ export default function Dashboard() {
   const loadPsus = async () => {
     try {
       const psuList = await api.psus.list();
-      setPsus(psuList);
+      const normalizedPsus = Array.isArray(psuList)
+        ? psuList.map((p: any) => ({ ...p, ...getPsuMetrics(p) }))
+        : [];
+      setPsus(normalizedPsus);
       
       // Check each PSU for load warnings
-      psuList.forEach((psu: any) => {
+      normalizedPsus.forEach((psu: any) => {
+        const metrics = getPsuMetrics(psu);
         const assignedDevices = devices.filter(d => d.psu_id === psu.id);
         const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
-        const loadPercent = (psuLoad / psu.wattage) * 100;
+        const loadPercent = metrics.wattage > 0 ? (psuLoad / metrics.wattage) * 100 : 0;
         
-        if (loadPercent >= 80) {
+        if (metrics.wattage > 0 && loadPercent >= 80) {
           enqueueWarning({
             id: `psu-${psu.id}-danger`,
             title: `PSU "${psu.name}" load`,
-            message: `PSU "${psu.name}" is at ${loadPercent.toFixed(0)}% load (${psuLoad.toFixed(1)}W / ${psu.wattage}W). Consider reducing load or redistributing devices.`,
+            message: `PSU "${psu.name}" is at ${loadPercent.toFixed(0)}% load (${psuLoad.toFixed(1)}W / ${metrics.wattage}W). Consider reducing load or redistributing devices.`,
             level: 'danger',
           });
-        } else if (loadPercent >= 70) {
+        } else if (metrics.wattage > 0 && loadPercent >= 70) {
           enqueueWarning({
             id: `psu-${psu.id}-warn`,
             title: `PSU "${psu.name}" load`,
-            message: `PSU "${psu.name}" is at ${loadPercent.toFixed(0)}% load (${psuLoad.toFixed(1)}W / ${psu.wattage}W).`,
+            message: `PSU "${psu.name}" is at ${loadPercent.toFixed(0)}% load (${psuLoad.toFixed(1)}W / ${metrics.wattage}W).`,
             level: 'warning',
           });
         }
@@ -508,8 +531,9 @@ export default function Dashboard() {
             {psus.map((psu: any) => {
               // Find devices assigned to this PSU
               const assignedDevices = devices.filter(d => d.psu_id === psu.id);
+              const metrics = getPsuMetrics(psu);
               const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
-              const loadPercent = (psuLoad / psu.wattage) * 100;
+              const loadPercent = metrics.wattage > 0 ? (psuLoad / metrics.wattage) * 100 : 0;
               const loadColor = loadPercent >= 80 ? 'var(--error-red)' : loadPercent >= 70 ? 'var(--warning-amber)' : 'var(--matrix-green)';
               
               return (
@@ -539,7 +563,13 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)]">Capacity</span>
-                      <span className="text-[var(--text-primary)] font-bold">{psu.wattage}W</span>
+                      <span className="text-[var(--text-primary)] font-bold">{metrics.wattage}W</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[var(--text-secondary)]">Input</span>
+                      <span className="text-[var(--text-primary)] font-bold">
+                        {metrics.voltage ? `${metrics.voltage}V` : '?V'} @ {metrics.amperage ? `${metrics.amperage}A` : '?A'}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)]">Current Load</span>

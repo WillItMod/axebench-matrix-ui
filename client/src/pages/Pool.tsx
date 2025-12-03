@@ -29,6 +29,8 @@ export default function Pool() {
   const [devices, setDevices] = useState<any[]>([]);
   const [schedulerStatus, setSchedulerStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [selectedPoolId, setSelectedPoolId] = useState<string>('');
   
   // New pool form
   const [newPool, setNewPool] = useState({
@@ -62,6 +64,10 @@ export default function Pool() {
       setPools(poolsArray);
       setPresets(presetsData || []);
       setDevices(devicesData || []);
+      setSelectedPoolId((prev) => (poolsArray.some((p) => p.id === prev) ? prev : poolsArray[0]?.id || ''));
+      if (!selectedDevices.length && devicesData?.length) {
+        setSelectedDevices([devicesData[0].name]);
+      }
     } catch (error) {
       console.error('Failed to load pool data:', error);
       toast.error('Failed to load pool data');
@@ -109,6 +115,10 @@ export default function Pool() {
       console.log('[Pool] Created pool:', result);
       toast.success(`Pool "${newPool.name}" created`);
       setNewPool({ name: '', url: '', user: '', password: '' });
+      if (result?.id) {
+        setPools((prev) => [...prev, { ...result }]);
+        setSelectedPoolId(result.id);
+      }
       
       // Reload pools after short delay to ensure backend has persisted
       setTimeout(() => {
@@ -118,6 +128,34 @@ export default function Pool() {
     } catch (error) {
       console.error('Failed to create pool:', error);
       toast.error('Failed to create pool');
+    }
+  };
+
+  const toggleDevice = (deviceName: string) => {
+    setSelectedDevices((prev) =>
+      prev.includes(deviceName) ? prev.filter((d) => d !== deviceName) : [...prev, deviceName]
+    );
+  };
+
+  const togglePool = (poolId: string) => {
+    setSelectedPoolId((prev) => (prev === poolId ? '' : poolId));
+  };
+
+  const handleBulkApply = async () => {
+    if (!selectedPoolId) {
+      toast.error('Select a pool first');
+      return;
+    }
+    if (selectedDevices.length === 0) {
+      toast.error('Select at least one device');
+      return;
+    }
+    try {
+      await Promise.all(selectedDevices.map((device) => api.pool.applyPool(device, selectedPoolId)));
+      toast.success(`Applied pool to ${selectedDevices.length} device(s)`);
+    } catch (error) {
+      console.error('Failed to bulk apply pool:', error);
+      toast.error('Failed to apply pool to all devices');
     }
   };
 
@@ -335,6 +373,66 @@ export default function Pool() {
           </div>
         )}
       </Card>
+
+      {/* Bulk Apply: Device + Pool multi-select */}
+      {devices.length > 0 && pools.length > 0 && (
+        <Card className="p-6 bg-black/80 border-neon-cyan">
+          <h2 className="text-xl font-bold text-neon-cyan mb-4">BULK_POOL_APPLY</h2>
+          <div className="space-y-3">
+            <div className="text-sm text-gray-400">Select Devices</div>
+            <div className="flex flex-wrap gap-2">
+              {devices.map((device) => {
+                const active = selectedDevices.includes(device.name);
+                return (
+                  <Button
+                    key={device.name}
+                    size="sm"
+                    variant={active ? 'default' : 'outline'}
+                    className={active ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--neon-cyan)]'}
+                    onClick={() => toggleDevice(device.name)}
+                  >
+                    {device.name}
+                    <span className="ml-1 text-xs opacity-60">({device.model})</span>
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="text-sm text-gray-400 mt-4">Select Pool</div>
+            <div className="flex flex-wrap gap-2">
+              {pools.map((pool) => {
+                const active = selectedPoolId === pool.id;
+                return (
+                  <Button
+                    key={pool.id}
+                    size="sm"
+                    variant={active ? 'default' : 'outline'}
+                    className={active ? 'bg-[var(--matrix-green)] text-black hover:bg-[var(--matrix-green)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--matrix-green)]'}
+                    onClick={() => togglePool(pool.id)}
+                  >
+                    {pool.name}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleBulkApply} className="btn-matrix">
+                APPLY_TO_SELECTED
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedDevices([]);
+                  setSelectedPoolId('');
+                }}
+              >
+                CLEAR_SELECTION
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Device Pool Assignment */}
       {devices.length > 0 && (
