@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * MatrixBackground - Animated grid background with digital rain effect
- * Creates the iconic Matrix aesthetic with falling characters
+ * MatrixBackground - Animated grid background with digital rain effect.
+ * Uses katakana + alphanumerics to avoid missing-glyph fallbacks.
  */
 export default function MatrixBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -26,9 +26,10 @@ export default function MatrixBackground() {
     const fontSize = 14;
     const columns = Math.floor(canvas.width / fontSize);
     const drops: number[] = Array(columns).fill(1);
-    
-    // Characters to use (binary, hex, and some symbols)
-    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+
+    // Characters (katakana + numbers/letters)
+    const chars =
+      'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     // Draw function
     const draw = () => {
@@ -36,13 +37,15 @@ export default function MatrixBackground() {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Matrix green text
-      ctx.fillStyle = '#00ff41';
+      // Matrix text color from CSS variable
+      const codeColor =
+        getComputedStyle(document.documentElement).getPropertyValue('--matrix-green').trim() ||
+        '#00ff41';
+      ctx.fillStyle = codeColor;
       ctx.font = `${fontSize}px monospace`;
 
       // Draw characters
       for (let i = 0; i < drops.length; i++) {
-        // Random character
         const char = chars[Math.floor(Math.random() * chars.length)];
         const x = i * fontSize;
         const y = drops[i] * fontSize;
@@ -71,15 +74,9 @@ export default function MatrixBackground() {
     <>
       {/* Animated grid background */}
       <div className="fixed inset-0 animated-grid opacity-30 pointer-events-none z-0" />
-      
+
       {/* Digital rain canvas */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 pointer-events-none z-0 opacity-20"
-      />
-      
-      {/* Scanline effect */}
-      <div className="fixed inset-0 scanline pointer-events-none z-10 opacity-30" />
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0 opacity-20" />
     </>
   );
 }

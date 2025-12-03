@@ -218,17 +218,17 @@ export default function Layout({ children }: LayoutProps) {
                   <Link key={tab.path} href={tab.path}>
                     <button
                       className={`
-                        px-6 py-3 font-bold transition-all relative rounded-md
+                        px-6 py-3 font-bold uppercase tracking-wide transition-all relative rounded-md
                         ${
                           isActive
-                            ? 'bg-[var(--matrix-green)]/25 text-[var(--matrix-green)] border border-[var(--matrix-green)] shadow-[0_0_12px_rgba(0,255,65,0.35)]'
-                            : 'text-[var(--text-primary)]/80 hover:text-[var(--neon-cyan)] hover:bg-[var(--grid-gray)] border border-transparent'
+                            ? 'text-[var(--deep-black)] border border-[var(--theme-primary)] shadow-[0_0_16px_rgba(0,255,65,0.5)] bg-gradient-to-r from-[var(--theme-primary)]/85 via-[var(--theme-accent)]/70 to-[var(--theme-primary)]/85'
+                            : 'text-[var(--text-primary)]/90 hover:text-[var(--theme-accent)] hover:border-[var(--theme-accent)] hover:shadow-[0_0_10px_rgba(0,255,255,0.35)] hover:bg-[var(--grid-gray)]/80 border border-[var(--grid-gray)]'
                         }
                       `}
                     >
                       {tab.label}
                       {isActive && (
-                        <div className="absolute inset-0 rounded-md pointer-events-none shadow-[0_0_18px_rgba(0,255,65,0.45)]" />
+                        <div className="absolute inset-0 rounded-md pointer-events-none shadow-[0_0_22px_rgba(0,255,65,0.55)]" />
                       )}
                     </button>
                   </Link>

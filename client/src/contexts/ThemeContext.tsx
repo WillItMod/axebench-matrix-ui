@@ -21,6 +21,7 @@ export type PaletteName =
   | 'cyberpunk-core'
   | 'arcade-neon'
   | 'terminal-green'
+  | 'blackout'
   | 'custom';
 
 export interface Palette {
@@ -276,6 +277,23 @@ const basePalettes: Record<PaletteName, Palette> = {
       success: '#00ff66',
       warning: '#ffca28',
       error: '#ff5252',
+    },
+  },
+  blackout: {
+    name: 'blackout',
+    label: 'Blackout (True Black)',
+    colors: {
+      primary: '#0aff9d',
+      secondary: '#08e0ff',
+      accent: '#ffd166',
+      background: '#000000',
+      surface: '#050505',
+      text: '#f5f5f5',
+      textSecondary: '#b3b3b3',
+      border: '#1a1a1a',
+      success: '#22c55e',
+      warning: '#fbbf24',
+      error: '#ef4444',
     },
   },
   custom: {

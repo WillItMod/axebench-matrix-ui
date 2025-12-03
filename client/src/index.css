@@ -70,6 +70,19 @@
     line-height: 1.7;
     overflow-x: hidden;
   }
+
+  /* Global interactive feedback */
+  button, [role="button"], .btn {
+    transition: transform 0.08s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
+  }
+  button:active, [role="button"]:active {
+    transform: scale(0.98);
+  }
+  button:focus-visible, [role="button"]:focus-visible {
+    outline: 2px solid var(--theme-accent, var(--neon-cyan));
+    outline-offset: 2px;
+    box-shadow: 0 0 12px var(--theme-accent, var(--neon-cyan));
+  }
   
   /* Scrollbar Styling */
   ::-webkit-scrollbar {
