@@ -10,8 +10,17 @@ import { logger } from './logger';
 // Production: Set VITE_API_BASE_URL to your backend URL
 // AxePool runs on 5002, AxeShed runs on 5001
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const AXEPOOL_BASE = import.meta.env.VITE_AXEPOOL_URL || API_BASE_URL;
-const AXESHED_BASE = import.meta.env.VITE_AXESHED_URL || API_BASE_URL;
+
+// Default to local service ports so schedule + scheduler calls hit the right daemons
+const getServiceBase = (envUrl: string | undefined, port: number) => {
+  if (envUrl) return envUrl;
+  const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'https:' : 'http:';
+  const host = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1';
+  return `${protocol}//${host}:${port}`;
+};
+
+const AXEPOOL_BASE = getServiceBase(import.meta.env.VITE_AXEPOOL_URL, 5002);
+const AXESHED_BASE = getServiceBase(import.meta.env.VITE_AXESHED_URL, 5001);
 
 /**
  * Fetch wrapper with error handling and logging

@@ -590,14 +590,14 @@ export default function Operations() {
                   <div>
                     <div className="font-semibold text-[var(--neon-cyan)]">Tuning</div>
                     <div className="text-[var(--text-muted)]">
-                      {schedule.profile.enabled ? 'Enabled' : 'Disabled'} • Default: {schedule.profile.defaultProfile || 'None'}
+                      {schedule.profile.enabled ? 'Enabled' : 'Disabled'} - Default: {schedule.profile.defaultProfile || 'None'}
                     </div>
                     <ScheduleList blocks={schedule.profile.blocks} labelKey="profile" />
                   </div>
                   <div>
                     <div className="font-semibold text-[var(--matrix-green)]">Pool</div>
                     <div className="text-[var(--text-muted)]">
-                      {schedule.pool.enabled ? 'Enabled' : 'Disabled'} • Default: {schedule.pool.defaultPool || 'None'}
+                      {schedule.pool.enabled ? 'Enabled' : 'Disabled'} - Default: {schedule.pool.defaultPool || 'None'}
                     </div>
                     <ScheduleList blocks={schedule.pool.blocks} labelKey="pool" />
                   </div>
