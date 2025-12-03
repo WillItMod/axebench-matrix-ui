@@ -50,6 +50,9 @@ const generateId = () =>
     ? crypto.randomUUID()
     : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+const isNotFoundError = (error: any) =>
+  typeof error?.message === 'string' && error.message.toUpperCase().includes('NOT FOUND');
+
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -110,6 +113,10 @@ export default function Operations() {
       const data = await api.shed.getProfiles(deviceName);
       setProfiles(data || []);
     } catch (error) {
+      if (isNotFoundError(error)) {
+        setProfiles([]);
+        return;
+      }
       toast.error('Failed to load profiles');
     }
   };
@@ -143,7 +150,7 @@ export default function Operations() {
       entries.forEach((entry: any) => {
         if (entry.kind === 'pool') {
           poSlots.push({
-            id: crypto.randomUUID(),
+            id: generateId(),
             time: entry.time || '00:00',
             poolId: entry.poolId || entry.pool || '',
             mode: entry.mode === 'fallback' ? 'fallback' : 'main',
@@ -151,7 +158,7 @@ export default function Operations() {
           });
         } else {
           pSlots.push({
-            id: crypto.randomUUID(),
+            id: generateId(),
             time: entry.time || '00:00',
             profile: entry.profile || '',
             days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
@@ -164,7 +171,7 @@ export default function Operations() {
         const legacy = data.entries as any[];
         legacy.forEach((entry) => {
           pSlots.push({
-            id: crypto.randomUUID(),
+            id: generateId(),
             time: entry.time || '00:00',
             profile: entry.profile || '',
             days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
@@ -175,6 +182,12 @@ export default function Operations() {
       setProfileSlots(pSlots);
       setPoolSlots(poSlots);
     } catch (error) {
+      if (isNotFoundError(error)) {
+        setProfileSlots([]);
+        setPoolSlots([]);
+        setSchedulerEnabled(false);
+        return;
+      }
       toast.error('Failed to load schedule');
     }
   };
@@ -190,9 +203,9 @@ export default function Operations() {
       toast.error('Select a profile');
       return;
     }
-    setProfileSlots([...profileSlots, { ...newProfileSlot, id: crypto.randomUUID() }]);
+    setProfileSlots([...profileSlots, { ...newProfileSlot, id: generateId() }]);
     setNewProfileSlot({
-      id: crypto.randomUUID(),
+      id: generateId(),
       time: '00:00',
       profile: '',
       days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
@@ -206,13 +219,13 @@ export default function Operations() {
     }
     const slotsToAdd = selectedPoolIds.map((poolId) => ({
       ...newPoolSlot,
-      id: crypto.randomUUID(),
+      id: generateId(),
       poolId,
     }));
     setPoolSlots([...poolSlots, ...slotsToAdd]);
     setSelectedPoolIds([]);
     setNewPoolSlot({
-      id: crypto.randomUUID(),
+      id: generateId(),
       time: '00:00',
       poolId: '',
       mode: 'main',

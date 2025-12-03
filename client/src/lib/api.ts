@@ -62,7 +62,20 @@ export const api = {
   // ============================================================================
   
   system: {
-    uptime: () => apiFetch<{ uptime_seconds: number }>('/api/uptime'),
+    // Some deployments do not expose /api/uptime; fall back silently.
+    uptime: async () => {
+      const url = `${API_BASE_URL}/api/uptime`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          return { uptime_seconds: 0 };
+        }
+        const data = await res.json().catch(() => ({ uptime_seconds: 0 }));
+        return data as { uptime_seconds: number };
+      } catch {
+        return { uptime_seconds: 0 };
+      }
+    },
   },
 
   // ============================================================================
@@ -120,8 +133,27 @@ export const api = {
   benchmark: {
     start: (config: any) =>
       apiFetch<any>('/api/benchmark/start', { method: 'POST', body: JSON.stringify(config) }),
-    stop: () =>
-      apiFetch<any>('/api/benchmark/stop', { method: 'POST' }),
+    // Some backends return 400 when nothing is running; treat as benign.
+    stop: async () => {
+      const url = `${API_BASE_URL}/api/benchmark/stop`;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!res.ok) {
+          if (res.status === 400) {
+            return { status: 'idle' };
+          }
+          const err = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        return res.json();
+      } catch (error) {
+        // If network error, surface it; if 400 was already handled above.
+        throw error;
+      }
+    },
     status: () => apiFetch<any>('/api/benchmark/status'),
     clearQueue: () =>
       apiFetch<any>('/api/benchmark/clear_queue', { method: 'POST' }),
