@@ -60,22 +60,28 @@ export const api = {
   // ============================================================================
   // SYSTEM STATUS
   // ============================================================================
-  
+  // Cache whether uptime is unavailable to avoid spamming 404s
   system: {
     // Some deployments do not expose /api/uptime; fall back silently.
-    uptime: async () => {
-      const url = `${API_BASE_URL}/api/uptime`;
-      try {
-        const res = await fetch(url);
-        if (!res.ok) {
-          return { uptime_seconds: 0 };
+    uptime: (() => {
+      let unavailable = false;
+      return async () => {
+        if (unavailable) return { uptime_seconds: 0, skipped: true };
+        const url = `${API_BASE_URL}/api/uptime`;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) {
+            unavailable = true;
+            return { uptime_seconds: 0, skipped: true };
+          }
+          const data = await res.json().catch(() => ({ uptime_seconds: 0 }));
+          return data as { uptime_seconds: number };
+        } catch {
+          unavailable = true;
+          return { uptime_seconds: 0, skipped: true };
         }
-        const data = await res.json().catch(() => ({ uptime_seconds: 0 }));
-        return data as { uptime_seconds: number };
-      } catch {
-        return { uptime_seconds: 0 };
-      }
-    },
+      };
+    })(),
   },
 
   // ============================================================================
@@ -282,7 +288,7 @@ export const api = {
       const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
       return fetch(url).then(async (res) => {
         if (res.status === 404) {
-          return { enabled: false, entries: [] };
+          return { enabled: false, entries: [], skipped: true };
         }
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -326,7 +332,7 @@ export const api = {
       return fetch(url)
         .then(async (res) => {
           if (res.status === 404) {
-            return { enabled: false, entries: [] };
+            return { enabled: false, entries: [], skipped: true };
           }
           if (!res.ok) {
             const err = await res.json().catch(() => ({ error: res.statusText }));

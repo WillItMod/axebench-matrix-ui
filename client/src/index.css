@@ -65,8 +65,8 @@
   body {
     @apply bg-[var(--deep-black)] text-[var(--text-primary)] font-mono;
     font-family: 'Share Tech Mono', 'Courier New', 'Courier', monospace;
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 16px;
+    line-height: 1.7;
     overflow-x: hidden;
   }
   
@@ -122,6 +122,22 @@
     @apply bg-[var(--dark-gray)] border border-[var(--grid-gray)] text-[var(--text-primary)];
     @apply focus:border-[var(--matrix-green)] focus:outline-none focus:ring-2 focus:ring-[var(--matrix-green)]/50;
     @apply px-3 py-2 rounded transition-all;
+  }
+  /* Make shadcn/radix selects easier to read */
+  .select-trigger,
+  .SelectTrigger,
+  [data-radix-select-trigger] {
+    background-color: var(--dark-gray) !important;
+    border-color: var(--grid-gray) !important;
+    color: var(--text-primary) !important;
+  }
+
+  [role="listbox"],
+  .select-content,
+  .radix-select-content {
+    background-color: #0f0f0f !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--grid-gray) !important;
   }
   
   input::placeholder, textarea::placeholder {

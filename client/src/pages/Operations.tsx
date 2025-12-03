@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -68,6 +68,7 @@ export default function Operations() {
   const [poolSlots, setPoolSlots] = useState<PoolSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRemove, setShowRemove] = useState<{ type: 'profile' | 'pool'; id: string } | null>(null);
+  const missingSchedule = useRef<Set<string>>(new Set());
 
   const [profileForm, setProfileForm] = useState<ProfileSlot>({
     id: generateId(),
@@ -113,10 +114,13 @@ export default function Operations() {
   useEffect(() => {
     if (selectedDevices.length) {
       const deviceName = selectedDevices[0];
-      loadProfiles(deviceName);
-      loadSchedule(deviceName);
+      // Only auto-load if we have no local data yet (avoid wiping work in progress)
+      if (profileSlots.length === 0 && poolSlots.length === 0) {
+        loadProfiles(deviceName);
+        loadSchedule(deviceName);
+      }
     }
-  }, [selectedDevices]);
+  }, [selectedDevices, profileSlots.length, poolSlots.length]);
 
   const loadDevices = async () => {
     try {
@@ -181,7 +185,11 @@ export default function Operations() {
     if (!deviceName) return;
     try {
       const data = await api.shed.getSchedule(deviceName);
-      if (!data) return;
+      if (!data || (data as any).skipped) {
+        missingSchedule.current.add(deviceName);
+        toast.warning(`No schedule endpoint for ${deviceName}; keeping local entries.`);
+        return;
+      }
 
       setSchedulerEnabled(Boolean(data.enabled));
 
@@ -208,8 +216,11 @@ export default function Operations() {
         }
       });
 
-      setProfileSlots(pSlots);
-      setPoolSlots(poSlots);
+      // Only overwrite if entries were returned; otherwise keep local draft
+      if (pSlots.length || poSlots.length) {
+        setProfileSlots(pSlots);
+        setPoolSlots(poSlots);
+      }
     } catch (error) {
       if (isNotFoundError(error)) {
         // keep existing drafts if present
@@ -281,6 +292,14 @@ export default function Operations() {
       toast.error('Select at least one device');
       return;
     }
+    const targets = selectedDevices.filter((d) => !missingSchedule.current.has(d));
+    const skippedDevices = selectedDevices.filter((d) => missingSchedule.current.has(d));
+
+    if (!targets.length) {
+      toast.warning('Schedule API missing on selected devices; nothing to save.');
+      return;
+    }
+
     const payload: SchedulePayload = {
       enabled: schedulerEnabled,
       entries: [
@@ -301,9 +320,12 @@ export default function Operations() {
     };
 
     const results = await Promise.allSettled(
-      selectedDevices.map(async (device) => {
+      targets.map(async (device) => {
         try {
           const res = await api.shed.setSchedule(device, payload);
+          if ((res as any)?.skipped) {
+            missingSchedule.current.add(device);
+          }
           return { device, res };
         } catch (error) {
           return { device, error };
@@ -328,6 +350,9 @@ export default function Operations() {
       if (other.length) {
         toast.error('Failed to save schedule for some devices');
       }
+    }
+    if (skippedDevices.length) {
+      toast.warning(`Skipped ${skippedDevices.length} device(s) without scheduling API`);
     }
 
     if (successCount > 0) {
@@ -382,6 +407,24 @@ export default function Operations() {
     const names = profiles.map((p: any) => p.name || p.profile || '').filter(Boolean);
     return names.length ? names : DEFAULT_PROFILES;
   }, [profiles]);
+
+  // warn on unsaved changes before unload
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (profileSlots.length || poolSlots.length) {
+      setDirty(true);
+    }
+  }, [profileSlots, poolSlots]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
 
   const toggleDevice = (deviceName: string) => {
     setSelectedDevices((prev) =>
@@ -622,13 +665,15 @@ export default function Operations() {
             <div className="space-y-3">
               {poolSlots.map((slot) => {
                 const poolName = pools.find((p: any) => p.id === slot.poolId || p.name === slot.poolId)?.name || slot.poolId;
+                const tooltip = `Pool: ${poolName} (${slot.poolId}) | Mode: ${slot.mode.toUpperCase()} | Time: ${slot.time}`;
                 return (
                   <ScheduleRow
                     key={slot.id}
                     icon={<Clock className="w-4 h-4 text-[var(--matrix-green)]" />}
-                    title={`${poolName} → ${slot.mode.toUpperCase()}`}
+                    title={`${poolName} -> ${slot.mode.toUpperCase()}`}
                     subtitle={slot.time}
                     days={slot.days}
+                    tooltip={tooltip}
                     onRemove={() => setShowRemove({ type: 'pool', id: slot.id })}
                   />
                 );
@@ -695,16 +740,21 @@ function ScheduleRow({
   title,
   subtitle,
   days,
+  tooltip,
   onRemove,
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
   days: DayKey[];
+  tooltip?: string;
   onRemove: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-3 py-2">
+    <div
+      className="flex items-center justify-between bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-3 py-2"
+      title={tooltip}
+    >
       <div className="flex items-center gap-3">
         {icon}
         <div>
@@ -730,3 +780,5 @@ function ScheduleRow({
     </div>
   );
 }
+
+
