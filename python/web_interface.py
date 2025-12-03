@@ -110,8 +110,6 @@ def load_benchmark_state() -> None:
 
 # Attempt to load any previous state at startup
 load_benchmark_state()
-# Load devices from persisted config so the fleet is available after restart
-load_devices()
 
 def load_devices():
     """Load device configurations"""
@@ -126,6 +124,10 @@ def load_devices():
                 dev_data['ip_address'],
                 dev_data.get('model', 'Unknown')
             )
+
+
+# Load devices from persisted config so the fleet is available after restart
+load_devices()
 
 
 def load_device_profiles(device_name: str):
