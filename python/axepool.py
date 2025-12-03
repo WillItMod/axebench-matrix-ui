@@ -157,7 +157,7 @@ def save_pool_schedule(device_name, schedule):
         json.dump(schedule, f, indent=2)
 
 
-async def get_device_pool(ip_address):(ip_address):
+async def get_device_pool(ip_address):
     """Get current pool info from device"""
     try:
         async with aiohttp.ClientSession(timeout=DEFAULT_TIMEOUT) as session:
