@@ -318,11 +318,6 @@ export default function Operations() {
       return;
     }
 
-    if (shedUnavailable && poolUnavailable) {
-      toast.error('Scheduling services are unreachable (AxeShed 5001 / AxePool 5002). Start services or disable schedules.');
-      return;
-    }
-
     setSaving(true);
     const profilePayload = mapProfileToApi(profileSchedule);
     const poolPayload = mapPoolToApi(poolSchedule);
@@ -337,20 +332,30 @@ export default function Operations() {
       })
     );
 
+    const reasonText = (reason: any) => {
+      if (reason?.message) return reason.message;
+      if (typeof reason === 'string') return reason;
+      try {
+        return JSON.stringify(reason);
+      } catch {
+        return String(reason);
+      }
+    };
+
     const isOffline = (reason: any) => {
-      const msg = String(reason?.message || reason || '').toLowerCase();
+      const msg = reasonText(reason).toLowerCase();
       return (
-        msg.includes('failed to fetch') ||
-        msg.includes('networkerror') ||
         msg.includes('connection refused') ||
         msg.includes('econrefused') ||
-        msg.includes('err_connection_refused')
+        msg.includes('err_connection_refused') ||
+        msg.includes('enotfound')
       );
     };
 
     let success = 0;
     const failedDevices: string[] = [];
     const offlineDevices: string[] = [];
+    const failureReasons: Array<{ device: string; reason: string }> = [];
 
     results.forEach((r) => {
       if (r.status !== 'fulfilled') {
@@ -370,6 +375,10 @@ export default function Operations() {
         success += 1;
       } else {
         failedDevices.push(device);
+        const reasons: string[] = [];
+        if (shedRes.status === 'rejected') reasons.push(`profiles: ${reasonText(shedRes.reason)}`);
+        if (poolRes.status === 'rejected') reasons.push(`pools: ${reasonText(poolRes.reason)}`);
+        if (reasons.length) failureReasons.push({ device, reason: reasons.join(' | ') });
       }
     });
 
@@ -383,8 +392,8 @@ export default function Operations() {
     if (success) toast.success(`Saved schedules to ${success} device(s)`);
 
     if (offlineDevices.length) {
-      toast.error(
-        `Schedule services unreachable (AxeShed 5001 / AxePool 5002). Start services and retry. Devices: ${offlineDevices.join(
+      toast.warning(
+        `Scheduling services unreachable (AxeShed 5001 / AxePool 5002). Saved locally, but not pushed. Devices: ${offlineDevices.join(
           ', '
         )}`
       );
@@ -392,7 +401,12 @@ export default function Operations() {
 
     const nonOfflineFailures = failedDevices.filter((d) => !offlineDevices.includes(d));
     if (nonOfflineFailures.length) {
-      toast.warning(`${nonOfflineFailures.length} device(s) did not accept schedules: ${nonOfflineFailures.join(', ')}`);
+      const sampleReason = failureReasons.find((f) => nonOfflineFailures.includes(f.device))?.reason;
+      toast.warning(
+        `${nonOfflineFailures.length} device(s) did not accept schedules: ${nonOfflineFailures.join(', ')}${
+          sampleReason ? ` (${sampleReason})` : ''
+        }`
+      );
     }
 
     setDirty(false);
