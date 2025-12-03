@@ -45,6 +45,17 @@ const normalizeNumber = (value: any, fallback: number | null = null) => {
   return Number.isFinite(num) ? num : fallback;
 };
 
+const MODEL_POWER_HINTS: Record<string, { volts: number; amps: number; note: string }> = {
+  gamma: { volts: 5, amps: 3, note: 'Gamma 601/602 uses USB-C 5V input' },
+  supra: { volts: 12, amps: 2.5, note: 'Supra (BM1368) typically runs on 12V' },
+  ultra: { volts: 12, amps: 2.5, note: 'Ultra (BM1366) typically runs on 12V' },
+  hex: { volts: 12, amps: 5, note: 'Hex (BM1366 x6) 12V high-current rail' },
+  max: { volts: 12, amps: 3, note: 'Max (BM1397) 12V input' },
+  nerdqaxe: { volts: 5, amps: 3, note: 'NerdQAxe (BM1370) USB-C 5V input' },
+  nerdqaxe_plus: { volts: 5, amps: 5, note: 'NerdQAxe+ (dual BM1370) 5V with higher current' },
+  nerdqaxe_plus_plus: { volts: 5, amps: 8, note: 'NerdQAxe++ (quad BM1370) 5V high-current' },
+};
+
 const getDevicePsuId = (device: any) => {
   const fromNested = device?.psu?.id ?? device?.psu?.name ?? null;
   const shared = device?.psu?.shared_psu_id ?? device?.psu?.sharedPsuId ?? null;
@@ -104,13 +115,28 @@ const resolveAssignedDevices = (psu: any, devices: Device[]) => {
   return matches;
 };
 
-const getPsuMetrics = (psu: any) => {
-  const voltage = normalizeNumber(psu?.voltage, null);
-  const amperage = normalizeNumber(psu?.amperage, null);
-  const wattage =
+// PSU is virtual; prefer provided wattage, else derive from devices, else zero.
+const getPsuMetrics = (psu: any, assignedDevices: Device[]) => {
+  const wattageFromPsu =
     normalizeNumber(psu?.wattage, null) ??
-    (voltage && amperage ? Number((voltage * amperage).toFixed(1)) : null) ??
-    0;
+    normalizeNumber(psu?.capacity_watts, null) ??
+    normalizeNumber(psu?.capacity, null);
+  const wattageFromDevices = assignedDevices.reduce(
+    (sum, d) => sum + (normalizeNumber(d?.status?.power, 0) ?? 0),
+    0
+  );
+  const wattage = wattageFromPsu ?? (wattageFromDevices > 0 ? wattageFromDevices : 0);
+
+  // Voltage/amps are optional; provide hints if present, otherwise omit.
+  const voltage =
+    normalizeNumber(psu?.voltage, null) ??
+    normalizeNumber(psu?.input_voltage, null) ??
+    null;
+  const amperage =
+    normalizeNumber(psu?.amperage, null) ??
+    normalizeNumber(psu?.input_amperage, null) ??
+    null;
+
   return {
     voltage: voltage ?? undefined,
     amperage: amperage ?? undefined,
@@ -283,14 +309,14 @@ export default function Dashboard() {
     try {
       const psuList = await api.psus.list();
       const normalizedPsus = Array.isArray(psuList)
-        ? psuList.map((p: any) => ({ ...p, ...getPsuMetrics(p) }))
+        ? psuList.map((p: any) => ({ ...p }))
         : [];
       setPsus(normalizedPsus);
       
       // Check each PSU for load warnings
       normalizedPsus.forEach((psu: any) => {
-        const metrics = getPsuMetrics(psu);
-        const assignedDevices = devices.filter((d) => deviceMatchesPsu(d, psu));
+        const assignedDevices = resolveAssignedDevices(psu, devices);
+        const metrics = getPsuMetrics(psu, assignedDevices);
         const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
         const loadPercent = metrics.wattage > 0 ? (psuLoad / metrics.wattage) * 100 : 0;
         
@@ -596,13 +622,13 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {psus.map((psu: any) => {
               // Find devices assigned to this PSU
-              const assignedDevices = devices.filter((d) => deviceMatchesPsu(d, psu));
+              const assignedDevices = resolveAssignedDevices(psu, devices);
               const backendCount =
                 (typeof psu.devices_count === 'number' ? psu.devices_count : null) ??
                 (Array.isArray(psu.devices) ? psu.devices.length : null) ??
                 (Array.isArray(psu.assigned_devices) ? psu.assigned_devices.length : null);
               const assignedCount = assignedDevices.length || backendCount || 0;
-              const metrics = getPsuMetrics(psu);
+              const metrics = getPsuMetrics(psu, assignedDevices);
               const psuLoad = assignedDevices.reduce(
                 (sum, d) => sum + (d.status?.power ?? d.status?.wattage ?? 0),
                 0
@@ -643,9 +669,13 @@ export default function Dashboard() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)]">Input</span>
-                      <span className="text-[var(--text-primary)] font-bold">
-                        {metrics.voltage ? `${metrics.voltage}V` : '— V'} @ {metrics.amperage ? `${metrics.amperage}A` : '— A'}
-                      </span>
+                      {metrics.voltage && metrics.amperage ? (
+                        <span className="text-[var(--text-primary)] font-bold">
+                          {metrics.voltage}V @ {metrics.amperage}A
+                        </span>
+                      ) : (
+                        <span className="text-[var(--text-muted)] italic">Not provided (wattage only)</span>
+                      )}
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)]">Current Load</span>
