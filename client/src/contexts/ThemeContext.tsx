@@ -17,6 +17,10 @@ export type PaletteName =
   | 'stealth'
   | 'emerald-sand'
   | 'signal'
+  | 'neon-blast'
+  | 'cyberpunk-core'
+  | 'arcade-neon'
+  | 'terminal-green'
   | 'custom';
 
 export interface Palette {
@@ -74,9 +78,9 @@ const basePalettes: Record<PaletteName, Palette> = {
     name: 'contrast-cyan-red',
     label: 'Cyan / Signal Red',
     colors: {
-      primary: '#1dd3f8',
-      secondary: '#ff2f54',
-      accent: '#ffd166',
+      primary: '#00e7ff',
+      secondary: '#ff1744',
+      accent: '#ffd300',
       background: '#0b1018',
       surface: '#111927',
       text: '#e9f4ff',
@@ -91,9 +95,9 @@ const basePalettes: Record<PaletteName, Palette> = {
     name: 'solar-flare',
     label: 'Solar Flare',
     colors: {
-      primary: '#ff9800',
-      secondary: '#ff5722',
-      accent: '#ffd54f',
+      primary: '#ff9100',
+      secondary: '#ff3d00',
+      accent: '#ffe100',
       background: '#0d0a0f',
       surface: '#1b141c',
       text: '#fff4e6',
@@ -108,9 +112,9 @@ const basePalettes: Record<PaletteName, Palette> = {
     name: 'arctic',
     label: 'Arctic Glow',
     colors: {
-      primary: '#00c6ff',
-      secondary: '#0072ff',
-      accent: '#7cf3ff',
+      primary: '#33d6ff',
+      secondary: '#0a84ff',
+      accent: '#9af7ff',
       background: '#050915',
       surface: '#0d1324',
       text: '#e7f5ff',
@@ -125,9 +129,9 @@ const basePalettes: Record<PaletteName, Palette> = {
     name: 'amber-ice',
     label: 'Amber Ice',
     colors: {
-      primary: '#f59e0b',
-      secondary: '#10b981',
-      accent: '#60a5fa',
+      primary: '#ffb300',
+      secondary: '#0ed09d',
+      accent: '#6aa7ff',
       background: '#0a0e14',
       surface: '#111827',
       text: '#f9fafb',
@@ -142,9 +146,9 @@ const basePalettes: Record<PaletteName, Palette> = {
     name: 'ultraviolet',
     label: 'Ultraviolet',
     colors: {
-      primary: '#a855f7',
-      secondary: '#6366f1',
-      accent: '#22d3ee',
+      primary: '#c084fc',
+      secondary: '#7c3aed',
+      accent: '#06b6d4',
       background: '#0b0b14',
       surface: '#141426',
       text: '#ede9fe',
@@ -159,7 +163,7 @@ const basePalettes: Record<PaletteName, Palette> = {
     name: 'stealth',
     label: 'Stealth',
     colors: {
-      primary: '#9ca3af',
+      primary: '#c7cdd6',
       secondary: '#4b5563',
       accent: '#22d3ee',
       background: '#050607',
@@ -176,9 +180,9 @@ const basePalettes: Record<PaletteName, Palette> = {
     name: 'emerald-sand',
     label: 'Emerald Sand',
     colors: {
-      primary: '#10b981',
-      secondary: '#f59e0b',
-      accent: '#f472b6',
+      primary: '#19d18f',
+      secondary: '#ffad33',
+      accent: '#ff6fb5',
       background: '#0b0f0a',
       surface: '#111810',
       text: '#e6f4ea',
@@ -195,7 +199,7 @@ const basePalettes: Record<PaletteName, Palette> = {
     colors: {
       primary: '#00f5d4',
       secondary: '#ff006e',
-      accent: '#ffd166',
+      accent: '#ffe600',
       background: '#040507',
       surface: '#0d0f14',
       text: '#f8fafc',
@@ -204,6 +208,74 @@ const basePalettes: Record<PaletteName, Palette> = {
       success: '#2dd4bf',
       warning: '#fbbf24',
       error: '#f43f5e',
+    },
+  },
+  'neon-blast': {
+    name: 'neon-blast',
+    label: 'Neon Blast',
+    colors: {
+      primary: '#ff00ff',
+      secondary: '#00e5ff',
+      accent: '#ffea00',
+      background: '#05000c',
+      surface: '#0f0a1a',
+      text: '#fdf4ff',
+      textSecondary: '#c7b7ff',
+      border: '#291f45',
+      success: '#32ffa3',
+      warning: '#ffd166',
+      error: '#ff4f81',
+    },
+  },
+  'cyberpunk-core': {
+    name: 'cyberpunk-core',
+    label: 'Cyberpunk Core',
+    colors: {
+      primary: '#ff2bc2',
+      secondary: '#00f0ff',
+      accent: '#f9ff00',
+      background: '#080013',
+      surface: '#120024',
+      text: '#fef2ff',
+      textSecondary: '#b8c7ff',
+      border: '#2d1f4f',
+      success: '#36ffb5',
+      warning: '#ffd54f',
+      error: '#ff4d6d',
+    },
+  },
+  'arcade-neon': {
+    name: 'arcade-neon',
+    label: 'Arcade Neon',
+    colors: {
+      primary: '#39ff14',
+      secondary: '#ff5e00',
+      accent: '#00b3ff',
+      background: '#010405',
+      surface: '#0a0f14',
+      text: '#eaffea',
+      textSecondary: '#96f5c0',
+      border: '#1a2a2f',
+      success: '#3bff8f',
+      warning: '#ffa500',
+      error: '#ff2a6d',
+    },
+  },
+  'terminal-green': {
+    name: 'terminal-green',
+    label: 'Terminal Green',
+    colors: {
+      primary: '#00ff66',
+      secondary: '#00c853',
+      accent: '#00e5ff',
+      background: '#010302',
+      surface: '#0a0f0a',
+      text: '#e5ffe5',
+      textSecondary: '#8bf18b',
+      border: '#1a2b1a',
+      success: '#00ff66',
+      warning: '#ffca28',
+      error: '#ff5252',
     },
   },
   custom: {

@@ -60,10 +60,7 @@ export default function Settings() {
     }
   }, [paletteName, palette.colors]);
 
-  const paletteEntries = useMemo(
-    () => Object.entries(palettes).filter(([name]) => name !== 'custom' || paletteName === 'custom'),
-    [paletteName]
-  );
+  const paletteEntries = useMemo(() => Object.entries(palettes), []);
 
   const handleCustomChange = (key: keyof typeof customPalette, value: string) => {
     const updated = { ...customPalette, [key]: value };
@@ -178,7 +175,14 @@ export default function Settings() {
         <div className="mt-4 border-t border-[var(--grid-gray)] pt-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-bold text-[var(--neon-cyan)]">Custom Palette</h3>
-            <Button size="sm" variant="outline" onClick={() => setPalette('custom', customPalette)}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setPalette('custom', customPalette);
+                toast.success('Custom palette applied');
+              }}
+            >
               Use Custom
             </Button>
           </div>
