@@ -326,14 +326,41 @@ export default function Operations() {
       })
     );
 
-    const success = results.filter(
-      (r) =>
-        r.status === 'fulfilled' &&
-        (r as any).value.shedRes.status === 'fulfilled' &&
-        (r as any).value.poolRes.status === 'fulfilled'
-    ).length;
+    const isOffline = (reason: any) => {
+      const msg = String(reason?.message || reason || '').toLowerCase();
+      return (
+        msg.includes('failed to fetch') ||
+        msg.includes('networkerror') ||
+        msg.includes('connection refused') ||
+        msg.includes('econrefused') ||
+        msg.includes('err_connection_refused')
+      );
+    };
 
-    const failures = results.length - success;
+    let success = 0;
+    const failedDevices: string[] = [];
+    const offlineDevices: string[] = [];
+
+    results.forEach((r) => {
+      if (r.status !== 'fulfilled') {
+        return;
+      }
+      const { device, shedRes, poolRes } = r.value as any;
+      const shedOk = shedRes.status === 'fulfilled';
+      const poolOk = poolRes.status === 'fulfilled';
+
+      const shedOffline = shedRes.status === 'rejected' && isOffline(shedRes.reason);
+      const poolOffline = poolRes.status === 'rejected' && isOffline(poolRes.reason);
+      if (shedOffline || poolOffline) {
+        offlineDevices.push(device);
+      }
+
+      if (shedOk && poolOk) {
+        success += 1;
+      } else {
+        failedDevices.push(device);
+      }
+    });
 
     selectedDevices.forEach((name) => {
       setDeviceSchedules((prev) => ({
@@ -343,7 +370,20 @@ export default function Operations() {
     });
 
     if (success) toast.success(`Saved schedules to ${success} device(s)`);
-    if (failures) toast.warning(`${failures} device(s) did not accept schedules`);
+
+    if (offlineDevices.length) {
+      toast.error(
+        `Schedule services unreachable (AxeShed 5001 / AxePool 5002). Start services and retry. Devices: ${offlineDevices.join(
+          ', '
+        )}`
+      );
+    }
+
+    const nonOfflineFailures = failedDevices.filter((d) => !offlineDevices.includes(d));
+    if (nonOfflineFailures.length) {
+      toast.warning(`${nonOfflineFailures.length} device(s) did not accept schedules: ${nonOfflineFailures.join(', ')}`);
+    }
+
     setDirty(false);
     setSaving(false);
   };
