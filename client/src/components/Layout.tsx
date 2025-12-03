@@ -155,14 +155,14 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const tabs = [
-    { path: '/', label: 'DASHBOARD', icon: '⚡' },
-    { path: '/benchmark', label: 'BENCHMARK', icon: '🧪' },
-    { path: '/monitoring', label: 'MONITORING', icon: '📈' },
-    { path: '/sessions', label: 'SESSIONS', icon: '🗂️' },
-    { path: '/profiles', label: 'PROFILES', icon: '🎛️' },
-    { path: '/pool', label: 'POOL', icon: '🌐' },
-    { path: '/operations', label: 'OPERATIONS', icon: '🛠️' },
-    { path: '/settings', label: 'SETTINGS', icon: '⚙️' },
+    { path: '/', label: 'DASHBOARD' },
+    { path: '/benchmark', label: 'BENCHMARK' },
+    { path: '/monitoring', label: 'MONITORING' },
+    { path: '/sessions', label: 'SESSIONS' },
+    { path: '/profiles', label: 'PROFILES' },
+    { path: '/pool', label: 'POOL' },
+    { path: '/operations', label: 'OPERATIONS' },
+    { path: '/settings', label: 'SETTINGS' },
   ];
 
   return (
@@ -185,10 +185,10 @@ export default function Layout({ children }: LayoutProps) {
               {/* Logo */}
               <div className="flex items-center gap-4">
                 <div className="text-3xl font-bold text-glow-green flicker">
-                  [AXEBENCH]
+                  AXEBENCH
                 </div>
                 <div className="text-sm text-[var(--neon-cyan)] text-glow-cyan">
-                  MATRIX_UI_v2.0 | AxeBench_v3.0.0
+                  UI v2.0 | AxeBench v3.0.0
                 </div>
               </div>
 
