@@ -141,6 +141,9 @@ export default function Pool() {
     setSelectedPoolId((prev) => (prev === poolId ? '' : poolId));
   };
 
+  const isNotFoundError = (error: any) =>
+    typeof error?.message === 'string' && error.message.toUpperCase().includes('NOT FOUND');
+
   const handleBulkApply = async () => {
     if (!selectedPoolId) {
       toast.error('Select a pool first');
@@ -151,8 +154,36 @@ export default function Pool() {
       return;
     }
     try {
-      await Promise.all(selectedDevices.map((device) => api.pool.applyPool(device, selectedPoolId)));
-      toast.success(`Applied pool to ${selectedDevices.length} device(s)`);
+      const results = await Promise.allSettled(
+        selectedDevices.map(async (device) => {
+          try {
+            await api.pool.applyPool(device, selectedPoolId);
+            return { device, ok: true };
+          } catch (error) {
+            return { device, error };
+          }
+        })
+      );
+
+      const failures = results
+        .filter((r: any) => r.status === 'fulfilled' ? (r.value?.error) : (r as any).reason)
+        .map((r: any) => (r.status === 'fulfilled' ? r.value : r.reason));
+
+      const successCount = results.length - failures.length;
+
+      if (successCount > 0) {
+        toast.success(`Applied pool to ${successCount} device(s)`);
+      }
+      if (failures.length) {
+        const notFound = failures.filter((f: any) => isNotFoundError(f?.error || f));
+        const other = failures.filter((f: any) => !isNotFoundError(f?.error || f));
+        if (notFound.length) {
+          toast.warning(`Pool or device not found for ${notFound.length} item(s); skipped.`);
+        }
+        if (other.length) {
+          toast.error('Failed to apply pool to some devices');
+        }
+      }
     } catch (error) {
       console.error('Failed to bulk apply pool:', error);
       toast.error('Failed to apply pool to all devices');
@@ -177,6 +208,10 @@ export default function Pool() {
       await api.pool.applyPool(deviceName, poolId);
       toast.success(`Pool applied to ${deviceName}`);
     } catch (error) {
+      if (isNotFoundError(error)) {
+        toast.warning('Pool or device not found on backend; skipped');
+        return;
+      }
       console.error('Failed to apply pool:', error);
       toast.error('Failed to apply pool');
     }

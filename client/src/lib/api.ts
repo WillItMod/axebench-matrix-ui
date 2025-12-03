@@ -303,7 +303,18 @@ export const api = {
     // Profile scheduling
     getSchedule: (deviceName: string) => {
       const dev = encodeURIComponent(deviceName);
-      return apiFetch<any>(`/api/devices/${dev}/schedule`);
+      const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
+      return fetch(url)
+        .then(async (res) => {
+          if (res.status === 404) {
+            return { enabled: false, entries: [] };
+          }
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: res.statusText }));
+            throw new Error(err.error || `HTTP ${res.status}`);
+          }
+          return res.json();
+        });
     },
     setSchedule: (deviceName: string, schedule: any) => {
       const dev = encodeURIComponent(deviceName);
@@ -316,7 +327,18 @@ export const api = {
     // Profile operations
     getProfiles: (deviceName: string) => {
       const dev = encodeURIComponent(deviceName);
-      return apiFetch<any>(`/api/devices/${dev}/profiles`);
+      const url = `${API_BASE_URL}/api/devices/${dev}/profiles`;
+      return fetch(url)
+        .then(async (res) => {
+          if (res.status === 404) {
+            return [];
+          }
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: res.statusText }));
+            throw new Error(err.error || `HTTP ${res.status}`);
+          }
+          return res.json();
+        });
     },
     applyProfile: (deviceName: string, profileName: string) => {
       const dev = encodeURIComponent(deviceName);
