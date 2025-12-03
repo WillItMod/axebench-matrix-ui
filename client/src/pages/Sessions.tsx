@@ -487,25 +487,40 @@ export default function Sessions() {
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
-                variant={modeFilter === 'all' ? 'default' : 'outline'}
+                variant="outline"
+                className={
+                  modeFilter === 'all'
+                    ? 'btn-matrix text-xs shadow-[0_0_0_1px_var(--matrix-green)]'
+                    : 'text-xs border-[var(--grid-gray)]'
+                }
+                aria-pressed={modeFilter === 'all'}
                 onClick={() => setModeFilter('all')}
-                className="text-xs"
               >
                 ALL_MODES
               </Button>
               <Button
                 size="sm"
-                variant={modeFilter === 'auto' ? 'default' : 'outline'}
+                variant="outline"
+                className={
+                  modeFilter === 'auto'
+                    ? 'btn-matrix text-xs shadow-[0_0_0_1px_var(--matrix-green)]'
+                    : 'text-xs border-[var(--grid-gray)]'
+                }
+                aria-pressed={modeFilter === 'auto'}
                 onClick={() => setModeFilter('auto')}
-                className="text-xs"
               >
                 AUTO_TUNE
               </Button>
               <Button
                 size="sm"
-                variant={modeFilter === 'manual' ? 'default' : 'outline'}
+                variant="outline"
+                className={
+                  modeFilter === 'manual'
+                    ? 'btn-matrix text-xs shadow-[0_0_0_1px_var(--matrix-green)]'
+                    : 'text-xs border-[var(--grid-gray)]'
+                }
+                aria-pressed={modeFilter === 'manual'}
                 onClick={() => setModeFilter('manual')}
-                className="text-xs"
               >
                 MANUAL
               </Button>
@@ -515,9 +530,14 @@ export default function Sessions() {
                 <Button
                   key={dev}
                   size="sm"
-                  variant={deviceFilter === dev ? 'default' : 'outline'}
+                  variant="outline"
+                  className={
+                    deviceFilter === dev
+                      ? 'btn-matrix text-xs shadow-[0_0_0_1px_var(--matrix-green)]'
+                      : 'text-xs border-[var(--grid-gray)]'
+                  }
+                  aria-pressed={deviceFilter === dev}
                   onClick={() => setDeviceFilter(deviceFilter === dev ? '' : dev)}
-                  className="text-xs"
                 >
                   {dev}
                 </Button>
