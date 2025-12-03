@@ -174,8 +174,6 @@ export default function Profiles() {
     }
   };
 
-  const profileList = Object.entries(profiles);
-
   return (
     <div className="space-y-6">
       <div className="hud-panel">
