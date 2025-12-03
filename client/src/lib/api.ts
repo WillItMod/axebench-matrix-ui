@@ -10,6 +10,8 @@ import { logger } from './logger';
 // Production: Set VITE_API_BASE_URL to your backend URL
 // AxePool runs on 5002, AxeShed runs on 5001
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const AXEPOOL_BASE = import.meta.env.VITE_AXEPOOL_URL || API_BASE_URL;
+const AXESHED_BASE = import.meta.env.VITE_AXESHED_URL || API_BASE_URL;
 
 /**
  * Fetch wrapper with error handling and logging
@@ -285,7 +287,7 @@ export const api = {
     // Pool scheduling
     getSchedule: (deviceName: string) => {
       const dev = encodeURIComponent(deviceName);
-      const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
+      const url = `${AXEPOOL_BASE}/api/devices/${dev}/schedule`;
       return fetch(url).then(async (res) => {
         if (res.status === 404) {
           return { enabled: false, entries: [], skipped: true };
@@ -299,7 +301,7 @@ export const api = {
     },
     setSchedule: (deviceName: string, schedule: any) => {
       const dev = encodeURIComponent(deviceName);
-      const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
+      const url = `${AXEPOOL_BASE}/api/devices/${dev}/schedule`;
       return fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -314,10 +316,22 @@ export const api = {
       });
     },
     
-    // Scheduler control
-    schedulerStatus: () => apiFetch<any>('/api/scheduler/status'),
-    startScheduler: () => apiFetch<any>('/api/scheduler/start', { method: 'POST' }),
-    stopScheduler: () => apiFetch<any>('/api/scheduler/stop', { method: 'POST' }),
+    // Scheduler control (use absolute to avoid proxy mismatch)
+    schedulerStatus: async () => {
+      const res = await fetch(`${AXEPOOL_BASE}/api/scheduler/status`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
+    startScheduler: async () => {
+      const res = await fetch(`${AXEPOOL_BASE}/api/scheduler/start`, { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
+    stopScheduler: async () => {
+      const res = await fetch(`${AXEPOOL_BASE}/api/scheduler/stop`, { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
   },
 
   // ============================================================================
@@ -328,7 +342,7 @@ export const api = {
     // Profile scheduling
     getSchedule: (deviceName: string) => {
       const dev = encodeURIComponent(deviceName);
-      const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
+      const url = `${AXESHED_BASE}/api/devices/${dev}/schedule`;
       return fetch(url)
         .then(async (res) => {
           if (res.status === 404) {
@@ -343,7 +357,7 @@ export const api = {
     },
     setSchedule: (deviceName: string, schedule: any) => {
       const dev = encodeURIComponent(deviceName);
-      const url = `${API_BASE_URL}/api/devices/${dev}/schedule`;
+      const url = `${AXESHED_BASE}/api/devices/${dev}/schedule`;
       return fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -363,7 +377,7 @@ export const api = {
     // Profile operations
     getProfiles: (deviceName: string) => {
       const dev = encodeURIComponent(deviceName);
-      const url = `${API_BASE_URL}/api/devices/${dev}/profiles`;
+      const url = `${AXESHED_BASE}/api/devices/${dev}/profiles`;
       return fetch(url)
         .then(async (res) => {
           if (res.status === 404) {
@@ -383,9 +397,21 @@ export const api = {
     },
     
     // Scheduler control
-    schedulerStatus: () => apiFetch<any>('/api/scheduler/status'),
-    startScheduler: () => apiFetch<any>('/api/scheduler/start', { method: 'POST' }),
-    stopScheduler: () => apiFetch<any>('/api/scheduler/stop', { method: 'POST' }),
+    schedulerStatus: async () => {
+      const res = await fetch(`${AXESHED_BASE}/api/scheduler/status`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
+    startScheduler: async () => {
+      const res = await fetch(`${AXESHED_BASE}/api/scheduler/start`, { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
+    stopScheduler: async () => {
+      const res = await fetch(`${AXESHED_BASE}/api/scheduler/stop`, { method: 'POST' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
   },
 };
 

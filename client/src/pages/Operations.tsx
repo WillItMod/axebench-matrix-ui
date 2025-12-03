@@ -69,7 +69,6 @@ export default function Operations() {
   const [poolSlots, setPoolSlots] = useState<PoolSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRemove, setShowRemove] = useState<{ type: 'profile' | 'pool'; id: string } | null>(null);
-  const missingSchedule = useRef<Set<string>>(new Set());
 
   const [profileForm, setProfileForm] = useState<ProfileSlot>({
     id: generateId(),
@@ -187,7 +186,6 @@ export default function Operations() {
     try {
       const data = await api.shed.getSchedule(deviceName);
       if (!data || (data as any).skipped) {
-        missingSchedule.current.add(deviceName);
         // Fallback: load from local storage if present
         const localRaw = localStorage.getItem(`${LOCAL_SCHEDULE_PREFIX}${deviceName}`);
         if (localRaw) {
@@ -332,15 +330,10 @@ export default function Operations() {
       localStorage.setItem(`${LOCAL_SCHEDULE_PREFIX}${device}`, JSON.stringify(payload));
     });
 
-    const targets = selectedDevices.filter((d) => !missingSchedule.current.has(d));
-
-    const results = await Promise.allSettled(
-      targets.map(async (device) => {
+    const profileResults = await Promise.allSettled(
+      selectedDevices.map(async (device) => {
         try {
           const res = await api.shed.setSchedule(device, payload);
-          if ((res as any)?.skipped) {
-            missingSchedule.current.add(device);
-          }
           return { device, res };
         } catch (error) {
           return { device, error };
@@ -348,10 +341,31 @@ export default function Operations() {
       })
     );
 
-    const failures = results
+    const poolResults = await Promise.allSettled(
+      selectedDevices.map(async (device) => {
+        try {
+          const res = await api.pool.setSchedule(device, payload);
+          return { device, res };
+        } catch (error) {
+          return { device, error };
+        }
+      })
+    );
+
+    const allResults = [...profileResults, ...poolResults];
+
+    const successDevices = new Set<string>();
+    allResults.forEach((r: any) => {
+      if (r.status === 'fulfilled' && !(r.value as any)?.error) {
+        const device = (r.value as any)?.device;
+        if (device) successDevices.add(device);
+      }
+    });
+
+    const failures = allResults
       .filter((r: any) => r.status === 'fulfilled' ? r.value?.error : (r as any).reason)
       .map((r: any) => (r.status === 'fulfilled' ? r.value : r.reason));
-    const successCount = results.length - failures.length;
+    const successCount = successDevices.size;
 
     const savedLocally = selectedDevices.length;
     if (savedLocally > 0) {
