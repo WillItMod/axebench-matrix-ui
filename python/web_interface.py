@@ -207,7 +207,7 @@ def save_schedule(device_name: str, schedule: dict):
         json.dump(sched, f, indent=2)
 
 
-if os.environ.get("EXPOSE_LEGACY_HTML"):
+if os.environ.get("EXPOSE_LEGACY_HTML") == "1":
     @app.route('/')
     def index():
         """Legacy HTML dashboard (disabled by default)."""
@@ -239,9 +239,8 @@ def get_version():
 
 @app.route('/api/auth/prepare', methods=['POST'])
 def prepare_auth():
-    """Prepare for Patreon auth by storing the origin host"""
-    origin_host = request.host
-    # Store in a file instead of session (more reliable across requests)
+    """Prepare for Patreon auth by storing the origin host (scheme + host)."""
+    origin_host = request.host_url.rstrip("/")
     auth_file = config_dir / 'auth_origin.txt'
     auth_file.write_text(origin_host)
     logger.info(f"Stored origin host: {origin_host}")
@@ -278,14 +277,14 @@ def patreon_callback():
     licensing = get_licensing()
     success = licensing.exchange_code(code)
     
-    # Get the origin host from file
+    # Determine origin host (prefer stored value, fall back to request host)
     auth_file = config_dir / 'auth_origin.txt'
     if auth_file.exists():
         origin_host = auth_file.read_text().strip()
         logger.info(f"Retrieved origin host from file: {origin_host}")
     else:
-        origin_host = 'localhost:5000'
-        logger.warning(f"No origin host file found, using default: {origin_host}")
+        origin_host = request.host_url.rstrip("/")
+        logger.warning(f"No origin host file found, using request host: {origin_host}")
     
     if success:
         logger.info("Patreon authentication successful")
@@ -293,11 +292,13 @@ def patreon_callback():
         auth_file = config_dir / 'auth_origin.txt'
         auth_file.unlink(missing_ok=True)
         # Redirect back to the original hostname
-        logger.info(f"Redirecting to: http://{origin_host}/?auth_success=1")
-        return redirect(f'http://{origin_host}/?auth_success=1')
+        target = f'{origin_host}/?auth_success=1'
+        logger.info(f"Redirecting to: {target}")
+        return redirect(target)
     else:
-        logger.error(f"Auth failed, redirecting to: http://{origin_host}/?auth_error=verification_failed")
-        return redirect(f'http://{origin_host}/?auth_error=verification_failed')
+        target = f'{origin_host}/?auth_error=verification_failed'
+        logger.error(f"Auth failed, redirecting to: {target}")
+        return redirect(target)
 
 
 @app.route('/api/license/logout', methods=['POST'])

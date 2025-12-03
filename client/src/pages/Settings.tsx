@@ -1,10 +1,82 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { useTheme, themes, type ThemeName } from '@/contexts/ThemeContext';
-import { Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTheme, themes, palettes, type PaletteName, type ThemeName, fonts } from '@/contexts/ThemeContext';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
+
+interface LicenseStatus {
+  tier?: string;
+  device_limit?: number;
+  auth_url?: string;
+  patreon_url?: string;
+  is_patron?: boolean;
+}
 
 export default function Settings() {
-  const { themeName, setTheme } = useTheme();
+  const { themeName, setTheme, paletteName, setPalette, palette, fontKey, setFontKey } = useTheme();
+  const [customPalette, setCustomPalette] = useState({
+    primary: palette.colors.primary,
+    accent: palette.colors.accent,
+    background: palette.colors.background,
+    surface: palette.colors.surface,
+  });
+  const [license, setLicense] = useState<LicenseStatus | null>(null);
+  const [tier, setTier] = useState<'free' | 'premium' | 'ultimate'>('free');
+  const [deviceLimit, setDeviceLimit] = useState<number>(5);
+  const [deviceCount, setDeviceCount] = useState<number>(0);
+  const [patreonUrl, setPatreonUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [status, devices] = await Promise.all([api.license.status().catch(() => null), api.devices.list().catch(() => [])]);
+        setLicense(status);
+        const t = (status?.tier || '').toLowerCase();
+        const tierValue = t === 'ultimate' ? 'ultimate' : t === 'premium' ? 'premium' : 'free';
+        setTier(tierValue);
+        setDeviceLimit(Number(status?.device_limit) || (tierValue === 'ultimate' ? 250 : tierValue === 'premium' ? 25 : 5));
+        setPatreonUrl(status?.auth_url || status?.patreon_url || null);
+        setDeviceCount(Array.isArray(devices) ? devices.length : 0);
+      } catch {
+        setTier('free');
+        setDeviceLimit(5);
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (paletteName === 'custom') {
+      setCustomPalette({
+        primary: palette.colors.primary,
+        accent: palette.colors.accent,
+        background: palette.colors.background,
+        surface: palette.colors.surface,
+      });
+    }
+  }, [paletteName, palette.colors]);
+
+  const paletteEntries = useMemo(
+    () => Object.entries(palettes).filter(([name]) => name !== 'custom' || paletteName === 'custom'),
+    [paletteName]
+  );
+
+  const handleCustomChange = (key: keyof typeof customPalette, value: string) => {
+    const updated = { ...customPalette, [key]: value };
+    setCustomPalette(updated);
+    setPalette('custom', updated);
+  };
+
+  const handleLogout = async () => {
+    await api.license.logout().catch(() => null);
+    toast.success('Logged out of Patreon');
+    setLicense(null);
+    setTier('free');
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -13,110 +85,117 @@ export default function Settings() {
         <p className="text-[var(--text-secondary)]">Configure your AxeBench experience</p>
       </div>
 
-      {/* Theme Selection */}
-      <Card className="p-6 bg-black/80 border-neon-cyan">
-        <h2 className="text-xl font-bold text-neon-cyan mb-4">THEME</h2>
-        <p className="text-[var(--text-secondary)] mb-6">Choose your preferred color scheme</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Licensing */}
+        <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
+          <div className="text-lg font-bold text-[var(--neon-cyan)]">LICENSING / PATREON</div>
+          <div className="text-sm text-[var(--text-secondary)]">
+            Current tier: {tier.toUpperCase()} | Devices {deviceCount}/{deviceLimit}
+          </div>
+          <div className="flex flex-col gap-2">
+            {patreonUrl && (
+              <Button onClick={() => window.open(patreonUrl!, '_blank')} className="btn-matrix">
+                Open Patreon Login
+              </Button>
+            )}
+            <Button variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          </div>
+        </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.entries(themes).map(([key, theme]) => {
-            const isSelected = themeName === key;
-            
+        {/* Theme */}
+        <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
+          <div className="text-lg font-bold text-[var(--neon-cyan)]">THEME</div>
+          <Select value={themeName} onValueChange={(v) => setTheme(v as ThemeName)}>
+            <SelectTrigger className="bg-black border-[var(--grid-gray)]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(themes).map(([key, value]) => (
+                <SelectItem key={key} value={key}>
+                  {value.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="text-xs text-[var(--text-secondary)]">Choose base skin (keeps Matrix background intact).</div>
+        </Card>
+
+        {/* Fonts */}
+        <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
+          <div className="text-lg font-bold text-[var(--neon-cyan)]">FONTS</div>
+          <Select value={fontKey} onValueChange={(v) => setFontKey(v)}>
+            <SelectTrigger className="bg-black border-[var(--grid-gray)]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {fonts.map((font) => (
+                <SelectItem key={font.key} value={font.key}>
+                  {font.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="text-xs text-[var(--text-secondary)]">Apply a font stack across the UI.</div>
+        </Card>
+      </div>
+
+      {/* Palettes */}
+      <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-[var(--neon-cyan)]">PALETTES</h2>
+          <div className="text-sm text-[var(--text-secondary)]">Compact contrasting color sets</div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {paletteEntries.map(([key, pal]) => {
+            const selected = paletteName === key;
             return (
               <button
                 key={key}
-                onClick={() => setTheme(key as ThemeName)}
-                className={`
-                  relative p-4 rounded-lg border-2 transition-all
-                  ${isSelected ? 'border-[var(--theme-primary)] shadow-lg' : 'border-gray-700 hover:border-gray-500'}
-                `}
-                style={{
-                  background: `linear-gradient(135deg, ${theme.colors.background} 0%, ${theme.colors.surface} 100%)`
-                }}
+                onClick={() => setPalette(key as PaletteName)}
+                className={`rounded-lg border text-left p-3 transition-all ${
+                  selected ? 'border-[var(--matrix-green)] shadow-[0_0_10px_rgba(0,255,65,0.3)]' : 'border-[var(--grid-gray)]'
+                }`}
+                style={{ background: pal.colors.surface }}
               >
-                {/* Theme Preview */}
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div 
-                      className="w-12 h-12 rounded-full"
-                      style={{ background: theme.colors.primary }}
-                    />
-                    <div 
-                      className="w-8 h-8 rounded"
-                      style={{ background: theme.colors.accent }}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div 
-                      className="h-3 rounded"
-                      style={{ background: theme.colors.primary, opacity: 0.8 }}
-                    />
-                    <div 
-                      className="h-3 rounded w-2/3"
-                      style={{ background: theme.colors.secondary, opacity: 0.6 }}
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <div 
-                      className="flex-1 h-8 rounded flex items-center justify-center text-xs font-bold"
-                      style={{ 
-                        background: theme.colors.primary,
-                        color: theme.colors.background
-                      }}
-                    >
-                      Button
-                    </div>
-                    <div 
-                      className="flex-1 h-8 rounded border flex items-center justify-center text-xs"
-                      style={{ 
-                        borderColor: theme.colors.border,
-                        color: theme.colors.text
-                      }}
-                    >
-                      Outline
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 rounded-full" style={{ background: pal.colors.primary }} />
+                  <div className="w-6 h-6 rounded-full" style={{ background: pal.colors.accent }} />
                 </div>
-
-                {/* Theme Name */}
-                <div className="flex items-center justify-between">
-                  <Label 
-                    className="text-sm font-bold cursor-pointer"
-                    style={{ color: theme.colors.text }}
-                  >
-                    {theme.label}
-                  </Label>
-                  {isSelected && (
-                    <div 
-                      className="w-6 h-6 rounded-full flex items-center justify-center"
-                      style={{ background: theme.colors.success }}
-                    >
-                      <Check className="w-4 h-4" style={{ color: theme.colors.background }} />
-                    </div>
-                  )}
+                <div className="text-sm font-bold" style={{ color: pal.colors.text }}>
+                  {pal.label}
                 </div>
-
-                {/* Selected Border Glow */}
-                {isSelected && (
-                  <div 
-                    className="absolute inset-0 rounded-lg pointer-events-none"
-                    style={{
-                      boxShadow: `0 0 20px ${theme.colors.primary}40`
-                    }}
-                  />
-                )}
+                <div className="text-xs" style={{ color: pal.colors.textSecondary }}>
+                  {selected ? 'Selected' : 'Tap to apply'}
+                </div>
               </button>
             );
           })}
         </div>
-      </Card>
 
-      {/* Additional Settings Placeholder */}
-      <Card className="p-6 bg-black/80 border-neon-cyan">
-        <h2 className="text-xl font-bold text-neon-cyan mb-4">PREFERENCES</h2>
-        <p className="text-[var(--text-secondary)]">More settings coming soon...</p>
+        {/* Custom palette */}
+        <div className="mt-4 border-t border-[var(--grid-gray)] pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-[var(--neon-cyan)]">Custom Palette</h3>
+            <Button size="sm" variant="outline" onClick={() => setPalette('custom', customPalette)}>
+              Use Custom
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            {(['primary', 'accent', 'background', 'surface'] as const).map((key) => (
+              <div key={key} className="flex flex-col gap-1">
+                <Label className="text-xs text-[var(--text-secondary)] uppercase">{key}</Label>
+                <Input
+                  type="color"
+                  value={(customPalette as any)[key]}
+                  onChange={(e) => handleCustomChange(key, e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </Card>
     </div>
   );

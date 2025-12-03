@@ -20,6 +20,7 @@ export default function Layout({ children }: LayoutProps) {
   const [deviceCount, setDeviceCount] = useState<number>(0);
   const [deviceLimit, setDeviceLimit] = useState<number>(5);
   const [isPatron, setIsPatron] = useState<boolean>(false);
+  const [licenseLoaded, setLicenseLoaded] = useState(false);
 
   // Fetch uptime from backend
   useEffect(() => {
@@ -72,10 +73,12 @@ export default function Layout({ children }: LayoutProps) {
         } else if (status?.patreon_url) {
           setPatreonUrl(status.patreon_url);
         }
+        setLicenseLoaded(true);
       } catch {
         setLicenseTier('free');
         setDeviceLimit(5);
         setIsPatron(false);
+        setLicenseLoaded(true);
       }
     };
 
@@ -94,12 +97,12 @@ export default function Layout({ children }: LayoutProps) {
 
   // Nag for free tier on load
   useEffect(() => {
-    if (licenseTier === 'free' && !isPatron) {
+    if (licenseLoaded && licenseTier === 'free' && !isPatron) {
       toast.info(`Free tier: up to ${deviceLimit} devices. Support on Patreon to unlock more.`, {
         duration: 8000,
       });
     }
-  }, [licenseTier, isPatron, deviceLimit]);
+  }, [licenseTier, isPatron, deviceLimit, licenseLoaded]);
 
   const overLimit = deviceCount > deviceLimit;
   const [patreonUrl, setPatreonUrl] = useState<string>(import.meta.env.VITE_PATREON_URL || 'https://www.patreon.com/axebench');
@@ -219,7 +222,6 @@ export default function Layout({ children }: LayoutProps) {
                         }
                       `}
                     >
-                      <span className="mr-2">{tab.icon}</span>
                       {tab.label}
                       {isActive && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--matrix-green)] shadow-[0_0_10px_rgba(0,255,65,0.8)]" />
@@ -242,7 +244,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between text-sm text-[var(--text-muted)]">
               <div>
-                AxeBench Matrix Interface | Bitaxe Fleet Management System
+                AxeBench Interface | Bitaxe Fleet Management System
               </div>
               <div className="flex items-center gap-4">
                 <span>STATUS: <span className="text-[var(--matrix-green)]">OPERATIONAL</span></span>

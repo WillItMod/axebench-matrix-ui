@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Trash2, Plus, Play, Square, RefreshCw } from 'lucide-react';
+import { usePersistentState } from '@/hooks/usePersistentState';
 
 interface Pool {
   id: string;
@@ -29,8 +30,8 @@ export default function Pool() {
   const [devices, setDevices] = useState<any[]>([]);
   const [schedulerStatus, setSchedulerStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
-  const [selectedPoolId, setSelectedPoolId] = useState<string>('');
+  const [selectedDevices, setSelectedDevices] = usePersistentState<string[]>('pool-selected-devices', []);
+  const [selectedPoolId, setSelectedPoolId] = usePersistentState<string>('pool-selected-pool', '');
   
   // New pool form
   const [newPool, setNewPool] = useState({
@@ -245,6 +246,34 @@ export default function Pool() {
     }
   };
 
+  const startEdit = (pool: Pool) => {
+    setEditingPools((prev) => ({ ...prev, [pool.id]: { ...pool } }));
+  };
+
+  const updateEditingField = (id: string, field: keyof Pool, value: string) => {
+    setEditingPools((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] || pools.find((p) => p.id === id) || {}), [field]: value },
+    }));
+  };
+
+  const saveEdit = async (id: string) => {
+    const data = editingPools[id];
+    if (!data) return;
+    try {
+      await api.pool.update(id, data);
+      toast.success('Pool updated');
+      setEditingPools((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      loadData();
+    } catch (error) {
+      toast.error('Failed to update pool');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -443,27 +472,85 @@ export default function Pool() {
           <div className="space-y-4">
             {pools.map((pool) => (
               <Card key={pool.id} className="p-4 bg-black/90 border-gray-700">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <div className="font-bold text-matrix-green">{pool.name}</div>
-                      {pool.is_default && (
-                        <span className="text-xs bg-matrix-green/20 text-matrix-green px-2 py-1 rounded">
-                          DEFAULT
-                        </span>
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        {editingPools[pool.id] ? (
+                          <Input
+                            value={editingPools[pool.id].name}
+                            onChange={(e) => updateEditingField(pool.id, 'name', e.target.value)}
+                            className="w-48"
+                          />
+                        ) : (
+                          <div className="font-bold text-matrix-green">{pool.name}</div>
+                        )}
+                        {pool.is_default && (
+                          <span className="text-xs bg-matrix-green/20 text-matrix-green px-2 py-1 rounded">
+                            DEFAULT
+                          </span>
+                        )}
+                      </div>
+                      {editingPools[pool.id] ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                          <Input
+                            value={editingPools[pool.id].url}
+                            onChange={(e) => updateEditingField(pool.id, 'url', e.target.value)}
+                            placeholder="stratum url"
+                          />
+                          <Input
+                            value={editingPools[pool.id].user}
+                            onChange={(e) => updateEditingField(pool.id, 'user', e.target.value)}
+                            placeholder="username"
+                          />
+                          <Input
+                            value={editingPools[pool.id].password || ''}
+                            onChange={(e) => updateEditingField(pool.id, 'password', e.target.value)}
+                            placeholder="password"
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-sm text-gray-400 mt-1">{pool.url}</div>
+                          <div className="text-xs text-gray-500 mt-1">User: {pool.user}</div>
+                        </>
                       )}
                     </div>
-                    <div className="text-sm text-gray-400 mt-1">{pool.url}</div>
-                    <div className="text-xs text-gray-500 mt-1">User: {pool.user}</div>
+                    <div className="flex gap-2">
+                      {editingPools[pool.id] ? (
+                        <>
+                          <Button size="sm" className="btn-matrix" onClick={() => saveEdit(pool.id)}>
+                            Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setEditingPools((prev) => {
+                                const copy = { ...prev };
+                                delete copy[pool.id];
+                                return copy;
+                              })
+                            }
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => startEdit(pool)}>
+                          Edit
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => handleDeletePool(pool.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    onClick={() => handleDeletePool(pool.id)}
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-500 hover:text-red-400"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               </Card>
             ))}

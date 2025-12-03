@@ -9,11 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { usePersistentState } from '@/hooks/usePersistentState';
 
 export default function Benchmark() {
   const { status: benchmarkStatus, refreshStatus } = useBenchmark();
   const [devices, setDevices] = useState<any[]>([]);
-  const [selectedDevice, setSelectedDevice] = useState('');
+  const [selectedDevice, setSelectedDevice] = usePersistentState<string>('benchmark-selected-device', '');
   
   // Read device from URL params (for pre-selection from Dashboard)
   useEffect(() => {
@@ -71,6 +72,7 @@ export default function Benchmark() {
     recovery_max_retries: 2,
     recovery_cooldown: 10,
   });
+  const [graphsLoading, setGraphsLoading] = useState(false);
 
   // Load devices
   useEffect(() => {
@@ -95,6 +97,7 @@ export default function Benchmark() {
       try {
         const statusData = await api.benchmark.status();
         setStatus(statusData);
+        setGraphsLoading(false);
         
         // BenchmarkContext will handle state updates
         await refreshStatus();
@@ -123,6 +126,12 @@ export default function Benchmark() {
       console.error('Failed to load devices:', error);
     }
   };
+
+  useEffect(() => {
+    if (benchmarkStatus.running && selectedDevice) {
+      setGraphsLoading(true);
+    }
+  }, [benchmarkStatus.running, selectedDevice]);
 
   const handleStart = async () => {
     if (!selectedDevice) {
@@ -667,7 +676,13 @@ export default function Benchmark() {
                 </div>
               </div>
 
-              {status.live_data && (
+              {graphsLoading && (
+                <div className="matrix-card flex items-center justify-center text-[var(--text-secondary)]">
+                  Loading live graphs...
+                </div>
+              )}
+
+              {status.live_data && !graphsLoading && (
                 <div className="matrix-card">
                   <h3 className="text-lg font-bold text-glow-cyan mb-3">LIVE_DATA</h3>
                   <div className="space-y-2 text-sm">
