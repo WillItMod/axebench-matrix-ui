@@ -6,6 +6,7 @@ import NanoTuneStatusBanner from './NanoTuneStatusBanner';
 import AutoTuneStatusBanner from './AutoTuneStatusBanner';
 import { api, formatUptime } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface LayoutProps {
   children: ReactNode;
@@ -17,6 +18,8 @@ export default function Layout({ children }: LayoutProps) {
   const [uptimeAvailable, setUptimeAvailable] = useState(true);
   const [licenseTier, setLicenseTier] = useState<'free' | 'premium' | 'ultimate'>('free');
   const [deviceCount, setDeviceCount] = useState<number>(0);
+  const [deviceLimit, setDeviceLimit] = useState<number>(5);
+  const [isPatron, setIsPatron] = useState<boolean>(false);
 
   // Fetch uptime from backend
   useEffect(() => {
@@ -62,11 +65,17 @@ export default function Layout({ children }: LayoutProps) {
         const tier: 'free' | 'premium' | 'ultimate' =
           tierRaw === 'premium' ? 'premium' : tierRaw === 'ultimate' ? 'ultimate' : 'free';
         setLicenseTier(tier);
-        if (status?.patreon_url) {
+        setDeviceLimit(Number(status?.device_limit) || (tier === 'ultimate' ? 250 : tier === 'premium' ? 25 : 5));
+        setIsPatron(!!status?.is_patron);
+        if (status?.auth_url) {
+          setPatreonUrl(status.auth_url);
+        } else if (status?.patreon_url) {
           setPatreonUrl(status.patreon_url);
         }
       } catch {
         setLicenseTier('free');
+        setDeviceLimit(5);
+        setIsPatron(false);
       }
     };
 
@@ -83,9 +92,16 @@ export default function Layout({ children }: LayoutProps) {
     loadDevices();
   }, []);
 
-  const licenseLimits = { free: 5, premium: 25, ultimate: 250 };
-  const limit = licenseLimits[licenseTier];
-  const overLimit = deviceCount > limit;
+  // Nag for free tier on load
+  useEffect(() => {
+    if (licenseTier === 'free' || !isPatron) {
+      toast.info(`Free tier: up to ${deviceLimit} devices. Support on Patreon to unlock more.`, {
+        duration: 8000,
+      });
+    }
+  }, [licenseTier, isPatron, deviceLimit]);
+
+  const overLimit = deviceCount > deviceLimit;
   const [patreonUrl, setPatreonUrl] = useState<string>(import.meta.env.VITE_PATREON_URL || 'https://www.patreon.com/axebench');
 
   const renderLicenseBanner = () => {
@@ -93,7 +109,7 @@ export default function Layout({ children }: LayoutProps) {
       return (
         <div className="bg-[var(--dark-gray)] border border-[var(--warning-amber)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="text-sm">
-            Free tier: up to {limit} devices. You have {deviceCount}. {overLimit ? 'Some features may be limited.' : 'Upgrade to unlock more.'}
+            Free tier: up to {deviceLimit} devices. You have {deviceCount}. {overLimit ? 'Some features may be limited.' : 'Support to unlock more.'}
           </div>
           <div className="flex gap-2">
             <Button
@@ -112,7 +128,7 @@ export default function Layout({ children }: LayoutProps) {
       return (
         <div className="bg-[var(--dark-gray)] border border-[var(--neon-cyan)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="text-sm">
-            Premium: up to {limit} devices. Thanks for supporting! Devices: {deviceCount}.
+            Premium: up to {deviceLimit} devices. Thanks for supporting! Devices: {deviceCount}.
           </div>
           <Button
             size="sm"
@@ -129,7 +145,7 @@ export default function Layout({ children }: LayoutProps) {
       return (
         <div className="bg-[var(--dark-gray)] border border-[var(--matrix-green)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="text-sm">
-            Ultimate supporter! Limit {limit} devices. Thanks for keeping AxeBench running strong.
+            Ultimate supporter! Limit {deviceLimit} devices. Thanks for keeping AxeBench running strong.
           </div>
         </div>
       );
