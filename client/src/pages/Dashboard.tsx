@@ -66,6 +66,40 @@ const deviceMatchesPsu = (device: any, psu: any) => {
   return (psuId && deviceStr === psuId) || (psuName && deviceStr.toLowerCase() === psuName);
 };
 
+// Determine devices assigned to a PSU using multiple hints (id, name, backend-provided lists)
+const resolveAssignedDevices = (psu: any, devices: Device[]) => {
+  // Direct match by id/name on device
+  let matches = devices.filter((d) => deviceMatchesPsu(d, psu));
+
+  // Fallback: backend may provide device names under various keys
+  const candidateLists = [
+    psu?.devices,
+    psu?.assigned_devices,
+    psu?.assignedDevices,
+    psu?.device_names,
+    psu?.deviceNames,
+  ].filter(Boolean);
+
+  if (candidateLists.length > 0) {
+    const names = new Set(
+      candidateLists.flatMap((list: any) =>
+        Array.isArray(list) ? list.map((n) => String(n).toLowerCase()) : []
+      )
+    );
+    const listMatches = devices.filter((d) => names.has(String(d.name).toLowerCase()));
+    // Merge unique devices
+    const byName = new Set(matches.map((d) => d.name));
+    listMatches.forEach((d) => {
+      if (!byName.has(d.name)) {
+        matches.push(d);
+        byName.add(d.name);
+      }
+    });
+  }
+
+  return matches;
+};
+
 const getPsuMetrics = (psu: any) => {
   const voltage = normalizeNumber(psu?.voltage, null);
   const amperage = normalizeNumber(psu?.amperage, null);
@@ -555,6 +589,11 @@ export default function Dashboard() {
             {psus.map((psu: any) => {
               // Find devices assigned to this PSU
               const assignedDevices = devices.filter((d) => deviceMatchesPsu(d, psu));
+              const backendCount =
+                (typeof psu.devices_count === 'number' ? psu.devices_count : null) ??
+                (Array.isArray(psu.devices) ? psu.devices.length : null) ??
+                (Array.isArray(psu.assigned_devices) ? psu.assigned_devices.length : null);
+              const assignedCount = assignedDevices.length || backendCount || 0;
               const metrics = getPsuMetrics(psu);
               const psuLoad = assignedDevices.reduce(
                 (sum, d) => sum + (d.status?.power ?? d.status?.wattage ?? 0),
@@ -568,7 +607,9 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-bold text-glow-cyan">⚡ {psu.name}</h3>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-[var(--text-muted)]">{assignedDevices.length} DEVICE{assignedDevices.length !== 1 ? 'S' : ''}</span>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        {assignedCount} DEVICE{assignedCount !== 1 ? 'S' : ''}
+                      </span>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -613,7 +654,12 @@ export default function Dashboard() {
                         ))}
                       </div>
                     )}
-                    {assignedDevices.length === 0 && (
+                    {assignedDevices.length === 0 && backendCount ? (
+                      <div className="text-xs text-[var(--text-muted)] italic mt-2">
+                        {backendCount} device(s) assigned (no live data yet)
+                      </div>
+                    ) : null}
+                    {assignedDevices.length === 0 && !backendCount && (
                       <div className="text-xs text-[var(--text-muted)] italic mt-2">
                         No devices assigned
                       </div>
