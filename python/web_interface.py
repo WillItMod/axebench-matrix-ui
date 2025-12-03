@@ -16,6 +16,7 @@ Features:
 - Real-time monitoring and logging
 """
 from flask import Flask, render_template, jsonify, request, send_file, redirect, session
+import os
 from flask_cors import CORS
 from presets import PRESETS, get_preset_by_id, DEFAULT_PRESET_ID
 import secrets
