@@ -271,15 +271,15 @@ export const api = {
     applyFallback: (deviceName: string, poolId: string) => {
       const dev = encodeURIComponent(deviceName);
       const pool = encodeURIComponent(poolId);
-      return apiFetch<any>(`/api/devices/${dev}/pool/apply-fallback/${pool}`, { method: 'POST' });
+      return apiFetch<any>(`${AXEPOOL_BASE}/api/devices/${dev}/pool/apply-fallback/${pool}`, { method: 'POST' });
     },
     swapPool: (deviceName: string) => {
       const dev = encodeURIComponent(deviceName);
-      return apiFetch<any>(`/api/devices/${dev}/pool/swap`, { method: 'POST' });
+      return apiFetch<any>(`${AXEPOOL_BASE}/api/devices/${dev}/pool/swap`, { method: 'POST' });
     },
     importPool: (deviceName: string, poolData: any) => {
       const dev = encodeURIComponent(deviceName);
-      return apiFetch<any>(`/api/devices/${dev}/pool/import`, { 
+      return apiFetch<any>(`${AXEPOOL_BASE}/api/devices/${dev}/pool/import`, { 
         method: 'POST', 
         body: JSON.stringify(poolData) 
       });

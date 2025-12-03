@@ -26,7 +26,7 @@ export default function PoolPage() {
 
   async function fetchPools() {
     try {
-      const res = await fetch('/api/pools');
+      const res = await fetch('/pool/api/pools');
       if (res.ok) {
         const data = await res.json();
         setPools(data);
@@ -43,7 +43,7 @@ export default function PoolPage() {
     }
     
     try {
-      const res = await fetch('/api/pools', {
+      const res = await fetch('/pool/api/pools', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(newPool)
@@ -64,7 +64,7 @@ export default function PoolPage() {
   const handleDeletePool = async (id: number) => {
     if (!confirm("Delete this pool?")) return;
     try {
-      await fetch(`/api/pools/${id}`, { method: 'DELETE' });
+      await fetch(`/pool/api/pools/${id}`, { method: 'DELETE' });
       toast.success("Pool configuration removed");
       fetchPools();
     } catch (err) {
