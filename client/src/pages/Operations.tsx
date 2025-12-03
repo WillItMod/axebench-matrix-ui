@@ -56,6 +56,7 @@ const isNotFoundError = (error: any) =>
 const DEFAULT_PROFILES = ['Quiet', 'Efficient', 'Balanced', 'Max'];
 const PROFILE_DRAFT_KEY = 'axebench:draft:profiles';
 const POOL_DRAFT_KEY = 'axebench:draft:pools';
+const LOCAL_SCHEDULE_PREFIX = 'axebench:schedule:';
 
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
@@ -187,40 +188,26 @@ export default function Operations() {
       const data = await api.shed.getSchedule(deviceName);
       if (!data || (data as any).skipped) {
         missingSchedule.current.add(deviceName);
-        toast.warning(`No schedule endpoint for ${deviceName}; keeping local entries.`);
+        // Fallback: load from local storage if present
+        const localRaw = localStorage.getItem(`${LOCAL_SCHEDULE_PREFIX}${deviceName}`);
+        if (localRaw) {
+          try {
+            const parsed = JSON.parse(localRaw) as SchedulePayload;
+            hydrateSlotsFromEntries(parsed.entries || []);
+            setSchedulerEnabled(Boolean(parsed.enabled));
+            toast.success(`Loaded local schedule for ${deviceName} (no API)`);
+          } catch {
+            toast.warning(`No schedule endpoint for ${deviceName}; keeping local entries.`);
+          }
+        } else {
+          toast.warning(`No schedule endpoint for ${deviceName}; keeping local entries.`);
+        }
         return;
       }
 
       setSchedulerEnabled(Boolean(data.enabled));
 
-      const entries = (data.entries || []) as SchedulePayload['entries'];
-      const pSlots: ProfileSlot[] = [];
-      const poSlots: PoolSlot[] = [];
-
-      entries.forEach((entry: any) => {
-        if (entry.kind === 'pool') {
-          poSlots.push({
-            id: generateId(),
-            time: entry.time || '00:00',
-            poolId: entry.poolId || entry.pool || '',
-            mode: entry.mode === 'fallback' ? 'fallback' : 'main',
-            days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-          });
-        } else {
-          pSlots.push({
-            id: generateId(),
-            time: entry.time || '00:00',
-            profile: entry.profile || '',
-            days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-          });
-        }
-      });
-
-      // Only overwrite if entries were returned; otherwise keep local draft
-      if (pSlots.length || poSlots.length) {
-        setProfileSlots(pSlots);
-        setPoolSlots(poSlots);
-      }
+      hydrateSlotsFromEntries(data.entries || []);
     } catch (error) {
       if (isNotFoundError(error)) {
         // keep existing drafts if present
@@ -229,6 +216,35 @@ export default function Operations() {
         return;
       }
       toast.error('Failed to load schedule');
+    }
+  };
+
+  const hydrateSlotsFromEntries = (entries: SchedulePayload['entries']) => {
+    const pSlots: ProfileSlot[] = [];
+    const poSlots: PoolSlot[] = [];
+
+    entries.forEach((entry: any) => {
+      if (entry.kind === 'pool') {
+        poSlots.push({
+          id: generateId(),
+          time: entry.time || '00:00',
+          poolId: entry.poolId || entry.pool || '',
+          mode: entry.mode === 'fallback' ? 'fallback' : 'main',
+          days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+        });
+      } else {
+        pSlots.push({
+          id: generateId(),
+          time: entry.time || '00:00',
+          profile: entry.profile || '',
+          days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+        });
+      }
+    });
+
+    if (pSlots.length || poSlots.length) {
+      setProfileSlots(pSlots);
+      setPoolSlots(poSlots);
     }
   };
 
@@ -292,14 +308,6 @@ export default function Operations() {
       toast.error('Select at least one device');
       return;
     }
-    const targets = selectedDevices.filter((d) => !missingSchedule.current.has(d));
-    const skippedDevices = selectedDevices.filter((d) => missingSchedule.current.has(d));
-
-    if (!targets.length) {
-      toast.warning('Schedule API missing on selected devices; nothing to save.');
-      return;
-    }
-
     const payload: SchedulePayload = {
       enabled: schedulerEnabled,
       entries: [
@@ -318,6 +326,13 @@ export default function Operations() {
         })),
       ],
     };
+
+    // Always persist locally per-device
+    selectedDevices.forEach((device) => {
+      localStorage.setItem(`${LOCAL_SCHEDULE_PREFIX}${device}`, JSON.stringify(payload));
+    });
+
+    const targets = selectedDevices.filter((d) => !missingSchedule.current.has(d));
 
     const results = await Promise.allSettled(
       targets.map(async (device) => {
@@ -338,21 +353,22 @@ export default function Operations() {
       .map((r: any) => (r.status === 'fulfilled' ? r.value : r.reason));
     const successCount = results.length - failures.length;
 
+    const savedLocally = selectedDevices.length;
+    if (savedLocally > 0) {
+      toast.success(`Schedule stored locally for ${savedLocally} device(s)`);
+    }
     if (successCount > 0) {
-      toast.success(`Schedule saved for ${successCount} device(s)`);
+      toast.success(`Schedule pushed to ${successCount} device(s) with API`);
     }
     if (failures.length) {
       const notFound = failures.filter((f: any) => isNotFoundError(f?.error || f));
       const other = failures.filter((f: any) => !isNotFoundError(f?.error || f));
       if (notFound.length) {
-        toast.warning(`Schedule API missing for ${notFound.length} device(s); skipped.`);
+        toast.warning(`Schedule API missing for ${notFound.length} device(s); kept local only.`);
       }
       if (other.length) {
-        toast.error('Failed to save schedule for some devices');
+        toast.error('Failed to push schedule for some devices');
       }
-    }
-    if (skippedDevices.length) {
-      toast.warning(`Skipped ${skippedDevices.length} device(s) without scheduling API`);
     }
 
     if (successCount > 0) {

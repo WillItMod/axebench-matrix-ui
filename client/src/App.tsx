@@ -13,9 +13,12 @@ import Sessions from "./pages/Sessions";
 import Pool from "./pages/Pool";
 import Operations from "./pages/Operations";
 import Settings from "./pages/Settings";
+import DebugTools from "./pages/DebugTools";
 import NotFound from "./pages/NotFound";
 
 function Router() {
+  const debugEnabled = import.meta.env.VITE_ENABLE_DEBUG === 'true';
+
   return (
     <>
       <Layout>
@@ -28,6 +31,7 @@ function Router() {
           <Route path="/pool" component={Pool} />
           <Route path="/operations" component={Operations} />
           <Route path="/settings" component={Settings} />
+          {debugEnabled && <Route path="/__debug" component={DebugTools} />}
           <Route path="/404" component={NotFound} />
           <Route component={NotFound} />
         </Switch>
