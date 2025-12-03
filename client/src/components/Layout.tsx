@@ -5,6 +5,7 @@ import BenchmarkStatusBanner from './BenchmarkStatusBanner';
 import NanoTuneStatusBanner from './NanoTuneStatusBanner';
 import AutoTuneStatusBanner from './AutoTuneStatusBanner';
 import { api, formatUptime } from '@/lib/api';
+import { Button } from '@/components/ui/button';
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,16 +13,23 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
-  const [uptime, setUptime] = useState<string>('∞');
+  const [uptime, setUptime] = useState<string>('…');
+  const [licenseTier, setLicenseTier] = useState<'free' | 'premium' | 'ultimate'>('free');
+  const [deviceCount, setDeviceCount] = useState<number>(0);
 
   // Fetch uptime from backend
   useEffect(() => {
     const fetchUptime = async () => {
       try {
         const data = await api.system.uptime();
-        setUptime(formatUptime(data.uptime_seconds));
+        const seconds = Number(data?.uptime_seconds);
+        if (!Number.isFinite(seconds) || seconds <= 0) {
+          setUptime('N/A');
+        } else {
+          setUptime(formatUptime(seconds));
+        }
       } catch (error) {
-        // If backend is down or endpoint not available, keep infinity symbol
+        setUptime('N/A');
         console.warn('Failed to fetch uptime:', error);
       }
     };
@@ -34,14 +42,95 @@ export default function Layout({ children }: LayoutProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // License tier + device count (for limits and messaging)
+  useEffect(() => {
+    const loadLicense = async () => {
+      try {
+        const status = await api.license.status().catch(() => null);
+        const tierRaw = (status?.tier as string | undefined)?.toLowerCase();
+        const tier: 'free' | 'premium' | 'ultimate' =
+          tierRaw === 'premium' ? 'premium' : tierRaw === 'ultimate' ? 'ultimate' : 'free';
+        setLicenseTier(tier);
+      } catch {
+        setLicenseTier('free');
+      }
+    };
+
+    const loadDevices = async () => {
+      try {
+        const devices = await api.devices.list();
+        setDeviceCount(Array.isArray(devices) ? devices.length : 0);
+      } catch {
+        setDeviceCount(0);
+      }
+    };
+
+    loadLicense();
+    loadDevices();
+  }, []);
+
+  const licenseLimits = { free: 5, premium: 25, ultimate: 250 };
+  const limit = licenseLimits[licenseTier];
+  const overLimit = deviceCount > limit;
+
+  const renderLicenseBanner = () => {
+    if (licenseTier === 'free') {
+      return (
+        <div className="bg-[var(--dark-gray)] border border-[var(--warning-amber)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="text-sm">
+            Free tier: up to {limit} devices. You have {deviceCount}. {overLimit ? 'Some features may be limited.' : 'Upgrade to unlock more.'}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="btn-matrix"
+              onClick={() => window.open('https://www.patreon.com/', '_blank')}
+            >
+              Support on Patreon
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (licenseTier === 'premium') {
+      return (
+        <div className="bg-[var(--dark-gray)] border border-[var(--neon-cyan)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="text-sm">
+            Premium: up to {limit} devices. Thanks for supporting! Devices: {deviceCount}.
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open('https://www.patreon.com/', '_blank')}
+          >
+            Upgrade to Ultimate
+          </Button>
+        </div>
+      );
+    }
+
+    if (licenseTier === 'ultimate') {
+      return (
+        <div className="bg-[var(--dark-gray)] border border-[var(--matrix-green)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="text-sm">
+            Ultimate supporter! Limit {limit} devices. Thanks for keeping AxeBench running strong.
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   const tabs = [
     { path: '/', label: 'DASHBOARD', icon: '⚡' },
-    { path: '/benchmark', label: 'BENCHMARK', icon: '🔬' },
-    { path: '/monitoring', label: 'MONITORING', icon: '📊' },
-    { path: '/sessions', label: 'SESSIONS', icon: '📁' },
-    { path: '/profiles', label: 'PROFILES', icon: '📋' },
+    { path: '/benchmark', label: 'BENCHMARK', icon: '🧪' },
+    { path: '/monitoring', label: 'MONITORING', icon: '📈' },
+    { path: '/sessions', label: 'SESSIONS', icon: '🗂️' },
+    { path: '/profiles', label: 'PROFILES', icon: '🎛️' },
     { path: '/pool', label: 'POOL', icon: '🌐' },
-    { path: '/operations', label: 'OPERATIONS', icon: '⏰' },
+    { path: '/operations', label: 'OPERATIONS', icon: '🛠️' },
     { path: '/settings', label: 'SETTINGS', icon: '⚙️' },
   ];
 
@@ -54,6 +143,7 @@ export default function Layout({ children }: LayoutProps) {
       <BenchmarkStatusBanner />
       <NanoTuneStatusBanner />
       <AutoTuneStatusBanner />
+      {renderLicenseBanner()}
 
       {/* Main Content */}
       <div className="relative z-20">

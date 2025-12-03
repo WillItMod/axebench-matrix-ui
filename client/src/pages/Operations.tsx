@@ -78,7 +78,6 @@ export default function Operations() {
     mode: 'main',
     days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   });
-  const [selectedPoolIds, setSelectedPoolIds] = useState<string[]>([]);
 
   useEffect(() => {
     loadDevices();
@@ -126,9 +125,11 @@ export default function Operations() {
       const data = await api.pool.list();
       const array = Array.isArray(data) ? data : Object.values(data || {});
       setPools(array);
-      if (!selectedPoolIds.length && array.length) {
-        const firstId = (array[0] as any).id || (array[0] as any).name;
-        if (firstId) setSelectedPoolIds([firstId]);
+      if (array.length) {
+        const firstId = (array[0] as any).id || (array[0] as any).name || '';
+        if (!newPoolSlot.poolId && firstId) {
+          setNewPoolSlot((slot) => ({ ...slot, poolId: firstId }));
+        }
       }
     } catch (error) {
       toast.error('Failed to load pools');
@@ -213,17 +214,17 @@ export default function Operations() {
   };
 
   const handleAddPoolSlot = () => {
-    if (!selectedPoolIds.length) {
-      toast.error('Select at least one pool');
+    if (!newPoolSlot.poolId) {
+      toast.error('Select a pool profile');
       return;
     }
-    const slotsToAdd = selectedPoolIds.map((poolId) => ({
-      ...newPoolSlot,
-      id: generateId(),
-      poolId,
-    }));
-    setPoolSlots([...poolSlots, ...slotsToAdd]);
-    setSelectedPoolIds([]);
+    setPoolSlots([
+      ...poolSlots,
+      {
+        ...newPoolSlot,
+        id: generateId(),
+      },
+    ]);
     setNewPoolSlot({
       id: generateId(),
       time: '00:00',
@@ -359,23 +360,21 @@ export default function Operations() {
             </div>
             <div>
               <Label>Profile</Label>
-              <div className="flex flex-wrap gap-2">
-                {profileOptions.map((name) => {
-                  const active = newProfileSlot.profile === name;
-                  return (
-                    <Button
-                      key={name}
-                      type="button"
-                      size="sm"
-                      variant={active ? 'default' : 'outline'}
-                      className={active ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--neon-cyan)]'}
-                      onClick={() => setNewProfileSlot({ ...newProfileSlot, profile: name })}
-                    >
-                      {name.toUpperCase()}
-                    </Button>
-                  );
-                })}
-              </div>
+              <Select
+                value={newProfileSlot.profile}
+                onValueChange={(val) => setNewProfileSlot({ ...newProfileSlot, profile: val })}
+              >
+                <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                  <SelectValue placeholder="Select profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  {profileOptions.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-end">
               <Button onClick={handleAddProfileSlot} className="w-full gap-2">
@@ -421,44 +420,43 @@ export default function Operations() {
             </div>
             <div>
               <Label>Pool Profile</Label>
-              <div className="flex flex-wrap gap-2">
-                {pools.map((p: any) => {
-                  const poolId = p.id || p.name;
-                  const active = selectedPoolIds.includes(poolId);
-                  return (
-                    <Button
-                      key={poolId}
-                      type="button"
-                      size="sm"
-                      variant={active ? 'default' : 'outline'}
-                      className={active ? 'bg-[var(--matrix-green)] text-black hover:bg-[var(--matrix-green)]/80' : 'text-[var(--text-secondary)] hover:text-[var(--matrix-green)]'}
-                      onClick={() =>
-                        setSelectedPoolIds((prev) =>
-                          prev.includes(poolId) ? prev.filter((id) => id !== poolId) : [...prev, poolId]
-                        )
-                      }
-                    >
-                      {p.name}
-                    </Button>
-                  );
-                })}
-              </div>
+              <Select
+                value={newPoolSlot.poolId}
+                onValueChange={(val) => setNewPoolSlot({ ...newPoolSlot, poolId: val })}
+              >
+                <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                  <SelectValue placeholder="Select pool profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pools.map((p: any) => {
+                    const poolId = p.id || p.name;
+                    return (
+                      <SelectItem key={poolId} value={poolId}>
+                        {p.name || poolId}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={newPoolSlot.mode === 'main' ? 'default' : 'outline'}
-                className="w-full"
-                onClick={() => setNewPoolSlot({ ...newPoolSlot, mode: 'main' })}
-              >
-                MAIN
-              </Button>
-              <Button
-                variant={newPoolSlot.mode === 'fallback' ? 'default' : 'outline'}
-                className="w-full"
-                onClick={() => setNewPoolSlot({ ...newPoolSlot, mode: 'fallback' })}
-              >
-                FALLBACK
-              </Button>
+            <div className="flex flex-col gap-2 md:flex-row md:items-end">
+              <Label className="md:hidden">Mode</Label>
+              <div className="grid grid-cols-2 gap-2 w-full">
+                <Button
+                  variant={newPoolSlot.mode === 'main' ? 'default' : 'outline'}
+                  className="w-full"
+                  onClick={() => setNewPoolSlot({ ...newPoolSlot, mode: 'main' })}
+                >
+                  MAIN
+                </Button>
+                <Button
+                  variant={newPoolSlot.mode === 'fallback' ? 'default' : 'outline'}
+                  className="w-full"
+                  onClick={() => setNewPoolSlot({ ...newPoolSlot, mode: 'fallback' })}
+                >
+                  FALLBACK
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -474,7 +472,7 @@ export default function Operations() {
                   <ScheduleRow
                     key={slot.id}
                     icon={<Clock className="w-4 h-4 text-[var(--matrix-green)]" />}
-                    title={`${poolName} ƒ?½ ${slot.mode.toUpperCase()}`}
+                    title={`${poolName} \u2192 ${slot.mode.toUpperCase()}`}
                     subtitle={slot.time}
                     days={slot.days}
                     onRemove={() => setShowRemove({ type: 'pool', id: slot.id })}

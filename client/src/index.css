@@ -65,6 +65,8 @@
   body {
     @apply bg-[var(--deep-black)] text-[var(--text-primary)] font-mono;
     font-family: 'Share Tech Mono', 'Courier New', 'Courier', monospace;
+    font-size: 15px;
+    line-height: 1.6;
     overflow-x: hidden;
   }
   
