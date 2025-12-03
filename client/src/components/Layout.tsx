@@ -221,8 +221,8 @@ export default function Layout({ children }: LayoutProps) {
                         px-6 py-3 font-bold uppercase tracking-wide transition-all relative rounded-md
                         ${
                           isActive
-                            ? 'text-[var(--deep-black)] border border-[var(--theme-primary)] shadow-[0_0_16px_rgba(0,255,65,0.5)] bg-gradient-to-r from-[var(--theme-primary)]/85 via-[var(--theme-accent)]/70 to-[var(--theme-primary)]/85'
-                            : 'text-[var(--text-primary)]/90 hover:text-[var(--theme-accent)] hover:border-[var(--theme-accent)] hover:shadow-[0_0_10px_rgba(0,255,255,0.35)] hover:bg-[var(--grid-gray)]/80 border border-[var(--grid-gray)]'
+                            ? 'text-[var(--deep-black)] border border-[var(--theme-primary)] shadow-[0_0_16px_rgba(0,255,65,0.5)] bg-[var(--theme-primary)]/70'
+                            : 'text-[var(--text-primary)]/90 hover:text-[var(--theme-accent)] hover:border-[var(--theme-accent)] hover:shadow-[0_0_10px_rgba(0,255,255,0.35)] hover:bg-[var(--grid-gray)]/60 border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60'
                         }
                       `}
                     >
