@@ -66,7 +66,7 @@ export default function Layout({ children }: LayoutProps) {
           tierRaw === 'premium' ? 'premium' : tierRaw === 'ultimate' ? 'ultimate' : 'free';
         setLicenseTier(tier);
         setDeviceLimit(Number(status?.device_limit) || (tier === 'ultimate' ? 250 : tier === 'premium' ? 25 : 5));
-        setIsPatron(!!status?.is_patron);
+        setIsPatron(tier !== 'free' || !!status?.is_patron);
         if (status?.auth_url) {
           setPatreonUrl(status.auth_url);
         } else if (status?.patreon_url) {
@@ -94,7 +94,7 @@ export default function Layout({ children }: LayoutProps) {
 
   // Nag for free tier on load
   useEffect(() => {
-    if (licenseTier === 'free' || !isPatron) {
+    if (licenseTier === 'free' && !isPatron) {
       toast.info(`Free tier: up to ${deviceLimit} devices. Support on Patreon to unlock more.`, {
         duration: 8000,
       });
