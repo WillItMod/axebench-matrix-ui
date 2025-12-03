@@ -518,14 +518,16 @@ export default function Operations() {
               <div>
                 <Label>Fallback Pool (optional)</Label>
                 <Select
-                  value={poolForm.fallbackPoolId}
-                  onValueChange={(val) => setPoolForm({ ...poolForm, fallbackPoolId: val })}
+                  value={poolForm.fallbackPoolId || 'none'}
+                  onValueChange={(val) =>
+                    setPoolForm({ ...poolForm, fallbackPoolId: val === 'none' ? '' : val })
+                  }
                 >
                   <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
                     <SelectValue placeholder="Select fallback pool" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {pools.map((p: any) => {
                       const poolId = p.id || p.name;
                       return (
