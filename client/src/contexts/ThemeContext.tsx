@@ -300,11 +300,16 @@ const basePalettes: Record<PaletteName, Palette> = {
 
 export const fonts: FontChoice[] = [
   { key: 'default', label: 'System Default', stack: 'Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif' },
+  { key: 'share-tech', label: 'Share Tech Mono (Teal Terminal)', stack: '\"Share Tech Mono\", \"IBM Plex Mono\", monospace' },
+  { key: 'space-grotesk', label: 'Space Grotesk (Modern)', stack: '\"Space Grotesk\", \"Inter\", system-ui, sans-serif' },
+  { key: 'exo2', label: 'Exo 2 (Sci-Fi)', stack: '\"Exo 2\", \"Inter\", system-ui, sans-serif' },
+  { key: 'sora', label: 'Sora (Clean Tech)', stack: '\"Sora\", \"Inter\", system-ui, sans-serif' },
+  { key: 'audiowide', label: 'Audiowide (Arcade)', stack: '\"Audiowide\", \"Inter\", system-ui, sans-serif' },
   { key: 'oxanium', label: 'Oxanium', stack: '\"Oxanium\", \"Inter\", system-ui, sans-serif' },
   { key: 'orbitron', label: 'Orbitron', stack: '\"Orbitron\", \"Inter\", system-ui, sans-serif' },
   { key: 'rajdhani', label: 'Rajdhani', stack: '\"Rajdhani\", \"Inter\", system-ui, sans-serif' },
   { key: 'press-start', label: 'Press Start 2P', stack: '\"Press Start 2P\", \"Inter\", system-ui, sans-serif' },
-  { key: 'vt323', label: 'VT323', stack: '\"VT323\", monospace' },
+  { key: 'vt323', label: 'VT323 (Retro Terminal)', stack: '\"VT323\", monospace' },
   { key: 'plex-mono', label: 'IBM Plex Mono', stack: '\"IBM Plex Mono\", \"Inter\", monospace' },
 ];
 
@@ -317,6 +322,10 @@ interface ThemeContextType {
   fonts: FontChoice[];
   fontKey: string;
   setFontKey: (key: string) => void;
+  fontScale: number;
+  setFontScale: (scale: number) => void;
+  matrixCodeColor: string;
+  setMatrixCodeColor: (color: string) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -325,6 +334,8 @@ const PALETTE_KEY = 'axebench-palette';
 const CUSTOM_PALETTE_KEY = 'axebench-custom-palette';
 const FONT_KEY = 'axebench-font';
 const THEME_KEY = 'axebench-theme';
+const FONT_SCALE_KEY = 'axebench-font-scale';
+const MATRIX_CODE_COLOR_KEY = 'axebench-matrix-code-color';
 
 function loadCustomPalette(): Partial<Palette['colors']> | null {
   try {
@@ -351,6 +362,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [customPalette, setCustomPalette] = useState<Partial<Palette['colors']> | null>(() => loadCustomPalette());
 
   const [fontKey, setFontKey] = useState<string>(() => localStorage.getItem(FONT_KEY) || 'oxanium');
+  const [fontScale, setFontScale] = useState<number>(() => {
+    const saved = localStorage.getItem(FONT_SCALE_KEY);
+    return saved ? Number(saved) || 1 : 1;
+  });
+  const [matrixCodeColor, setMatrixCodeColor] = useState<string>(() => {
+    return localStorage.getItem(MATRIX_CODE_COLOR_KEY) || basePalettes['matrix-green'].colors.primary;
+  });
 
   const palette = useMemo(() => {
     if (paletteName === 'custom' && customPalette) {
@@ -383,6 +401,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.style.setProperty('--app-font', font.stack);
   }, [fontKey]);
 
+  useEffect(() => {
+    const clamped = Math.min(Math.max(fontScale, 0.85), 1.25);
+    document.documentElement.style.fontSize = `${clamped * 16}px`;
+    localStorage.setItem(FONT_SCALE_KEY, String(clamped));
+  }, [fontScale]);
+
+  useEffect(() => {
+    if (matrixCodeColor) {
+      document.documentElement.style.setProperty('--matrix-green', matrixCodeColor);
+      localStorage.setItem(MATRIX_CODE_COLOR_KEY, matrixCodeColor);
+    }
+  }, [matrixCodeColor]);
+
   const setTheme = (name: ThemeName) => {
     setThemeName(name);
     localStorage.setItem(THEME_KEY, name);
@@ -408,6 +439,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         fonts,
         fontKey,
         setFontKey,
+        fontScale,
+        setFontScale,
+        matrixCodeColor,
+        setMatrixCodeColor,
       }}
     >
       {children}

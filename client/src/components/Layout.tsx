@@ -218,17 +218,17 @@ export default function Layout({ children }: LayoutProps) {
                   <Link key={tab.path} href={tab.path}>
                     <button
                       className={`
-                        px-6 py-3 font-bold transition-all relative
+                        px-6 py-3 font-bold transition-all relative rounded-md
                         ${
                           isActive
-                            ? 'bg-[var(--matrix-green)]/20 text-[var(--matrix-green)] border-b-2 border-[var(--matrix-green)]'
-                            : 'text-[var(--text-muted)] hover:text-[var(--neon-cyan)] hover:bg-[var(--grid-gray)]'
+                            ? 'bg-[var(--matrix-green)]/25 text-[var(--matrix-green)] border border-[var(--matrix-green)] shadow-[0_0_12px_rgba(0,255,65,0.35)]'
+                            : 'text-[var(--text-primary)]/80 hover:text-[var(--neon-cyan)] hover:bg-[var(--grid-gray)] border border-transparent'
                         }
                       `}
                     >
                       {tab.label}
                       {isActive && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--matrix-green)] shadow-[0_0_10px_rgba(0,255,65,0.8)]" />
+                        <div className="absolute inset-0 rounded-md pointer-events-none shadow-[0_0_18px_rgba(0,255,65,0.45)]" />
                       )}
                     </button>
                   </Link>

@@ -17,7 +17,7 @@ interface LicenseStatus {
 }
 
 export default function Settings() {
-  const { paletteName, setPalette, palette, fontKey, setFontKey } = useTheme();
+  const { paletteName, setPalette, palette, fontKey, setFontKey, fontScale, setFontScale, matrixCodeColor, setMatrixCodeColor } = useTheme();
   const [customPalette, setCustomPalette] = useState({
     primary: palette.colors.primary,
     accent: palette.colors.accent,
@@ -120,6 +120,19 @@ export default function Settings() {
             </SelectContent>
           </Select>
           <div className="text-xs text-[var(--text-secondary)]">Apply a font stack across the UI.</div>
+          <div className="mt-3">
+            <Label className="text-xs text-[var(--text-secondary)]">Global Text Size</Label>
+            <input
+              type="range"
+              min="0.9"
+              max="1.2"
+              step="0.02"
+              value={fontScale}
+              onChange={(e) => setFontScale(parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <div className="text-xs text-[var(--text-secondary)]">Scale: {fontScale.toFixed(2)}x</div>
+          </div>
         </Card>
       </div>
 
@@ -183,6 +196,16 @@ export default function Settings() {
                 />
               </div>
             ))}
+          </div>
+          <div className="mt-4 flex flex-col gap-2">
+            <Label className="text-xs text-[var(--text-secondary)]">Matrix Code Color</Label>
+            <Input
+              type="color"
+              value={matrixCodeColor}
+              onChange={(e) => setMatrixCodeColor(e.target.value)}
+              className="h-10 w-28"
+            />
+            <div className="text-[var(--text-secondary)] text-xs">Adjust the digital rain hue (keeps animation intact).</div>
           </div>
         </div>
       </Card>
