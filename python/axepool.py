@@ -99,6 +99,7 @@ def save_pools(pools):
         json.dump(pools, f, indent=2)
 
 
+
 def load_pool_schedule(device_name):
     """Load pool schedule for a device"""
     pool_schedules_dir.mkdir(parents=True, exist_ok=True)
@@ -109,15 +110,54 @@ def load_pool_schedule(device_name):
     return None
 
 
+def _normalize_pool_blocks(blocks):
+    """Ensure blocks have start/end and support fallback with start-only entries."""
+    if not isinstance(blocks, list):
+        return []
+
+    def to_minutes(t):
+        try:
+            h, m = t.split(":")
+            return int(h) * 60 + int(m)
+        except Exception:
+            return 0
+
+    sorted_blocks = sorted(blocks, key=lambda b: to_minutes(b.get("start", "00:00")))
+    normalized = []
+    for idx, block in enumerate(sorted_blocks):
+        start = block.get("start") or block.get("time") or "00:00"
+        end = block.get("end")
+        pool = block.get("pool") or block.get("default_pool") or block.get("defaultPool") or block.get("name")
+        fallback = block.get("fallback") or block.get("fallback_pool") or block.get("fallbackPool")
+        days = block.get("days") or [
+            'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+        ]
+
+        if not end:
+            if idx + 1 < len(sorted_blocks):
+                end = sorted_blocks[idx + 1].get("start") or "23:59"
+            else:
+                end = "23:59"
+
+        entry = {"start": start, "end": end, "pool": pool, "days": days}
+        if fallback:
+            entry["fallback_pool"] = fallback
+        normalized.append(entry)
+    return normalized
+
+
 def save_pool_schedule(device_name, schedule):
-    """Save pool schedule for a device"""
+    """Save pool schedule for a device (accepts start-only blocks)."""
     pool_schedules_dir.mkdir(parents=True, exist_ok=True)
     schedule_file = pool_schedules_dir / f"{device_name}.json"
+    if isinstance(schedule, dict):
+        schedule = dict(schedule)
+        schedule["time_blocks"] = _normalize_pool_blocks(schedule.get("time_blocks", []))
     with open(schedule_file, 'w') as f:
         json.dump(schedule, f, indent=2)
 
 
-async def get_device_pool(ip_address):
+async def get_device_pool(ip_address):(ip_address):
     """Get current pool info from device"""
     try:
         async with aiohttp.ClientSession(timeout=DEFAULT_TIMEOUT) as session:
@@ -186,36 +226,42 @@ async def restart_device(ip_address):
         return False
 
 
+
 def get_active_pool_for_time(schedule, current_time):
-    """Determine which pool should be active based on schedule and current time"""
+    """Determine which pool should be active based on schedule (returns main,fallback)."""
     if not schedule or 'time_blocks' not in schedule:
-        return None
-    
+        return None, None
     current_minutes = current_time.hour * 60 + current_time.minute
     current_day = current_time.strftime('%A').lower()
-    
+    default_pool = schedule.get('default_pool')
+
     for block in schedule.get('time_blocks', []):
-        # Check if this day applies
         days = block.get('days', ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])
         if current_day not in days:
             continue
-        
-        # Parse start/end times
-        start_parts = block['start'].split(':')
-        end_parts = block['end'].split(':')
-        start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
-        end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
-        
-        # Handle overnight schedules (e.g., 22:00 - 06:00)
-        if end_minutes < start_minutes:
-            if current_minutes >= start_minutes or current_minutes < end_minutes:
-                return block['pool']
-        else:
-            if start_minutes <= current_minutes < end_minutes:
-                return block['pool']
-    
-    # Return default if no match
-    return schedule.get('default_pool')
+
+        start = block.get('start', '00:00')
+        end = block.get('end', '23:59')
+        try:
+            start_parts = start.split(':')
+            end_parts = end.split(':')
+            start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
+            end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
+        except Exception:
+            start_minutes = 0
+            end_minutes = 24 * 60 - 1
+
+        def is_in_window():
+            if end_minutes < start_minutes:
+                return current_minutes >= start_minutes or current_minutes < end_minutes
+            return start_minutes <= current_minutes < end_minutes
+
+        if is_in_window():
+            pool_id = block.get('pool') or default_pool
+            fallback_id = block.get('fallback_pool') or block.get('fallback')
+            return pool_id, fallback_id
+
+    return default_pool, None
 
 
 def scheduler_loop():
@@ -241,43 +287,53 @@ def scheduler_loop():
                     continue
                 
                 # Get active pool
-                pool_id = get_active_pool_for_time(schedule, current_time)
+                pool_id, fallback_id = get_active_pool_for_time(schedule, current_time)
                 if not pool_id or pool_id not in pools:
                     continue
-                
+
                 # Check if already applied
-                if last_applied.get(device_name) == pool_id:
+                last_applied_key = f"{device_name}:{pool_id}:{fallback_id or 'none'}"
+                if last_applied.get(device_name) == last_applied_key:
                     continue
-                
+
                 pool = pools[pool_id]
-                
-                # Apply pool
+                fallback_pool = pools.get(fallback_id) if fallback_id else None
+
                 logger.info(f"Switching {device_name} to pool: {pool['name']}")
-                
+
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    # Set pool
                     success = loop.run_until_complete(
                         set_device_pool(ip_address, pool['url'], pool['port'], pool['user'], pool.get('password', 'x'))
                     )
-                    
+
+                    if fallback_pool:
+                        loop.run_until_complete(
+                            set_device_fallback_pool(
+                                ip_address,
+                                fallback_pool['url'],
+                                fallback_pool['port'],
+                                fallback_pool['user'],
+                                fallback_pool.get('password', 'x')
+                            )
+                        )
+
                     if success:
-                        # Restart to apply
                         loop.run_until_complete(restart_device(ip_address))
-                        last_applied[device_name] = pool_id
+                        last_applied[device_name] = last_applied_key
                         logger.info(f"Successfully switched {device_name} to {pool['name']}")
                     else:
                         logger.error(f"Failed to switch {device_name} to {pool['name']}")
                 finally:
                     loop.close()
-                
+
         except Exception as e:
             logger.error(f"Pool Scheduler error: {e}")
-        
+
         # Sleep for 1 minute
         time.sleep(60)
-    
+
     logger.info("Pool Scheduler stopped")
 
 
@@ -704,12 +760,13 @@ def api_device_pool_schedule(device_name):
         if schedule.get('enabled'):
             from datetime import datetime
             current_time = datetime.now()
-            pool_id = get_active_pool_for_time(schedule, current_time)
+            pool_id, fallback_id = get_active_pool_for_time(schedule, current_time)
             
             if pool_id:
                 pools = load_pools()
                 if pool_id in pools:
                     pool = pools[pool_id]
+                    fallback_pool = pools.get(fallback_id) if fallback_id else None
                     devices = load_devices()
                     device = next((d for d in devices if d['name'] == device_name), None)
                     
@@ -720,6 +777,16 @@ def api_device_pool_schedule(device_name):
                             loop.run_until_complete(
                                 set_device_pool(device['ip_address'], pool['url'], pool['port'], pool['user'], pool.get('password', 'x'))
                             )
+                            if fallback_pool:
+                                loop.run_until_complete(
+                                    set_device_fallback_pool(
+                                        device['ip_address'],
+                                        fallback_pool['url'],
+                                        fallback_pool['port'],
+                                        fallback_pool['user'],
+                                        fallback_pool.get('password', 'x')
+                                    )
+                                )
                             logger.info(f"Immediately applied pool {pool['name']} to {device_name} on schedule save")
                         except Exception as e:
                             logger.error(f"Failed to immediately apply pool: {e}")
@@ -1860,3 +1927,5 @@ def run_axepool(host='0.0.0.0', port=5002):
 
 if __name__ == '__main__':
     run_axepool()
+
+

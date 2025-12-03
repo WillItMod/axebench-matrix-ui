@@ -11,8 +11,8 @@ import { Calendar, Layers, Play, RefreshCcw, Square, Trash2 } from 'lucide-react
 
 type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
-type ProfileBlock = { id: string; start: string; end: string; profile: string; days: DayKey[] };
-type PoolBlock = { id: string; start: string; end: string; pool: string; days: DayKey[] };
+type ProfileBlock = { id: string; start: string; end?: string; profile: string; days: DayKey[] };
+type PoolBlock = { id: string; start: string; end?: string; pool: string; fallback?: string; days: DayKey[] };
 
 type ProfileScheduleState = { enabled: boolean; defaultProfile: string; blocks: ProfileBlock[] };
 type PoolScheduleState = { enabled: boolean; defaultPool: string; blocks: PoolBlock[] };
@@ -168,8 +168,8 @@ export default function Operations() {
     const defaultProfile = payload?.default_profile || '';
     const blocks: ProfileBlock[] = (payload?.time_blocks || []).map((block: any) => ({
       id: generateId(),
-      start: block.start || '00:00',
-      end: block.end || '23:59',
+      start: block.start || block.time || '00:00',
+      end: block.end,
       profile: block.profile || defaultProfile || '',
       days: toDayKeys(block.days),
     }));
@@ -180,9 +180,10 @@ export default function Operations() {
     const defaultPool = payload?.default_pool || '';
     const blocks: PoolBlock[] = (payload?.time_blocks || []).map((block: any) => ({
       id: generateId(),
-      start: block.start || '00:00',
-      end: block.end || '23:59',
+      start: block.start || block.time || '00:00',
+      end: block.end,
       pool: block.pool || defaultPool || '',
+      fallback: block.fallback || block.fallback_pool || '',
       days: toDayKeys(block.days),
     }));
     return { enabled: !!payload?.enabled, defaultPool, blocks };
@@ -193,7 +194,7 @@ export default function Operations() {
     default_profile: schedule.defaultProfile || null,
     time_blocks: schedule.blocks.map((b) => ({
       start: b.start || '00:00',
-      end: b.end || '23:59',
+      end: b.end || null,
       profile: b.profile,
       days: toFullDays(b.days),
     })),
@@ -204,8 +205,9 @@ export default function Operations() {
     default_pool: schedule.defaultPool || null,
     time_blocks: schedule.blocks.map((b) => ({
       start: b.start || '00:00',
-      end: b.end || '23:59',
+      end: b.end || null,
       pool: b.pool,
+      fallback_pool: b.fallback || null,
       days: toFullDays(b.days),
     })),
   });
@@ -250,7 +252,7 @@ export default function Operations() {
     const newBlock: ProfileBlock = {
       id: generateId(),
       start: '00:00',
-      end: '06:00',
+      end: '',
       profile,
       days: [...allDays],
     };
@@ -262,8 +264,9 @@ export default function Operations() {
     const newBlock: PoolBlock = {
       id: generateId(),
       start: '00:00',
-      end: '06:00',
+      end: '',
       pool,
+      fallback: '',
       days: [...allDays],
     };
     setPoolSchedule((prev) => ({ ...prev, blocks: [...prev.blocks, newBlock] }));
@@ -404,31 +407,24 @@ export default function Operations() {
             {dirty && <span className="text-xs text-amber-400">Unsaved changes</span>}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-64 overflow-auto">
+          <div className="flex flex-wrap gap-2">
             {devices.map((d) => {
               const active = selectedDevices.includes(d.name);
               return (
-                <label
+                <Button
                   key={d.name}
-                  className={`flex items-center gap-2 rounded border px-3 py-2 cursor-pointer ${
-                    active ? 'border-[var(--neon-cyan)] bg-[var(--neon-cyan)]/10' : 'border-[var(--grid-gray)] bg-black/40'
-                  }`}
+                  size="sm"
+                  variant={active ? 'default' : 'outline'}
+                  className={active ? 'bg-[var(--neon-cyan)] text-black' : 'text-[var(--text-secondary)]'}
+                  onClick={() =>
+                    setSelectedDevices((prev) =>
+                      prev.includes(d.name) ? prev.filter((n) => n !== d.name) : [...prev, d.name]
+                    )
+                  }
                 >
-                  <input
-                    type="checkbox"
-                    className="accent-[var(--neon-cyan)]"
-                    checked={active}
-                    onChange={() =>
-                      setSelectedDevices((prev) =>
-                        prev.includes(d.name) ? prev.filter((n) => n !== d.name) : [...prev, d.name]
-                      )
-                    }
-                  />
-                  <div className="flex flex-col leading-tight">
-                    <span className="text-sm text-[var(--text-primary)]">{d.name}</span>
-                    <span className="text-[11px] text-[var(--text-muted)]">{d.model}</span>
-                  </div>
-                </label>
+                  {d.name}
+                  <span className="ml-1 text-xs opacity-60">({d.model})</span>
+                </Button>
               );
             })}
           </div>
@@ -671,7 +667,7 @@ function BlockTable({
           key={block.id}
           className="border border-[var(--grid-gray)] rounded p-3 bg-black/60 space-y-2"
         >
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
             <div>
               <Label>Start</Label>
               <Input
@@ -680,13 +676,9 @@ function BlockTable({
                 onChange={(e) => onChange(block.id, 'start', e.target.value)}
               />
             </div>
-            <div>
-              <Label>End</Label>
-              <Input type="time" value={block.end} onChange={(e) => onChange(block.id, 'end', e.target.value)} />
-            </div>
-            <div className="md:col-span-2">
-              <Label>{type === 'profile' ? 'Profile' : 'Pool'}</Label>
-              {type === 'profile' ? (
+            {type === 'profile' ? (
+              <div className="md:col-span-2">
+                <Label>Profile</Label>
                 <Select
                   value={(block as ProfileBlock).profile}
                   onValueChange={(val) => onChange(block.id, 'profile', val)}
@@ -702,24 +694,48 @@ function BlockTable({
                     ))}
                   </SelectContent>
                 </Select>
-              ) : (
-                <Select
-                  value={(block as PoolBlock).pool}
-                  onValueChange={(val) => onChange(block.id, 'pool', val)}
-                >
-                  <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
-                    <SelectValue placeholder="Select pool" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(poolOptions || []).map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name || p.id}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <Label>Main pool</Label>
+                  <Select
+                    value={(block as PoolBlock).pool}
+                    onValueChange={(val) => onChange(block.id, 'pool', val)}
+                  >
+                    <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
+                      <SelectValue placeholder="Select pool" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(poolOptions || []).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name || p.id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Fallback pool (optional)</Label>
+                  <Select
+                    value={(block as PoolBlock).fallback || 'none'}
+                    onValueChange={(val) => onChange(block.id, 'fallback', val === 'none' ? '' : val)}
+                  >
+                    <SelectTrigger className="w-full bg-black border-[var(--grid-gray)]">
+                      <SelectValue placeholder="Select fallback" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {(poolOptions || []).map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name || p.id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
             <div className="flex justify-end">
               <Button size="sm" variant="ghost" className="text-red-400" onClick={() => onRemove(block.id)}>
                 <Trash2 className="w-4 h-4" />
@@ -773,10 +789,13 @@ function ScheduleList({
         <div key={b.id} className="border border-[var(--grid-gray)] rounded px-2 py-1 bg-black/40">
           <div className="flex items-center justify-between text-[var(--text-primary)]">
             <span>
-              {b.start} - {b.end}
+              {b.start} {b.end ? `- ${b.end}` : ''}
             </span>
             <span className="font-semibold">{(b as any)[labelKey]}</span>
           </div>
+          {'fallback' in b && (b as any).fallback ? (
+            <div className="text-[10px] text-[var(--text-muted)]">Fallback: {(b as any).fallback}</div>
+          ) : null}
           <div className="flex flex-wrap gap-1 text-[10px] text-[var(--text-muted)]">
             {b.days.map((d) => (
               <span key={d} className="px-1 py-0.5 bg-[var(--grid-gray)] rounded">
@@ -789,3 +808,8 @@ function ScheduleList({
     </div>
   );
 }
+
+
+
+
+

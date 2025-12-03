@@ -65,10 +65,50 @@ def load_schedule(device_name):
     return None
 
 
+def _normalize_time_blocks(blocks):
+    """Ensure each block has start/end and sane fields (start-only supported)."""
+    if not isinstance(blocks, list):
+        return []
+
+    # Sort by start time so we can derive missing end times
+    def to_minutes(t):
+        try:
+            h, m = t.split(":")
+            return int(h) * 60 + int(m)
+        except Exception:
+            return 0
+
+    sorted_blocks = sorted(blocks, key=lambda b: to_minutes(b.get("start", "00:00")))
+    normalized = []
+    for idx, block in enumerate(sorted_blocks):
+        start = block.get("start") or block.get("time") or "00:00"
+        end = block.get("end")
+        profile = block.get("profile") or block.get("default_profile") or block.get("defaultProfile") or block.get("name")
+        days = block.get("days") or ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+
+        # derive end as next start or end-of-day
+        if not end:
+            if idx + 1 < len(sorted_blocks):
+                end = sorted_blocks[idx + 1].get("start") or "23:59"
+            else:
+                end = "23:59"
+
+        normalized.append({
+            "start": start,
+            "end": end,
+            "profile": profile,
+            "days": days,
+        })
+    return normalized
+
+
 def save_schedule(device_name, schedule):
-    """Save schedule for a device"""
+    """Save schedule for a device (accepts start-only blocks)."""
     schedules_dir.mkdir(parents=True, exist_ok=True)
     schedule_file = schedules_dir / f"{device_name}.json"
+    if isinstance(schedule, dict):
+        schedule = dict(schedule)
+        schedule["time_blocks"] = _normalize_time_blocks(schedule.get("time_blocks", []))
     with open(schedule_file, 'w') as f:
         json.dump(schedule, f, indent=2)
 
