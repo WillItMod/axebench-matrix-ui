@@ -11,7 +11,7 @@ Routes:
 """
 import os
 from pathlib import Path
-from flask import send_from_directory
+from flask import send_from_directory, Blueprint
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from web_interface import app as bench_app
 from axeshed import app as shed_app
@@ -33,10 +33,13 @@ def create_unified_app():
   dist_dir = project_root / "dist" / "public"
   static_dir = dist_dir if dist_dir.exists() else project_root / "client" / "public"
 
+  # Serve React UI at root and catch-all (except API paths)
   @bench_app.route("/", defaults={"path": ""})
   @bench_app.route("/<path:path>")
   def serve_frontend(path):
-    # If file exists, serve it; otherwise fallback to index.html for SPA routing
+    # Bypass for API namespaces
+    if path.startswith("api") or path.startswith("shed") or path.startswith("pool"):
+      return bench_app.view_functions.get(path, (lambda: ("Not found", 404)))()
     target = static_dir / path
     if target.is_file():
       return send_from_directory(static_dir, path)

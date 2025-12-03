@@ -204,19 +204,8 @@ def save_schedule(device_name: str, schedule: dict):
 
 @app.route('/')
 def index():
-    """Main dashboard - serve HTML directly"""
-    # Read the template file directly and return it
-    template_path = Path(__file__).parent / "templates" / "dashboard.html"
-    if template_path.exists():
-        with open(template_path, 'r', encoding='utf-8') as f:
-            html = f.read()
-        response = app.make_response(html)
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        return response
-    else:
-        return "Template not found. Restart the server.", 500
+    """Root served by unified app SPA; keep backend minimal here."""
+    return "OK", 200
 
 
 @app.route('/api/version')
