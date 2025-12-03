@@ -959,7 +959,15 @@ function DeviceCard({ device, onRefresh, onConfig }: { device: Device; onRefresh
             <div>
               <div className="text-[var(--text-secondary)]">PSU</div>
               <div className="font-bold text-[var(--text-primary)] truncate">
-                {device.psuName || device.psu_id || (device.status as any).psu_id || 'Standalone'}
+                {typeof device.psuName === 'string'
+                  ? device.psuName
+                  : typeof device.psu_id === 'string'
+                  ? device.psu_id
+                  : typeof (device.status as any).psu_id === 'string'
+                  ? (device.status as any).psu_id
+                  : typeof device.psu === 'object' && device.psu?.name
+                  ? device.psu.name
+                  : 'Standalone'}
               </div>
             </div>
           </div>
