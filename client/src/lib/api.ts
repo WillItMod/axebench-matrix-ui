@@ -238,27 +238,27 @@ export const api = {
   
   pool: {
     // Pool CRUD
-    list: () => apiFetch<Record<string, any>>('/api/pools'),
+    list: () => apiFetch<Record<string, any>>(`${AXEPOOL_BASE}/api/pools`),
     create: (data: any) =>
-      apiFetch<any>('/api/pools', { method: 'POST', body: JSON.stringify(data) }),
-    get: (poolId: string) => apiFetch<any>(`/api/pools/${poolId}`),
+      apiFetch<any>(`${AXEPOOL_BASE}/api/pools`, { method: 'POST', body: JSON.stringify(data) }),
+    get: (poolId: string) => apiFetch<any>(`${AXEPOOL_BASE}/api/pools/${poolId}`),
     update: (poolId: string, data: any) =>
-      apiFetch<any>(`/api/pools/${poolId}`, { method: 'PUT', body: JSON.stringify(data) }),
+      apiFetch<any>(`${AXEPOOL_BASE}/api/pools/${poolId}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (poolId: string) =>
-      apiFetch<any>(`/api/pools/${poolId}`, { method: 'DELETE' }),
+      apiFetch<any>(`${AXEPOOL_BASE}/api/pools/${poolId}`, { method: 'DELETE' }),
     
     // Pool presets
-    presets: () => apiFetch<any>('/api/pools/presets'),
+    presets: () => apiFetch<any>(`${AXEPOOL_BASE}/api/pools/presets`),
     
     // Device pool operations
     getDevicePool: (deviceName: string) => {
       const dev = encodeURIComponent(deviceName);
-      return apiFetch<any>(`/api/devices/${dev}/pool`);
+      return apiFetch<any>(`${AXEPOOL_BASE}/api/devices/${dev}/pool`);
     },
     setDevicePool: (deviceName: string, poolId: string) => {
       const dev = encodeURIComponent(deviceName);
       const pool = encodeURIComponent(poolId);
-      return apiFetch<any>(`/api/devices/${dev}/pool`, { 
+      return apiFetch<any>(`${AXEPOOL_BASE}/api/devices/${dev}/pool`, { 
         method: 'POST', 
         body: JSON.stringify({ pool_id: poolId }) 
       });
@@ -266,7 +266,7 @@ export const api = {
     applyPool: (deviceName: string, poolId: string) => {
       const dev = encodeURIComponent(deviceName);
       const pool = encodeURIComponent(poolId);
-      return apiFetch<any>(`/api/devices/${dev}/pool/apply/${pool}`, { method: 'POST' });
+      return apiFetch<any>(`${AXEPOOL_BASE}/api/devices/${dev}/pool/apply/${pool}`, { method: 'POST' });
     },
     applyFallback: (deviceName: string, poolId: string) => {
       const dev = encodeURIComponent(deviceName);
