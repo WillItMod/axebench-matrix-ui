@@ -51,6 +51,9 @@ export default function Layout({ children }: LayoutProps) {
         const tier: 'free' | 'premium' | 'ultimate' =
           tierRaw === 'premium' ? 'premium' : tierRaw === 'ultimate' ? 'ultimate' : 'free';
         setLicenseTier(tier);
+        if (status?.patreon_url) {
+          setPatreonUrl(status.patreon_url);
+        }
       } catch {
         setLicenseTier('free');
       }
@@ -72,6 +75,7 @@ export default function Layout({ children }: LayoutProps) {
   const licenseLimits = { free: 5, premium: 25, ultimate: 250 };
   const limit = licenseLimits[licenseTier];
   const overLimit = deviceCount > limit;
+  const [patreonUrl, setPatreonUrl] = useState<string>(import.meta.env.VITE_PATREON_URL || 'https://www.patreon.com/axebench');
 
   const renderLicenseBanner = () => {
     if (licenseTier === 'free') {
@@ -84,7 +88,7 @@ export default function Layout({ children }: LayoutProps) {
             <Button
               size="sm"
               className="btn-matrix"
-              onClick={() => window.open('https://www.patreon.com/', '_blank')}
+              onClick={() => window.open(patreonUrl, '_blank')}
             >
               Support on Patreon
             </Button>
@@ -102,7 +106,7 @@ export default function Layout({ children }: LayoutProps) {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => window.open('https://www.patreon.com/', '_blank')}
+            onClick={() => window.open(patreonUrl, '_blank')}
           >
             Upgrade to Ultimate
           </Button>

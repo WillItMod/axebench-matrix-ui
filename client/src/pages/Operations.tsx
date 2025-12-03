@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Clock, Calendar, Plus, Trash2, AlertCircle, Layers } from 'lucide-react';
+import { Clock, Calendar, Plus, Trash2, AlertCircle, Layers, Play, Square } from 'lucide-react';
 
 type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
@@ -59,29 +59,35 @@ export default function Operations() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [pools, setPools] = useState<any[]>([]);
   const [schedulerEnabled, setSchedulerEnabled] = useState(false);
+  const [poolSchedulerRunning, setPoolSchedulerRunning] = useState(false);
   const [profileSlots, setProfileSlots] = useState<ProfileSlot[]>([]);
   const [poolSlots, setPoolSlots] = useState<PoolSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRemove, setShowRemove] = useState<{ type: 'profile' | 'pool'; id: string } | null>(null);
 
-  const [newProfileSlot, setNewProfileSlot] = useState<ProfileSlot>({
+  const [profileForm, setProfileForm] = useState<ProfileSlot>({
     id: generateId(),
     time: '00:00',
     profile: '',
     days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   });
 
-  const [newPoolSlot, setNewPoolSlot] = useState<PoolSlot>({
-    id: generateId(),
+  const [poolForm, setPoolForm] = useState<{
+    time: string;
+    mainPoolId: string;
+    fallbackPoolId: string;
+    days: DayKey[];
+  }>({
     time: '00:00',
-    poolId: '',
-    mode: 'main',
+    mainPoolId: '',
+    fallbackPoolId: '',
     days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
   });
 
   useEffect(() => {
     loadDevices();
     loadPools();
+    loadSchedulerStatus();
   }, []);
 
   useEffect(() => {
@@ -127,12 +133,21 @@ export default function Operations() {
       setPools(array);
       if (array.length) {
         const firstId = (array[0] as any).id || (array[0] as any).name || '';
-        if (!newPoolSlot.poolId && firstId) {
-          setNewPoolSlot((slot) => ({ ...slot, poolId: firstId }));
+        if (!poolForm.mainPoolId && firstId) {
+          setPoolForm((form) => ({ ...form, mainPoolId: firstId }));
         }
       }
     } catch (error) {
       toast.error('Failed to load pools');
+    }
+  };
+
+  const loadSchedulerStatus = async () => {
+    try {
+      const status = await api.pool.schedulerStatus();
+      setPoolSchedulerRunning(!!status?.running);
+    } catch {
+      setPoolSchedulerRunning(false);
     }
   };
 
@@ -167,19 +182,6 @@ export default function Operations() {
         }
       });
 
-      // Fallback for legacy schedules lacking kind
-      if (!entries?.length && data.entries) {
-        const legacy = data.entries as any[];
-        legacy.forEach((entry) => {
-          pSlots.push({
-            id: generateId(),
-            time: entry.time || '00:00',
-            profile: entry.profile || '',
-            days: (entry.days as DayKey[]) || ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
-          });
-        });
-      }
-
       setProfileSlots(pSlots);
       setPoolSlots(poSlots);
     } catch (error) {
@@ -193,19 +195,19 @@ export default function Operations() {
     }
   };
 
-  const toggleDay = <T extends ProfileSlot | PoolSlot>(slot: T, day: DayKey, setter: (slot: T) => void) => {
+  const toggleDay = <T extends { days: DayKey[] }>(slot: T, day: DayKey, setter: (slot: T) => void) => {
     const hasDay = slot.days.includes(day);
     const nextDays = hasDay ? slot.days.filter((d) => d !== day) : [...slot.days, day];
     setter({ ...slot, days: nextDays } as T);
   };
 
   const handleAddProfileSlot = () => {
-    if (!newProfileSlot.profile) {
+    if (!profileForm.profile) {
       toast.error('Select a profile');
       return;
     }
-    setProfileSlots([...profileSlots, { ...newProfileSlot, id: generateId() }]);
-    setNewProfileSlot({
+    setProfileSlots([...profileSlots, { ...profileForm, id: generateId() }]);
+    setProfileForm({
       id: generateId(),
       time: '00:00',
       profile: '',
@@ -214,28 +216,45 @@ export default function Operations() {
   };
 
   const handleAddPoolSlot = () => {
-    if (!newPoolSlot.poolId) {
-      toast.error('Select a pool profile');
+    if (!poolForm.mainPoolId) {
+      toast.error('Select a main pool');
       return;
     }
-    setPoolSlots([
-      ...poolSlots,
+
+    const newSlots: PoolSlot[] = [
       {
-        ...newPoolSlot,
         id: generateId(),
+        time: poolForm.time,
+        poolId: poolForm.mainPoolId,
+        mode: 'main',
+        days: poolForm.days,
       },
-    ]);
-    setNewPoolSlot({
-      id: generateId(),
+    ];
+
+    if (poolForm.fallbackPoolId) {
+      newSlots.push({
+        id: generateId(),
+        time: poolForm.time,
+        poolId: poolForm.fallbackPoolId,
+        mode: 'fallback',
+        days: poolForm.days,
+      });
+    }
+
+    setPoolSlots([...poolSlots, ...newSlots]);
+    setPoolForm({
       time: '00:00',
-      poolId: '',
-      mode: 'main',
+      mainPoolId: '',
+      fallbackPoolId: '',
       days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
     });
   };
 
   const handleSaveSchedule = async () => {
-    if (!selectedDevices.length) return;
+    if (!selectedDevices.length) {
+      toast.error('Select at least one device');
+      return;
+    }
     const payload: SchedulePayload = {
       enabled: schedulerEnabled,
       entries: [
@@ -273,6 +292,31 @@ export default function Operations() {
     setShowRemove(null);
   };
 
+  const handlePoolSchedulerToggle = async (start: boolean) => {
+    try {
+      if (start) {
+        await api.pool.startScheduler();
+        setPoolSchedulerRunning(true);
+        toast.success('Pool scheduler started');
+      } else {
+        await api.pool.stopScheduler();
+        setPoolSchedulerRunning(false);
+        toast.success('Pool scheduler stopped');
+      }
+    } catch (error) {
+      toast.error('Failed to update pool scheduler');
+    }
+  };
+
+  const quickSelect = (count: number) => {
+    if (!devices.length) return;
+    if (count === -1) {
+      setSelectedDevices(devices.map((d) => d.name));
+      return;
+    }
+    setSelectedDevices(devices.slice(0, count).map((d) => d.name));
+  };
+
   const profileOptions = useMemo(() => profiles.map((p: any) => p.name || p.profile || ''), [profiles]);
 
   const toggleDevice = (deviceName: string) => {
@@ -292,16 +336,29 @@ export default function Operations() {
   return (
     <div className="space-y-6">
       <div className="hud-panel flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-glow-green">OPERATIONS_SCHEDULER</h1>
+        <h1 className="text-3xl font-bold text-glow-green">SCHEDULING CONTROL CENTER</h1>
         <p className="text-[var(--text-secondary)] text-sm">
-          Schedule profile modes and pool profiles to run at specific times. Quick applies live on the Pool page.
+          Orchestrate tuning profiles and pool profiles across your fleet. Save schedules and manage schedulers independently.
         </p>
       </div>
 
-      {/* Device selection + enable toggle */}
+      {/* Device selection + quick picks + scheduler toggles */}
       <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
         <div className="flex flex-col gap-3">
-          <Label className="text-[var(--text-secondary)]">Target Devices</Label>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <Label className="text-[var(--text-secondary)]">Target Devices</Label>
+              <div className="text-xs text-[var(--text-muted)]">Pick one, first 5/10, or all.</div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={() => quickSelect(1)}>First</Button>
+              <Button size="sm" variant="outline" onClick={() => quickSelect(5)}>First 5</Button>
+              <Button size="sm" variant="outline" onClick={() => quickSelect(10)}>First 10</Button>
+              <Button size="sm" variant="outline" onClick={() => quickSelect(-1)}>All</Button>
+              <Button size="sm" variant="outline" onClick={() => setSelectedDevices([])}>Clear</Button>
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-2">
             {devices.map((d) => {
               const active = selectedDevices.includes(d.name);
@@ -319,16 +376,34 @@ export default function Operations() {
               );
             })}
           </div>
-          <div className="flex items-center gap-3 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-4 py-3">
-            <div>
-              <div className="text-sm font-bold text-[var(--text-primary)]">SCHEDULER</div>
-              <div className="text-xs text-[var(--text-muted)]">Enable or disable for selected devices</div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-4 py-3">
+              <div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">PROFILE SCHEDULER</div>
+                <div className="text-xs text-[var(--text-muted)]">Enable/disable when saving schedules.</div>
+              </div>
+              <Switch checked={schedulerEnabled} onCheckedChange={setSchedulerEnabled} />
             </div>
-            <Switch checked={schedulerEnabled} onCheckedChange={setSchedulerEnabled} />
+            <div className="flex items-center gap-3 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded px-4 py-3 justify-between">
+              <div>
+                <div className="text-sm font-bold text-[var(--text-primary)]">POOL SCHEDULER SERVICE</div>
+                <div className="text-xs text-[var(--text-muted)]">Start/stop service (persists across reboots).</div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant={poolSchedulerRunning ? 'default' : 'outline'} onClick={() => handlePoolSchedulerToggle(true)}>
+                  <Play className="w-4 h-4 mr-1" /> Start
+                </Button>
+                <Button size="sm" variant={!poolSchedulerRunning ? 'default' : 'outline'} onClick={() => handlePoolSchedulerToggle(false)}>
+                  <Square className="w-4 h-4 mr-1" /> Stop
+                </Button>
+              </div>
+            </div>
           </div>
+
           <div className="flex flex-wrap gap-2">
             <Button onClick={handleSaveSchedule} className="btn-matrix w-full md:w-auto">
-              SAVE_SCHEDULE
+              SAVE SCHEDULES TO SELECTED
             </Button>
             <Button
               variant="outline"
@@ -336,33 +411,33 @@ export default function Operations() {
                 setSelectedDevices(devices[0] ? [devices[0].name] : []);
               }}
             >
-              RESET_SELECTION
+              Reset Selection
             </Button>
           </div>
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Profile schedule */}
         <Card className="p-6 bg-black/80 border-[var(--neon-cyan)] space-y-4">
           <div className="flex items-center gap-3">
             <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
             <div>
-              <h2 className="text-xl font-bold text-[var(--neon-cyan)]">PROFILE_SCHEDULE</h2>
-              <p className="text-xs text-[var(--text-muted)]">Set daily times to switch Quiet / Efficient / Balanced / Max.</p>
+              <h2 className="text-xl font-bold text-[var(--neon-cyan)]">TUNING PROFILE SCHEDULE</h2>
+              <p className="text-xs text-[var(--text-muted)]">Schedule Quiet / Efficient / Balanced / Max per day.</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <Label>Time</Label>
-              <Input type="time" value={newProfileSlot.time} onChange={(e) => setNewProfileSlot({ ...newProfileSlot, time: e.target.value })} />
+              <Input type="time" value={profileForm.time} onChange={(e) => setProfileForm({ ...profileForm, time: e.target.value })} />
             </div>
             <div>
               <Label>Profile</Label>
               <Select
-                value={newProfileSlot.profile}
-                onValueChange={(val) => setNewProfileSlot({ ...newProfileSlot, profile: val })}
+                value={profileForm.profile}
+                onValueChange={(val) => setProfileForm({ ...profileForm, profile: val })}
               >
                 <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
                   <SelectValue placeholder="Select profile" />
@@ -378,12 +453,12 @@ export default function Operations() {
             </div>
             <div className="flex items-end">
               <Button onClick={handleAddProfileSlot} className="w-full gap-2">
-                <Plus className="w-4 h-4" /> ADD
+                <Plus className="w-4 h-4" /> Add Entry
               </Button>
             </div>
           </div>
 
-          <DaySelector slot={newProfileSlot} onToggle={(day) => toggleDay(newProfileSlot, day, (slot) => setNewProfileSlot(slot))} />
+          <DaySelector slot={profileForm} onToggle={(day) => toggleDay(profileForm, day, (slot) => setProfileForm(slot))} />
 
           {profileSlots.length === 0 ? (
             <div className="text-[var(--text-muted)] text-sm">No profile schedule entries</div>
@@ -408,59 +483,72 @@ export default function Operations() {
           <div className="flex items-center gap-3">
             <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
             <div>
-              <h2 className="text-xl font-bold text-[var(--matrix-green)]">POOL_PROFILE_SCHEDULE</h2>
-              <p className="text-xs text-[var(--text-muted)]">Set pool profiles (main/fallback) by time of day.</p>
+              <h2 className="text-xl font-bold text-[var(--matrix-green)]">POOL PROFILE SCHEDULE</h2>
+              <p className="text-xs text-[var(--text-muted)]">Set main (and optional fallback) pool profiles by time.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
-              <Label>Time</Label>
-              <Input type="time" value={newPoolSlot.time} onChange={(e) => setNewPoolSlot({ ...newPoolSlot, time: e.target.value })} />
-            </div>
-            <div>
-              <Label>Pool Profile</Label>
-              <Select
-                value={newPoolSlot.poolId}
-                onValueChange={(val) => setNewPoolSlot({ ...newPoolSlot, poolId: val })}
-              >
-                <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                  <SelectValue placeholder="Select pool profile" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pools.map((p: any) => {
-                    const poolId = p.id || p.name;
-                    return (
-                      <SelectItem key={poolId} value={poolId}>
-                        {p.name || poolId}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2 md:flex-row md:items-end">
-              <Label className="md:hidden">Mode</Label>
-              <div className="grid grid-cols-2 gap-2 w-full">
-                <Button
-                  variant={newPoolSlot.mode === 'main' ? 'default' : 'outline'}
-                  className="w-full"
-                  onClick={() => setNewPoolSlot({ ...newPoolSlot, mode: 'main' })}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <Label>Time</Label>
+                <Input type="time" value={poolForm.time} onChange={(e) => setPoolForm({ ...poolForm, time: e.target.value })} />
+              </div>
+              <div>
+                <Label>Main Pool</Label>
+                <Select
+                  value={poolForm.mainPoolId}
+                  onValueChange={(val) => setPoolForm({ ...poolForm, mainPoolId: val })}
                 >
-                  MAIN
-                </Button>
-                <Button
-                  variant={newPoolSlot.mode === 'fallback' ? 'default' : 'outline'}
-                  className="w-full"
-                  onClick={() => setNewPoolSlot({ ...newPoolSlot, mode: 'fallback' })}
+                  <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                    <SelectValue placeholder="Select main pool" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pools.map((p: any) => {
+                      const poolId = p.id || p.name;
+                      return (
+                        <SelectItem key={poolId} value={poolId}>
+                          {p.name || poolId}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Fallback Pool (optional)</Label>
+                <Select
+                  value={poolForm.fallbackPoolId}
+                  onValueChange={(val) => setPoolForm({ ...poolForm, fallbackPoolId: val })}
                 >
-                  FALLBACK
-                </Button>
+                  <SelectTrigger className="w-full bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+                    <SelectValue placeholder="Select fallback pool" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {pools.map((p: any) => {
+                      const poolId = p.id || p.name;
+                      return (
+                        <SelectItem key={poolId} value={poolId}>
+                          {p.name || poolId}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+            <div className="flex flex-col justify-between gap-3">
+              <div className="bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded p-3 text-sm text-[var(--text-muted)]">
+                Adding will create a MAIN entry. If a fallback is selected, a paired FALLBACK entry is added at the same time.
+              </div>
+              <Button onClick={handleAddPoolSlot} className="w-full gap-2">
+                <Plus className="w-4 h-4" /> Add Pool Entry
+              </Button>
+            </div>
           </div>
 
-          <DaySelector slot={newPoolSlot} onToggle={(day) => toggleDay(newPoolSlot, day, (slot) => setNewPoolSlot(slot))} />
+          <DaySelector slot={poolForm} onToggle={(day) => toggleDay(poolForm, day, (slot) => setPoolForm(slot))} />
 
           {poolSlots.length === 0 ? (
             <div className="text-[var(--text-muted)] text-sm">No pool schedule entries</div>
@@ -472,7 +560,7 @@ export default function Operations() {
                   <ScheduleRow
                     key={slot.id}
                     icon={<Clock className="w-4 h-4 text-[var(--matrix-green)]" />}
-                    title={`${poolName} \u2192 ${slot.mode.toUpperCase()}`}
+                    title={`${poolName} → ${slot.mode.toUpperCase()}`}
                     subtitle={slot.time}
                     days={slot.days}
                     onRemove={() => setShowRemove({ type: 'pool', id: slot.id })}
@@ -481,10 +569,6 @@ export default function Operations() {
               })}
             </div>
           )}
-
-          <Button onClick={handleAddPoolSlot} className="w-full gap-2">
-            <Plus className="w-4 h-4" /> ADD POOL SLOT
-          </Button>
         </Card>
       </div>
 
@@ -561,7 +645,7 @@ function ScheduleRow({
           <div className="text-sm font-bold text-[var(--text-primary)]">{title}</div>
           <div className="text-xs text-[var(--text-muted)]">{subtitle}</div>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 flex-wrap">
           {days.map((d) => (
             <span key={d} className="text-[10px] bg-[var(--grid-gray)] text-[var(--text-secondary)] px-2 py-0.5 rounded">
               {dayLabels[d]}
