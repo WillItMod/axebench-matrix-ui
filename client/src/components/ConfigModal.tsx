@@ -25,6 +25,21 @@ interface ConfigModalProps {
   onSuccess?: () => void;
 }
 
+const saveStoredAssignment = (deviceName: string, psuId: string | null) => {
+  try {
+    const existing = localStorage.getItem('axebench:psuAssignments');
+    const parsed = existing ? JSON.parse(existing) : {};
+    if (psuId) {
+      parsed[deviceName] = psuId;
+    } else {
+      delete parsed[deviceName];
+    }
+    localStorage.setItem('axebench:psuAssignments', JSON.stringify(parsed));
+  } catch (error) {
+    console.warn('Failed to persist PSU assignment', error);
+  }
+};
+
 export default function ConfigModal({ open, onClose, device, onSuccess }: ConfigModalProps) {
   const [voltage, setVoltage] = useState(device.status?.voltage || 1200);
   const [frequency, setFrequency] = useState(device.status?.frequency || 500);
@@ -61,7 +76,15 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
         
         // Get current device PSU assignment
         const deviceData = await api.devices.get(device.name);
-        setSelectedPsu(deviceData.psu_id || 'standalone');
+        const currentPsu =
+          deviceData.psu_id ??
+          deviceData.psuId ??
+          deviceData.psuName ??
+          deviceData?.psu?.shared_psu_id ??
+          deviceData?.psu?.id ??
+          deviceData?.psu?.name ??
+          'standalone';
+        setSelectedPsu(currentPsu ? String(currentPsu) : 'standalone');
         setIpAddress(deviceData.ip || deviceData.ip_address || device.ip || '');
       } catch (error) {
         console.error('Failed to load PSUs:', error);
@@ -91,6 +114,7 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
       await api.devices.update(device.name, {
         psu_id: selectedPsu === 'standalone' ? null : selectedPsu
       });
+      saveStoredAssignment(device.name, selectedPsu === 'standalone' ? null : selectedPsu);
       
       toast.success('Settings applied successfully');
       onSuccess?.();
@@ -192,7 +216,7 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
                 <SelectItem value="standalone">Standalone (Own PSU)</SelectItem>
                 {psus.map((psu: any) => (
                   <SelectItem key={psu.id} value={psu.id}>
-                    {psu.name} ({psu.wattage}W{psu.voltage ? `, ${psu.voltage}V@${psu.amperage ?? '?'}A` : ''})
+                    {psu.name} ({psu.wattage}W)
                   </SelectItem>
                 ))}
               </SelectContent>

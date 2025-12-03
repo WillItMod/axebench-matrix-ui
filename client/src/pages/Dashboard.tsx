@@ -82,7 +82,11 @@ const deviceMatchesPsu = (device: any, psu: any) => {
 };
 
 // Determine devices assigned to a PSU using multiple hints (id, name, backend-provided lists)
-const resolveAssignedDevices = (psu: any, devices: Device[]) => {
+const resolveAssignedDevices = (
+  psu: any,
+  devices: Device[],
+  storedAssignments: Record<string, string | null> = {}
+) => {
   // Direct match by id/name on device
   let matches = devices.filter((d) => deviceMatchesPsu(d, psu));
 
@@ -214,6 +218,7 @@ export default function Dashboard() {
   const loadDevices = async () => {
     logger.info('Dashboard', 'Starting loadDevices');
     try {
+      const storedAssignments = loadStoredAssignments();
       setRefreshing(true);
       logger.debug('Dashboard', 'Fetching device list from API');
       const deviceList = await api.devices.list();
@@ -228,6 +233,7 @@ export default function Dashboard() {
             const status = await api.devices.status(device.name);
             logger.info('Dashboard', `Status received for ${device.name}`, { status });
             const normalizedPsu = getDevicePsuId(device);
+            const storedPsu = storedAssignments[device.name];
             
                     // Fetch device system info for bestSessionDiff and bestDiff
             let deviceInfo = null;
@@ -240,10 +246,11 @@ export default function Dashboard() {
             
             return {
               ...device,
-              psu_id: normalizedPsu ?? device.psu_id,
+              psu_id: storedPsu ?? normalizedPsu ?? device.psu_id,
               psuName:
                 device?.psuName ??
                 device?.psu?.name ??
+                (typeof storedPsu === 'string' ? storedPsu : null) ??
                 (typeof normalizedPsu === 'string' ? normalizedPsu : null),
               online: true, // If we got status, device is online
               status: {
@@ -257,7 +264,7 @@ export default function Dashboard() {
                 bestDiff: deviceInfo?.bestDiff || 0,
                 bestSessionDiff: deviceInfo?.bestSessionDiff || 0,
                 efficiency: status.power > 0 ? (status.power / (status.hashrate / 1000)) : 0,
-                psu_id: normalizedPsu ?? status.psu_id ?? status.psuId ?? null,
+                psu_id: storedPsu ?? normalizedPsu ?? status.psu_id ?? status.psuId ?? null,
               },
             };
           } catch (error) {
@@ -305,7 +312,7 @@ export default function Dashboard() {
       toast.error(error.message || 'Failed to delete PSU');
     }
   };  // Load PSUs and check for warnings
-  const loadPsus = async () => {
+const loadPsus = async () => {
     try {
       const psuList = await api.psus.list();
       const normalizedPsus = Array.isArray(psuList)
@@ -314,8 +321,9 @@ export default function Dashboard() {
       setPsus(normalizedPsus);
       
       // Check each PSU for load warnings
+      const storedAssignments = loadStoredAssignments();
       normalizedPsus.forEach((psu: any) => {
-        const assignedDevices = resolveAssignedDevices(psu, devices);
+        const assignedDevices = resolveAssignedDevices(psu, devices, storedAssignments);
         const metrics = getPsuMetrics(psu, assignedDevices);
         const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
         const loadPercent = metrics.wattage > 0 ? (psuLoad / metrics.wattage) * 100 : 0;
@@ -622,7 +630,8 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {psus.map((psu: any) => {
               // Find devices assigned to this PSU
-              const assignedDevices = resolveAssignedDevices(psu, devices);
+              const storedAssignments = loadStoredAssignments();
+              const assignedDevices = resolveAssignedDevices(psu, devices, storedAssignments);
               const backendCount =
                 (typeof psu.devices_count === 'number' ? psu.devices_count : null) ??
                 (Array.isArray(psu.devices) ? psu.devices.length : null) ??
