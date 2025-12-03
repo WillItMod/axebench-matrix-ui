@@ -53,6 +53,10 @@ const generateId = () =>
 const isNotFoundError = (error: any) =>
   typeof error?.message === 'string' && error.message.toUpperCase().includes('NOT FOUND');
 
+const DEFAULT_PROFILES = ['Quiet', 'Efficient', 'Balanced', 'Max'];
+const PROFILE_DRAFT_KEY = 'axebench:draft:profiles';
+const POOL_DRAFT_KEY = 'axebench:draft:pools';
+
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
@@ -85,6 +89,22 @@ export default function Operations() {
   });
 
   useEffect(() => {
+    // restore drafts early so refresh doesn't wipe unsaved entries
+    const profileDraft = localStorage.getItem(PROFILE_DRAFT_KEY);
+    if (profileDraft) {
+      try {
+        const parsed = JSON.parse(profileDraft);
+        if (Array.isArray(parsed)) setProfileSlots(parsed);
+      } catch {}
+    }
+    const poolDraft = localStorage.getItem(POOL_DRAFT_KEY);
+    if (poolDraft) {
+      try {
+        const parsed = JSON.parse(poolDraft);
+        if (Array.isArray(parsed)) setPoolSlots(parsed);
+      } catch {}
+    }
+
     loadDevices();
     loadPools();
     loadSchedulerStatus();
@@ -116,10 +136,16 @@ export default function Operations() {
     if (!deviceName) return;
     try {
       const data = await api.shed.getProfiles(deviceName);
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        setProfiles(DEFAULT_PROFILES.map((name) => ({ name })));
+        toast.warning('Device has no profiles; using default Quiet/Efficient/Balanced/Max.');
+        return;
+      }
       setProfiles(data || []);
     } catch (error) {
       if (isNotFoundError(error)) {
-        setProfiles([]);
+        setProfiles(DEFAULT_PROFILES.map((name) => ({ name })));
+        toast.warning('Profiles not found on device; using default Quiet/Efficient/Balanced/Max.');
         return;
       }
       toast.error('Failed to load profiles');
@@ -317,7 +343,19 @@ export default function Operations() {
     setSelectedDevices(devices.slice(0, count).map((d) => d.name));
   };
 
-  const profileOptions = useMemo(() => profiles.map((p: any) => p.name || p.profile || ''), [profiles]);
+  // persist drafts locally so refresh doesn't lose schedule
+  useEffect(() => {
+    localStorage.setItem(PROFILE_DRAFT_KEY, JSON.stringify(profileSlots));
+  }, [profileSlots]);
+
+  useEffect(() => {
+    localStorage.setItem(POOL_DRAFT_KEY, JSON.stringify(poolSlots));
+  }, [poolSlots]);
+
+  const profileOptions = useMemo(() => {
+    const names = profiles.map((p: any) => p.name || p.profile || '').filter(Boolean);
+    return names.length ? names : DEFAULT_PROFILES;
+  }, [profiles]);
 
   const toggleDevice = (deviceName: string) => {
     setSelectedDevices((prev) =>
