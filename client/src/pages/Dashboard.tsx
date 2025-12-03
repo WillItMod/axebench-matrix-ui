@@ -45,8 +45,17 @@ const normalizeNumber = (value: any, fallback: number | null = null) => {
   return Number.isFinite(num) ? num : fallback;
 };
 
-const getDevicePsuId = (device: any) =>
-  device?.psu_id ?? device?.psuId ?? device?.psu ?? device?.psuName ?? null;
+const getDevicePsuId = (device: any) => {
+  const fromNested = device?.psu?.id ?? device?.psu?.name ?? null;
+  return (
+    device?.psu_id ??
+    device?.psuId ??
+    device?.psu ??
+    device?.psuName ??
+    fromNested ??
+    null
+  );
+};
 
 const deviceMatchesPsu = (device: any, psu: any) => {
   const devicePsu = getDevicePsuId(device);
@@ -154,6 +163,7 @@ export default function Dashboard() {
           try {
             const status = await api.devices.status(device.name);
             logger.info('Dashboard', `Status received for ${device.name}`, { status });
+            const normalizedPsu = getDevicePsuId(device);
             
                     // Fetch device system info for bestSessionDiff and bestDiff
             let deviceInfo = null;
@@ -166,6 +176,8 @@ export default function Dashboard() {
             
             return {
               ...device,
+              psu_id: normalizedPsu ?? device.psu_id,
+              psuName: device?.psuName ?? device?.psu?.name ?? null,
               online: true, // If we got status, device is online
               status: {
                 hashrate: status.hashrate || 0,
@@ -236,7 +248,7 @@ export default function Dashboard() {
       // Check each PSU for load warnings
       normalizedPsus.forEach((psu: any) => {
         const metrics = getPsuMetrics(psu);
-        const assignedDevices = devices.filter(d => d.psu_id === psu.id);
+        const assignedDevices = devices.filter((d) => deviceMatchesPsu(d, psu));
         const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
         const loadPercent = metrics.wattage > 0 ? (psuLoad / metrics.wattage) * 100 : 0;
         
