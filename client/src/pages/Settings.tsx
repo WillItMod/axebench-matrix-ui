@@ -36,9 +36,12 @@ export default function Settings() {
         const [status, devices] = await Promise.all([api.license.status().catch(() => null), api.devices.list().catch(() => [])]);
         setLicense(status);
         const t = (status?.tier || '').toLowerCase();
-        const tierValue = t === 'ultimate' ? 'ultimate' : t === 'premium' ? 'premium' : 'free';
+        let tierValue: 'free' | 'premium' | 'ultimate' = 'free';
+        if (t === 'ultimate' || status?.is_patron) tierValue = 'ultimate';
+        else if (t === 'premium') tierValue = 'premium';
         setTier(tierValue);
-        setDeviceLimit(Number(status?.device_limit) || (tierValue === 'ultimate' ? 250 : tierValue === 'premium' ? 25 : 5));
+        const limit = Number(status?.device_limit) || (tierValue === 'ultimate' ? 250 : tierValue === 'premium' ? 25 : 5);
+        setDeviceLimit(limit);
         setPatreonUrl(status?.auth_url || status?.patreon_url || null);
         setDeviceCount(Array.isArray(devices) ? devices.length : 0);
       } catch {

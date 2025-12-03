@@ -63,10 +63,14 @@ export default function Layout({ children }: LayoutProps) {
       try {
         const status = await api.license.status().catch(() => null);
         const tierRaw = (status?.tier as string | undefined)?.toLowerCase();
-        const tier: 'free' | 'premium' | 'ultimate' =
-          tierRaw === 'premium' ? 'premium' : tierRaw === 'ultimate' ? 'ultimate' : 'free';
+        let tier: 'free' | 'premium' | 'ultimate' = 'free';
+        if (tierRaw === 'ultimate' || status?.is_patron) tier = 'ultimate';
+        else if (tierRaw === 'premium') tier = 'premium';
         setLicenseTier(tier);
-        setDeviceLimit(Number(status?.device_limit) || (tier === 'ultimate' ? 250 : tier === 'premium' ? 25 : 5));
+        const limit =
+          Number(status?.device_limit) ||
+          (tier === 'ultimate' ? 250 : tier === 'premium' ? 25 : 5);
+        setDeviceLimit(limit);
         setIsPatron(tier !== 'free' || !!status?.is_patron);
         if (status?.auth_url) {
           setPatreonUrl(status.auth_url);
