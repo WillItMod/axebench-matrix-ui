@@ -45,6 +45,18 @@ const normalizeNumber = (value: any, fallback: number | null = null) => {
   return Number.isFinite(num) ? num : fallback;
 };
 
+const getDevicePsuId = (device: any) =>
+  device?.psu_id ?? device?.psuId ?? device?.psu ?? device?.psuName ?? null;
+
+const deviceMatchesPsu = (device: any, psu: any) => {
+  const devicePsu = getDevicePsuId(device);
+  if (devicePsu == null) return false;
+  const psuId = psu?.id != null ? String(psu.id) : null;
+  const psuName = psu?.name ? String(psu.name).toLowerCase() : null;
+  const deviceStr = String(devicePsu);
+  return (psuId && deviceStr === psuId) || (psuName && deviceStr.toLowerCase() === psuName);
+};
+
 const getPsuMetrics = (psu: any) => {
   const voltage = normalizeNumber(psu?.voltage, null);
   const amperage = normalizeNumber(psu?.amperage, null);
@@ -530,9 +542,12 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {psus.map((psu: any) => {
               // Find devices assigned to this PSU
-              const assignedDevices = devices.filter(d => d.psu_id === psu.id);
+              const assignedDevices = devices.filter((d) => deviceMatchesPsu(d, psu));
               const metrics = getPsuMetrics(psu);
-              const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
+              const psuLoad = assignedDevices.reduce(
+                (sum, d) => sum + (d.status?.power ?? d.status?.wattage ?? 0),
+                0
+              );
               const loadPercent = metrics.wattage > 0 ? (psuLoad / metrics.wattage) * 100 : 0;
               const loadColor = loadPercent >= 80 ? 'var(--error-red)' : loadPercent >= 70 ? 'var(--warning-amber)' : 'var(--matrix-green)';
               
@@ -568,7 +583,7 @@ export default function Dashboard() {
                     <div className="flex justify-between text-sm">
                       <span className="text-[var(--text-secondary)]">Input</span>
                       <span className="text-[var(--text-primary)] font-bold">
-                        {metrics.voltage ? `${metrics.voltage}V` : '?V'} @ {metrics.amperage ? `${metrics.amperage}A` : '?A'}
+                        {metrics.voltage ? `${metrics.voltage}V` : '— V'} @ {metrics.amperage ? `${metrics.amperage}A` : '— A'}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
