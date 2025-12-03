@@ -179,17 +179,15 @@ export default function Settings() {
           <div className="text-sm text-[var(--text-secondary)]">Compact contrasting color sets</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {paletteEntries.map(([key, pal]) => {
+          {paletteEntries
+            .filter(([key]) => key !== 'blackout')
+            .map(([key, pal]) => {
             const selected = paletteName === key;
             return (
               <button
                 key={key}
                 onClick={() => {
                   setPalette(key as PaletteName);
-                  if (key === 'blackout') {
-                    setDarkSurge(true);
-                    setTimeout(() => setDarkSurge(false), 700);
-                  }
                 }}
                 className={`rounded-lg border text-left p-3 transition-all relative overflow-hidden ${
                   selected
@@ -200,7 +198,7 @@ export default function Settings() {
               >
                 <div className="flex items-center gap-2 mb-2">
                   {[pal.colors.primary, pal.colors.secondary, pal.colors.accent, pal.colors.text].map((c, idx) => (
-                    <div key={idx} className="w-5 h-5 rounded-full border border-white/10" style={{ background: c }} />
+                    <div key={idx} className="w-4 h-4 rounded-full border border-white/10" style={{ background: c }} />
                   ))}
                 </div>
                 <div className="text-sm font-bold" style={{ color: pal.colors.text }}>
@@ -297,6 +295,23 @@ export default function Settings() {
         <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[var(--theme-accent)]/30 to-transparent animate-pulse" />
       </Card>
 
+      {/* Blackout fun switch */}
+      <Card className="p-6 bg-black/90 border border-[var(--grid-gray)] space-y-3 relative overflow-hidden">
+        <div className="text-xl font-bold text-[var(--theme-primary)] flex items-center gap-2">
+          BLACKOUT MODE
+          <span className="text-[var(--theme-accent)] text-xs uppercase">secret</span>
+        </div>
+        <p className="text-sm text-[var(--text-secondary)]">
+          Engage total darkness. Fonts, outlines, buttons—everything goes obsidian. Complete the ritual to unlock.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => setShowBlackoutGame(true)} className="hover:shadow-[0_0_14px_rgba(0,255,255,0.35)]">
+            Initiate
+          </Button>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[var(--theme-accent)]/30 to-transparent animate-pulse" />
+      </Card>
+
       {darkSurge && (
         <div className="fixed inset-0 z-[999] pointer-events-none bg-black/70 animate-pulse" />
       )}
@@ -337,6 +352,8 @@ export default function Settings() {
                     setShowBlackoutGame(false);
                     setSigils({ alpha: false, beta: false, gamma: false });
                     setBlackoutCode('');
+                    setDarkSurge(true);
+                    setTimeout(() => setDarkSurge(false), 800);
                   }}
                 >
                   Descend

@@ -424,14 +424,14 @@
 /* Blackout mode overrides */
 body.blackout-mode {
   background-color: #000;
-  color: #e7e7e7;
-  filter: saturate(0.2) brightness(0.85);
+  color: #b0b0b0;
+  filter: saturate(0) brightness(0.5);
 }
 body.blackout-mode * {
   --theme-background: #000;
   --theme-surface: #070707;
-  --theme-text: #e7e7e7;
-  --theme-textSecondary: #a5a5a5;
-  --theme-border: #111;
+  --theme-text: #b0b0b0;
+  --theme-textSecondary: #6a6a6a;
+  --theme-border: #0a0a0a;
   color: var(--theme-text);
 }
