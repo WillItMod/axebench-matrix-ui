@@ -35,6 +35,9 @@ export default function Layout({ children }: LayoutProps) {
   const RANDOM_GAME_COOLDOWN_MS = 15 * 60 * 1000;
   const SECRET_GAME_TAPS_REQUIRED = 5;
   const SECRET_TAP_RESET_MS = 4000;
+  const SATOSHI_MODE_KEY = 'axebench_satoshi_mode';
+  const SATOSHI_UNLOCK_TAPS = 30;
+  const SATOSHI_LOCK_TAPS = 5;
 
   // Fetch uptime from backend and keep it ticking between polls
   useEffect(() => {
@@ -168,9 +171,21 @@ export default function Layout({ children }: LayoutProps) {
     const stored = Number(localStorage.getItem(RANDOM_GAME_KEY) || 0);
     return Number.isFinite(stored) ? stored : 0;
   });
+  const [satoshiMode, setSatoshiMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem(SATOSHI_MODE_KEY) === 'true';
+  });
+  const settingsTapCountRef = useRef(0);
   const hiddenGameClicksRef = useRef(0);
   const secretTapResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const uptimeDisplay = uptimeSeconds !== null ? formatUptime(uptimeSeconds) : 'N/A';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(SATOSHI_MODE_KEY, satoshiMode ? 'true' : 'false');
+    document.documentElement.dataset.satoshiMode = satoshiMode ? 'on' : 'off';
+    window.dispatchEvent(new CustomEvent('axebench:satoshi-mode', { detail: { enabled: satoshiMode } }));
+  }, [satoshiMode]);
 
   useEffect(() => {
     const handler = () => {
@@ -236,6 +251,22 @@ export default function Layout({ children }: LayoutProps) {
         secretTapResetRef.current = null;
       }
       handleUptimeClick();
+    }
+  };
+
+  const handleSatoshiSettingsTap = () => {
+    setLocation('/settings');
+    const next = settingsTapCountRef.current + 1;
+    settingsTapCountRef.current = next;
+
+    if (!satoshiMode && next >= SATOSHI_UNLOCK_TAPS) {
+      settingsTapCountRef.current = 0;
+      setSatoshiMode(true);
+      toast.success('Satoshi mode unlocked');
+    } else if (satoshiMode && next >= SATOSHI_LOCK_TAPS) {
+      settingsTapCountRef.current = 0;
+      setSatoshiMode(false);
+      toast.info('Satoshi mode locked');
     }
   };
 
@@ -397,7 +428,9 @@ export default function Layout({ children }: LayoutProps) {
                     <button
                       key={tab.path}
                       type="button"
-                      onClick={() => setLocation(tab.path)}
+                      onClick={() =>
+                        tab.path === '/settings' ? handleSatoshiSettingsTap() : setLocation(tab.path)
+                      }
                       className={cn(baseTabClass, isActive ? activeTabClass : inactiveTabClass)}
                     >
                       {tab.label}

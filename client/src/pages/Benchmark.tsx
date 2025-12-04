@@ -800,7 +800,7 @@ export default function Benchmark() {
                   <Button
                     onClick={handleStop}
                     variant="destructive"
-                    className="w-full text-lg py-6 shadow-[0_0_22px_rgba(239,68,68,0.45)]"
+                    className="w-full text-lg py-6 bg-[#ef4444] hover:bg-[#dc2626] border border-[#ef4444] text-white shadow-[0_0_26px_rgba(239,68,68,0.6)]"
                   >
                     ■ STOP_BENCHMARK
                   </Button>
@@ -1043,6 +1043,7 @@ export default function Benchmark() {
     </>
   );
 }
+
 
 
 
