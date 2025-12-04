@@ -1,9 +1,10 @@
 @echo off
-REM Build AxeBench backend with Nuitka (Windows, no console window)
+REM Build AxeBench backend with Nuitka (Windows, console shown)
 REM Prerequisites: Python 3.11+, npm (for frontend build), venv tools
 
 setlocal
 set OUTPUT_NAME=AxeBench_v3.0.0_BETA
+set OUTPUT_DIR=build-win-new
 cd /d "%~dp0"
 
 REM Build frontend (served from dist/public)
@@ -25,11 +26,11 @@ python -m nuitka ^
   --include-data-dir=dist\public=dist\public ^
   --include-data-dir=python\templates=python\templates ^
   --include-data-file=python\config.py=python\config.py ^
-  --output-dir=build-win ^
+  --output-dir=%OUTPUT_DIR% ^
   python\launcher.py || goto :error
 
 echo.
-echo Build complete: build-win\%OUTPUT_NAME%.exe
+echo Build complete: %OUTPUT_DIR%\%OUTPUT_NAME%.exe
 exit /b 0
 
 :error
