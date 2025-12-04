@@ -340,7 +340,7 @@ export default function Benchmark() {
   const remainingTests = Math.max(0, (testsTotal || 0) - (testsCompleted || 0));
   const etaSeconds = perTestSeconds > 0 ? remainingTests * perTestSeconds : 0;
   const formatEta = (secs: number) => {
-    if (!secs || secs < 1) return '—';
+    if (!secs || secs < 1) return '�';
     const m = Math.floor(secs / 60);
     const s = Math.floor(secs % 60);
     if (m > 59) {
@@ -1215,164 +1215,44 @@ export default function Benchmark() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Progress & Sweep */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                  <span>SWEEP_PROGRESS</span>
-                  <span className="text-[var(--text-primary)] font-semibold">
-                    {testsCompleted} / {testsTotal || '?'} ({progressVal || 0}%)
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded bg-[var(--grid-gray)] overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#22c55e] via-[#eab308] to-[#ef4444] transition-all"
-                    style={{ width: `${Math.min(100, Math.max(0, progressVal || 0))}%` }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
-                  <div>Current: {voltage} mV / {frequency} MHz</div>
-                  <div>Goal: {config.goal?.toString().toUpperCase()}</div>
-                  <div>ETA: {formatEta(etaSeconds)}</div>
-                  <div>Per test: {perTestSeconds || '?'}s</div>
-                </div>
+              {/* Progress arc + ETA */}
+              <div className="flex items-center justify-center">
+                <ArcGauge
+                  label="SWEEP PROGRESS"
+                  value={progressVal || 0}
+                  text={`${testsCompleted} / ${testsTotal || '?'}`}
+                  footer={`ETA ${formatEta(etaSeconds)} • Per test ${perTestSeconds || '?'}s`}
+                />
               </div>
 
-              {/* Stress trio */}
-              <div className="space-y-2">
-                <StressBar
-                  label="THERMAL STRESS"
+              {/* Dials */}
+              <div className="flex items-center justify-center gap-6">
+                <DialGauge
+                  label="THERMAL"
                   value={thermalStress}
-                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
-                  tooltip={`Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C). Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}. Higher when near cap or climbing fast.`}
-                  onClick={() =>
-                    setEngineDetail({
-                      open: true,
-                      title: 'Thermal Stress',
-                      lines: [
-                        `Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C)`,
-                        `Temp ratio ${(tempRatio * 100).toFixed(1)}%`,
-                        `Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}`,
-                        'Score = temp_ratio*70 + proximity/fan boosts',
-                      ],
-                    })
-                  }
+                  subtitle={`${temp.toFixed(1)} / ${maxChip}°C`}
+                  tooltip={`Headroom ${tempHeadroom.toFixed(1)}°C. Temp ratio ${(tempRatio * 100).toFixed(1)}%. Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}.`}
                 />
-                <StressBar
-                  label="POWER STRESS"
+                <DialGauge
+                  label="POWER"
                   value={powerStress}
-                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
-                  tooltip={`Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W), Voltage ${voltage} / ${maxVoltage}mV. Higher when near power/volt limits.`}
-                  onClick={() =>
-                    setEngineDetail({
-                      open: true,
-                      title: 'Power Stress',
-                      lines: [
-                        `Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W)`,
-                        `Voltage ${voltage} / ${maxVoltage}mV`,
-                        `Ratios: power ${(powerRatio * 100).toFixed(1)}%, voltage ${(voltageRatio * 100).toFixed(1)}%`,
-                        'Score = max(power, voltage) ratio * 80 (+limit boosts)',
-                      ],
-                    })
-                  }
+                  subtitle={`${power.toFixed(1)}W / ${maxPower}W`}
+                  tooltip={`Headroom ${powerHeadroom.toFixed(1)}W. Power ratio ${(powerRatio * 100).toFixed(1)}%. Voltage ${(voltageRatio * 100).toFixed(1)}%.`}
                 />
-                <StressBar
-                  label="STABILITY STRESS"
+                <DialGauge
+                  label="STABILITY"
                   value={stabilityStress}
-                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
-                  tooltip={`ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%). Recovery and failed combos add stress.`}
-                  onClick={() =>
-                    setEngineDetail({
-                      open: true,
-                      title: 'Stability Stress',
-                      lines: [
-                        `ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%)`,
-                        `Error ratio ${(errRatio * 100).toFixed(1)}%`,
-                        `Recoveries ${status?.recovery_attempts || 0}, failed combos ${(status?.failed_combos || []).length}`,
-                        'Score = err_ratio*80 + recovery/failed boosts',
-                      ],
-                    })
-                  }
+                  subtitle={`${errorPct.toFixed(2)}% err`}
+                  tooltip={`Error margin ${errorMargin.toFixed(2)}%. Recoveries ${status?.recovery_attempts || 0}. Failed combos ${(status?.failed_combos || []).length}.`}
                 />
-
-                <div className="grid grid-cols-3 gap-2 text-[11px] text-[var(--text-secondary)]">
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
-                    Headroom: {tempHeadroom.toFixed(1)}°C
-                  </div>
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
-                    Power: {powerHeadroom.toFixed(1)} W
-                  </div>
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
-                    Error margin: {errorMargin.toFixed(2)}%
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
-                    Recoveries: {status?.recovery_attempts ?? 0} / {config.recovery_max_retries}
-                  </div>
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
-                    Failed combos: {(status?.failed_combos || []).length}
-                  </div>
-                </div>
               </div>
 
-              {/* Balance & V/F sliders */}
+              {/* Balance + V/F + best */}
               <div className="space-y-3">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div
-                      className="space-y-1 cursor-help"
-                      onClick={() =>
-                        setEngineDetail({
-                          open: true,
-                          title: 'Balance',
-                          lines: [
-                            `Push (avg V/F/power ratios): ${push.toFixed(2)}`,
-                            `Instability (error/recovery): ${instability.toFixed(2)}`,
-                            'Right = more headroom, Left = instability/overdrive.',
-                          ],
-                        })
-                      }
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setEngineDetail({
-                            open: true,
-                            title: 'Balance',
-                            lines: [
-                              `Push (avg V/F/power ratios): ${push.toFixed(2)}`,
-                              `Instability (error/recovery): ${instability.toFixed(2)}`,
-                              'Right = more headroom, Left = instability/overdrive.',
-                            ],
-                          });
-                        }
-                      }}
-                    >
-                      <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                        <span>BALANCE</span>
-                        <span className="text-[var(--text-primary)] font-semibold">
-                          {balanceDelta >= 0 ? 'PUSH' : 'RISK'}
-                        </span>
-                      </div>
-                      <div className="w-full h-3 rounded bg-[var(--grid-gray)] relative overflow-hidden">
-                        <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[var(--text-muted)]" />
-                        <div
-                          className="absolute top-0 bottom-0 w-1.5 rounded bg-gradient-to-r from-[#ef4444] via-[#eab308] to-[#22c55e] transition-transform"
-                          style={{ transform: `translateX(${balanceDelta * 50}%)` }}
-                        />
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <div className="max-w-xs text-xs space-y-1">
-                      <div>Push: avg(V/F/power ratios) = {push.toFixed(2)}</div>
-                      <div>Instability: error/recovery weighting = {instability.toFixed(2)}</div>
-                      <div>Right = headroom, Left = instability/overdrive.</div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-
+                <BalanceGauge
+                  value={balanceDelta}
+                  tooltip={`Push avg(V/F/power): ${push.toFixed(2)}. Instability: ${instability.toFixed(2)}. Right = headroom, Left = instability/overdrive.`}
+                />
                 <MiniSlider
                   label="VOLTAGE POSITION"
                   ratio={vNorm}
@@ -1383,7 +1263,6 @@ export default function Benchmark() {
                   ratio={fNorm}
                   display={`${frequency} MHz`}
                 />
-
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
                     <div className="text-[var(--text-secondary)]">EFFICIENCY</div>
@@ -1663,6 +1542,7 @@ export default function Benchmark() {
     </>
   );
 }
+
 
 
 
