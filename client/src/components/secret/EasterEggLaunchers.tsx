@@ -4,18 +4,16 @@ import { MINI_GAMES, type MiniGameKey, type MiniGameEntry } from './games/regist
 
 type Spot = {
   key: MiniGameKey;
-  position: CSSProperties;
   label: string;
+  position?: CSSProperties;
 };
 
-// Base anchor slots (relative to viewport); a little jitter is added per cycle
+// Base anchor slots (relative to viewport); will be randomized per session/interval
 const baseSlots: Spot[] = [
   { key: '2048', position: { top: 110, left: '3%' }, label: 'Status beacon' },
   { key: 'hextris', position: { top: 110, right: '3%' }, label: 'Status beacon' },
   { key: 'clumsy-bird', position: { top: 175, left: '8%' }, label: 'Nav pulse' },
   { key: 'astray', position: { top: 175, right: '8%' }, label: 'Nav pulse' },
-  { key: 'dark-room', position: { top: 245, left: '15%' }, label: 'Grid scan' },
-  { key: 'kontra', position: { top: 245, right: '15%' }, label: 'Grid scan' },
   { key: 'cat-survivors', position: { bottom: 200, left: '10%' }, label: 'Footer node' },
   { key: 'catapoolt', position: { bottom: 200, right: '10%' }, label: 'Footer node' },
   { key: 'clawstrike', position: { bottom: 120, left: '18%' }, label: 'Console spark' },
@@ -28,7 +26,13 @@ export default function EasterEggLaunchers() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pulseTick, setPulseTick] = useState(0);
   const [glintKey, setGlintKey] = useState<MiniGameKey | null>(null);
+  const [anchors, setAnchors] = useState<Spot[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const randomPosition = () => ({
+    top: 80 + Math.random() * 420,
+    left: `${5 + Math.random() * 90}%`,
+  });
 
   const Current = useMemo<MiniGameEntry | null>(() => {
     if (!openKey) return null;
@@ -50,12 +54,23 @@ export default function EasterEggLaunchers() {
     };
   }, []);
 
+  // Randomize anchor locations at first paint and every 5 minutes
+  useEffect(() => {
+    const randomize = () => {
+      setAnchors(baseSlots.map((slot) => ({ ...slot, position: randomPosition() })));
+    };
+    randomize();
+    const id = setInterval(randomize, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const spots = useMemo(() => {
+    const source = anchors.length ? anchors : baseSlots;
     // jitter within +-8px on each pulse cycle
-    return baseSlots.map((slot, idx) => {
+    return source.map((slot) => {
       const jitterX = (Math.random() - 0.5) * 16;
       const jitterY = (Math.random() - 0.5) * 16;
-      const pos: CSSProperties = { ...slot.position };
+      const pos: CSSProperties = { ...(slot.position || randomPosition()) };
       if (pos.left) pos.left = `calc(${pos.left} + ${jitterX}px)`;
       if (pos.right) pos.right = `calc(${pos.right} + ${jitterX}px)`;
       if (pos.top) pos.top = (Number(pos.top) + jitterY) as number;

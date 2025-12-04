@@ -19,8 +19,6 @@ const defaultProgress: ProgressState = {
     hextris: false,
     'clumsy-bird': false,
     astray: false,
-    'dark-room': false,
-    kontra: false,
     pacman: false,
     'cat-survivors': false,
     'catapoolt': false,

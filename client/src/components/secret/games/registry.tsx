@@ -7,8 +7,6 @@ export type MiniGameKey =
   | 'hextris'
   | 'clumsy-bird'
   | 'astray'
-  | 'dark-room'
-  | 'kontra'
   | 'cat-survivors'
   | 'catapoolt'
   | 'clawstrike'
@@ -118,20 +116,6 @@ export const MINI_GAMES: MiniGameEntry[] = [
     description: 'First-person maze runner (local).',
     src: '/games/astray/index.html',
     hint: 'Find the exit without falling.',
-  }),
-  makeEntry({
-    key: 'dark-room',
-    title: 'A Dark Room',
-    description: 'Minimalist RPG (local copy).',
-    src: '/games/dark-room/index.html',
-    hint: 'Stoke the fire. Explore the dark.',
-  }),
-  makeEntry({
-    key: 'kontra',
-    title: 'Kontra Demo',
-    description: 'Micro-engine samples (local).',
-    src: '/games/kontra/index.html',
-    hint: 'Play a demo and claim completion.',
   }),
   makeEntry({
     key: 'cat-survivors',
