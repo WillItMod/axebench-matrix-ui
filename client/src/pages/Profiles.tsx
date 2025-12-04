@@ -224,7 +224,7 @@ export default function Profiles() {
                   onClick={() => toggleDevice(device.name)}
                   className={`
                     relative p-3 rounded border-2 transition-all text-left
-                    ${selectedDevices.has(device.name)
+                    ${selectedDevices.includes(device.name)
                       ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/20 shadow-[0_0_0_1px_var(--matrix-green)]'
                       : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] hover:border-[var(--text-muted)]'
                     }
