@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useTheme, availableThemes, fonts as fontChoices, themePalettes, ThemeName } from '@/contexts/ThemeContext';
+import {
+  useTheme,
+  availableThemes,
+  fonts as fontChoices,
+  themePalettes,
+  ThemeName,
+} from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 
 type FontAppearanceSplashProps = {
@@ -79,25 +91,31 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl bg-card border border-border text-foreground">
-        <DialogHeader className="space-y-1">
-          <DialogTitle className="text-xl">Fonts & Appearance</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Choose your cockpit skin and typography. Theme defaults apply automatically until you override a font.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-5xl appearance-modal space-y-6">
+        <div className="flex items-start justify-between gap-3">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="text-xl">Fonts & Appearance</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Choose your cockpit skin and typography. Theme defaults apply automatically until you override a font.
+            </DialogDescription>
+          </DialogHeader>
+          <Badge variant="outline" className="floating-badge">
+            Forge unlocks via Bitcoin challenges
+          </Badge>
+        </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">Themes</div>
-              <div className="text-xs text-muted-foreground">Forge unlocks via Bitcoin challenges</div>
+              <div className="text-xs text-muted-foreground">Pick a shell; fonts follow unless overridden</div>
             </div>
-            <ScrollArea className="h-[280px] rounded-lg border border-border bg-background/70">
-              <div className="grid gap-2 p-3 sm:grid-cols-2">
+            <ScrollArea className="h-[320px] rounded-2xl border border-border/80 bg-card/70 backdrop-blur-sm shadow-chrome">
+              <div className="grid gap-3 p-4 sm:grid-cols-2">
                 {availableThemes.map((t) => {
                   const locked = t.name === 'forge' && !secretUnlocked;
                   const active = pendingTheme === t.name;
+                  const paletteColors = themePalettes[t.name as ThemeName]?.colors;
                   return (
                     <button
                       key={t.name}
@@ -105,11 +123,12 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                       disabled={locked}
                       onClick={() => setPendingTheme(t.name as ThemeName)}
                       className={cn(
-                        'rounded-lg border p-3 text-left transition-all bg-card/80',
+                        'relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all bg-card/80 backdrop-blur-sm shadow-soft',
+                        'before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-[hsl(var(--primary))/10] before:via-transparent before:to-[hsl(var(--secondary))/10]',
                         locked && 'opacity-50 cursor-not-allowed',
                         active
-                          ? 'border-[hsl(var(--primary))] shadow-[0_0_12px_rgba(34,197,94,0.3)]'
-                          : 'border-border hover:border-[hsl(var(--primary))]/70 hover:shadow-[0_0_12px_rgba(34,211,238,0.15)]'
+                          ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.35),0_0_28px_hsla(var(--primary),0.25)]'
+                          : 'border-border hover:border-[hsl(var(--primary))]/70 hover:shadow-[0_0_22px_hsla(var(--primary),0.18)]'
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -123,9 +142,21 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                         ) : null}
                       </div>
                       {renderThemeSwatch(t.name as ThemeName)}
-                      <div className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Default font: {fontChoices.find((f) => f.key === themePalettes[t.name as ThemeName]?.defaults.font)?.label ?? themePalettes[t.name as ThemeName]?.defaults.font}
+                      <div className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                        <span>Default font:</span>
+                        <Badge variant="outline" className="text-[11px]">
+                          {fontChoices.find((f) => f.key === themePalettes[t.name as ThemeName]?.defaults.font)?.label ??
+                            themePalettes[t.name as ThemeName]?.defaults.font}
+                        </Badge>
                       </div>
+                      {paletteColors && (
+                        <div
+                          className="absolute inset-x-2 bottom-2 h-[1px] opacity-60"
+                          style={{
+                            background: `linear-gradient(90deg, ${paletteColors.primary}, ${paletteColors.secondary})`,
+                          }}
+                        />
+                      )}
                     </button>
                   );
                 })}
@@ -140,7 +171,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                 Use theme default
               </Button>
             </div>
-            <ScrollArea className="h-[280px] rounded-lg border border-border bg-background/70">
+            <ScrollArea className="h-[320px] rounded-2xl border border-border/80 bg-card/70 backdrop-blur-sm shadow-chrome">
               <div className="grid gap-2 p-3">
                 {fontChoices.map((font) => {
                   const active = pendingFont === font.key;
@@ -151,10 +182,10 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                       type="button"
                       onClick={() => setPendingFont(font.key)}
                       className={cn(
-                        'rounded-lg border px-3 py-2 text-left transition-all bg-card/80',
+                        'relative overflow-hidden rounded-lg border px-3 py-2 text-left transition-all bg-card/80 backdrop-blur-sm shadow-soft',
                         active
-                          ? 'border-[hsl(var(--primary))] shadow-[0_0_12px_rgba(34,197,94,0.3)]'
-                          : 'border-border hover:border-[hsl(var(--primary))]/70 hover:shadow-[0_0_12px_rgba(34,211,238,0.12)]'
+                          ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.3),0_0_18px_hsla(var(--primary),0.2)]'
+                          : 'border-border hover:border-[hsl(var(--primary))]/60 hover:shadow-[0_0_16px_hsla(var(--primary),0.12)]'
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -174,24 +205,28 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                 })}
               </div>
             </ScrollArea>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Font scale</Label>
-              <input
-                type="range"
-                min="0.9"
-                max="1.2"
-                step="0.02"
-                value={pendingScale}
-                onChange={(e) => setPendingScale(parseFloat(e.target.value))}
-                className="w-full accent-[hsl(var(--primary))]"
-              />
-              <div className="text-xs text-muted-foreground">Scale: {pendingScale.toFixed(2)}x</div>
+            <div className="space-y-2 rounded-xl border border-border/80 bg-card/70 p-3 shadow-soft">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Font scale</Label>
+                <div className="text-xs text-muted-foreground">Scale: {pendingScale.toFixed(2)}x</div>
+              </div>
+              <div className="slider-accent">
+                <input
+                  type="range"
+                  min="0.9"
+                  max="1.2"
+                  step="0.02"
+                  value={pendingScale}
+                  onChange={(e) => setPendingScale(parseFloat(e.target.value))}
+                  className="w-full"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[2fr_1fr]">
-          <div className="rounded-lg border border-border bg-card/80 p-4">
+        <div className="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
+          <div className="rounded-2xl border border-border/80 bg-card/80 p-4 shadow-chrome">
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">Live preview</div>
               <Badge variant="outline" className="text-xs">
@@ -199,15 +234,15 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
               </Badge>
             </div>
             <div
-              className="mt-3 rounded-lg border border-border p-4 shadow-inner"
+              className="mt-3 rounded-xl border border-border p-4 shadow-[0_0_35px_rgba(0,0,0,0.25)] backdrop-blur-sm live-preview-panel"
               style={{
-                background: palette?.colors.surface,
+                background: 'linear-gradient(135deg, hsla(var(--primary),0.12), hsla(var(--secondary),0.08))',
                 color: palette?.colors.text,
                 fontFamily: fontStack,
               }}
             >
               <div className="text-lg font-semibold">{PREVIEW_TEXT}</div>
-              <div className="mt-2 text-sm opacity-80">
+              <div className="mt-2 text-sm opacity-90">
                 Theme defaults: {defaultFontLabel} | Override: {pendingOverride ? 'On' : 'Off'}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
@@ -234,7 +269,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
             >
               Reset to theme default
             </Button>
-            <Button onClick={handleApply} className="min-w-[120px]">
+            <Button onClick={handleApply} className="min-w-[140px] shadow-[0_0_20px_hsla(var(--primary),0.3)]">
               Apply
             </Button>
           </div>

@@ -295,6 +295,7 @@
     font-size: 16px;
     line-height: 1.6;
     overflow-x: hidden;
+    margin: 0;
   }
 
   a {
@@ -324,6 +325,48 @@
 }
 
 @layer components {
+  .appearance-modal {
+    background: radial-gradient(circle at 20% 20%, hsla(var(--primary), 0.08), transparent 32%),
+      radial-gradient(circle at 80% 10%, hsla(var(--secondary), 0.08), transparent 28%),
+      radial-gradient(circle at 50% 90%, hsla(var(--accent), 0.08), transparent 28%),
+      hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 20px 60px rgba(0, 0, 0, 0.45),
+      0 0 32px hsla(var(--primary), 0.18);
+  }
+
+  .floating-badge {
+    background: hsla(var(--primary), 0.08);
+    border-color: hsla(var(--primary), 0.35);
+    box-shadow: 0 0 12px hsla(var(--primary), 0.28);
+  }
+
+  .shadow-soft {
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.22),
+      0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+
+  .shadow-chrome {
+    box-shadow:
+      0 20px 45px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 0 25px hsla(var(--primary), 0.12);
+  }
+
+  .live-preview-panel {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+      0 18px 35px rgba(0, 0, 0, 0.3),
+      0 0 28px hsla(var(--primary), 0.15);
+  }
+
+  .slider-accent input[type="range"] {
+    accent-color: hsl(var(--primary));
+  }
+
   [data-theme="forge"] [data-slot="button"][data-variant="default"] {
     background-image: linear-gradient(120deg, #f97316 0%, #facc15 45%, #f97316 100%);
     background-size: 200% 200%;

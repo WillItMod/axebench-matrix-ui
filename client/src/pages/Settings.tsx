@@ -124,11 +124,6 @@ export default function Settings() {
               Logout
             </Button>
           </div>
-          {license?.auth_url && (
-            <div className="text-xs text-muted-foreground">
-              Auth URL: <span className="break-all">{license.auth_url}</span>
-            </div>
-          )}
         </Card>
 
         <Card className="p-5 space-y-4">
