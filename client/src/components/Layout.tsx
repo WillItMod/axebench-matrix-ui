@@ -118,7 +118,7 @@ export default function Layout({ children }: LayoutProps) {
   const [showSecret, setShowSecret] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   useEffect(() => {
-    const handler = () => setCelebrate(true);
+    const handler = () => {\n      setCelebrate(true);\n      setShowSecret(false);\n    };
     window.addEventListener('forge-celebrate', handler);
     return () => window.removeEventListener('forge-celebrate', handler);
   }, []);
@@ -221,7 +221,11 @@ export default function Layout({ children }: LayoutProps) {
             <button
               type="button"
               onClick={() => {
-                if (secretUnlocked) setCelebrate(true);
+                if (secretUnlocked) {
+                  setShowSecret(false);
+                  setCelebrate(true);
+                  return;
+                }
                 setShowSecret(true);
               }}
               className="flex items-center text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
