@@ -137,21 +137,33 @@ export default function Settings() {
           <h2 className="text-xl font-bold text-[var(--theme-accent)]">APPEARANCE</h2>
           <div className="text-sm text-[var(--text-secondary)]">Theme and matrix rain tweaks</div>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {availableThemes.map((t) => {
+            const active = theme === t.name;
+            return (
+              <button
+                key={t.name}
+                onClick={() => setTheme(t.name as any)}
+                className={`rounded-lg border p-3 text-left transition-all bg-card/80 ${
+                  active
+                    ? 'border-[hsl(var(--primary))] shadow-[0_0_12px_rgba(34,197,94,0.3)]'
+                    : 'border-border hover:border-[hsl(var(--primary))]/70'
+                }`}
+              >
+                <div className="font-bold text-sm text-foreground">{t.label}</div>
+                <div className="mt-2 flex gap-1">
+                  <span className="h-4 w-4 rounded" style={{ background: 'var(--primary)' }} />
+                  <span className="h-4 w-4 rounded" style={{ background: 'var(--secondary)' }} />
+                  <span className="h-4 w-4 rounded border border-border" style={{ background: 'var(--card)' }} />
+                  <span className="h-4 w-4 rounded border border-border" style={{ background: 'var(--muted)' }} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-[var(--text-secondary)] uppercase">Theme</Label>
-            <select
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as any)}
-              className="bg-background border border-border rounded-md px-3 py-2 text-foreground"
-            >
-              {availableThemes.map((t) => (
-                <option key={t.name} value={t.name}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="flex flex-col gap-1">
             <Label className="text-xs text-[var(--text-secondary)] uppercase">Matrix Code Color</Label>
             <Input
@@ -160,7 +172,7 @@ export default function Settings() {
               onChange={(e) => setMatrixCodeColor(e.target.value)}
               className="h-10 w-full"
             />
-            <div className="text-[var(--text-secondary)] text-xs">Adjust the digital rain hue (keeps animation intact).</div>
+            <div className="text-[var(--text-secondary)] text-xs">Adjust the digital rain hue (animation unchanged).</div>
           </div>
         </div>
       </Card>
