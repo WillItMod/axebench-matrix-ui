@@ -1420,6 +1420,7 @@ def start_benchmark():
     data = request.json
     device_name = data.get('device')
     preset = data.get('preset')
+    run_mode = data.get('mode', 'benchmark')
     
     if not device_name:
         return jsonify({'error': 'Device name required'}), 400
@@ -1483,6 +1484,7 @@ def start_benchmark():
         'max_vr_temp': safety.max_vr_temp,
         'max_power': safety.max_power,
     }
+    benchmark_status['mode'] = run_mode
     save_benchmark_state()
 
     
@@ -1498,6 +1500,7 @@ def start_benchmark():
         ui_config = {
             'device': device_name,
             'preset': preset,
+            'mode': run_mode,
             'voltage_start': config.voltage_start,
             'voltage_stop': config.voltage_stop,
             'voltage_step': config.voltage_step,
@@ -1548,6 +1551,8 @@ def start_benchmark():
                 # Reset status for this attempt
                 benchmark_status['running'] = True
                 benchmark_status['device'] = device_name
+                benchmark_status['mode'] = run_mode
+                benchmark_status['session_logs'] = []
                 save_benchmark_state()
                 benchmark_status['error'] = None
                 benchmark_status['warning'] = None
@@ -1579,6 +1584,13 @@ def start_benchmark():
                             'phase': status_dict.get('phase', 'info'),
                             'message': status_dict['message']
                         })
+                        # Also keep an in-memory session log stream for UI consumption
+                        log_entry = {
+                            'time': datetime.now().isoformat(),
+                            'message': status_dict['message'],
+                            'type': status_dict.get('phase', 'info')
+                        }
+                        benchmark_status.setdefault('session_logs', []).append(log_entry)
                         # Also log to server-side session
                         if current_engine and current_engine.session:
                             log_type = status_dict.get('phase', 'info')
@@ -1801,6 +1813,8 @@ def get_benchmark_status():
     if current_engine and hasattr(current_engine, 'session') and current_engine.session:
         status['session_logs'] = current_engine.session.logs
         status['session_id'] = current_engine.session.session_id
+    elif 'session_logs' in benchmark_status:
+        status['session_logs'] = benchmark_status.get('session_logs', [])
     
     # If running and we have live_data, try to add fan speed if missing
     if status.get('running') and status.get('live_data') and status.get('device'):

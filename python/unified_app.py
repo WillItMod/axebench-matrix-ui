@@ -11,6 +11,7 @@ Routes:
 """
 import os
 import sys
+import tempfile
 from pathlib import Path
 from flask import send_from_directory, Blueprint
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
@@ -59,6 +60,25 @@ def create_unified_app():
     if meipass:
       candidates.append(Path(meipass) / "dist" / "public")
 
+    # Nuitka onefile temp/env paths
+    for env_key in ("NUITKA_ONEFILE_PARENT", "NUITKA_ONEFILE_TEMP"):
+      if os.environ.get(env_key):
+        candidates.append(Path(os.environ[env_key]) / "dist" / "public")
+
+    # Nuitka onefile extraction dir is usually Temp/onefile_<pid>_*; prefer newest with index.html
+    temp_root = Path(tempfile.gettempdir())
+    best_temp = None
+    best_mtime = None
+    for cand in temp_root.glob("onefile_*"):
+      idx = cand / "dist" / "public" / "index.html"
+      if idx.exists():
+        mtime = idx.stat().st_mtime
+        if best_mtime is None or mtime > best_mtime:
+          best_temp = cand / "dist" / "public"
+          best_mtime = mtime
+    if best_temp:
+      candidates.append(best_temp)
+
     # Directory alongside the executable
     exe_dir = Path(sys.executable).resolve().parent
     candidates.append(exe_dir / "dist" / "public")
@@ -69,10 +89,13 @@ def create_unified_app():
 
     for cand in candidates:
       if (cand / "index.html").exists():
+        print(f"[unified_app] Serving frontend from {cand}")
         return cand
 
     # Fallback to last candidate even if missing (Flask will 404 explicitly)
-    return candidates[-1]
+    fallback = candidates[-1]
+    print(f"[unified_app] Frontend not found; last candidate {fallback} (index missing)")
+    return fallback
 
   static_dir = _find_static_dir()
 
@@ -83,7 +106,22 @@ def create_unified_app():
     target = static_dir / path
     if target.is_file():
       return send_from_directory(static_dir, path)
-    return send_from_directory(static_dir, "index.html")
+    index = static_dir / "index.html"
+    if index.exists():
+      return send_from_directory(static_dir, "index.html")
+
+    # Fallback: serve legacy template if present
+    template_path = Path(__file__).parent / "templates" / "dashboard.html"
+    if template_path.exists():
+      with open(template_path, "r", encoding="utf-8") as f:
+        html = f.read()
+      resp = bench_app.make_response(html)
+      resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+      resp.headers["Pragma"] = "no-cache"
+      resp.headers["Expires"] = "0"
+      return resp
+
+    return (f"Frontend not found. Looked in: {static_dir}", 404)
 
   return bench_app
 
