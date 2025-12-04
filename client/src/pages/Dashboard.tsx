@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Device {
   name: string;
@@ -803,39 +804,67 @@ const loadPsus = async () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-glow-green">DEVICE_GRID</h2>
         <div className="flex gap-2">
-          <Button
-            onClick={() => {
-              const inferred = inferredSubnet();
-              setScanSubnet(inferred);
-              setShowScanModal(true);
-            }}
-            variant="outline"
-            className="gap-2 uppercase tracking-wide"
-          >
-            SCAN
-          </Button>
-          <Button
-            onClick={loadDevices}
-            disabled={refreshing}
-            variant="secondary"
-            className="uppercase tracking-wide"
-          >
-            {refreshing ? '⟳ SYNCING...' : '🔄 REFRESH'}
-          </Button>
-          <Button
-            onClick={() => setShowAddModal(true)}
-            variant="default"
-            className="uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]"
-          >
-            ➕ ADD_DEVICE
-          </Button>
-          <Button
-            onClick={() => setShowPsuModal(true)}
-            variant="accent"
-            className="uppercase tracking-wide shadow-[0_0_18px_hsla(var(--accent),0.4)]"
-          >
-            ⚡ PSU_CONFIG
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => {
+                  const inferred = inferredSubnet();
+                  setScanSubnet(inferred);
+                  setShowScanModal(true);
+                }}
+                variant="outline"
+                className="gap-2 uppercase tracking-wide"
+              >
+                SCAN
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Sweep the /24 subnet (254 IPs) to auto-detect Bitaxe devices via backend detect API.
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={loadDevices}
+                disabled={refreshing}
+                variant="secondary"
+                className="uppercase tracking-wide"
+              >
+                {refreshing ? '⟳ SYNCING...' : '🔄 REFRESH'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Re-poll devices, PSUs, and warnings from the backend now.
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setShowAddModal(true)}
+                variant="default"
+                className="uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]"
+              >
+                ➕ ADD_DEVICE
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Add a device (blocked if your Patreon tier device limit is reached).
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={() => setShowPsuModal(true)}
+                variant="accent"
+                className="uppercase tracking-wide shadow-[0_0_18px_hsla(var(--accent),0.4)]"
+              >
+                ⚡ PSU_CONFIG
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              Create or edit shared PSUs; assign them per device in Config.
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -1139,32 +1168,53 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
 
       {/* Actions */}
       <div className="flex gap-2">
-        <Button 
-          size="sm" 
-          variant="default"
-          className="flex-1 text-xs uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.25)]"
-          onClick={(e) => { e.stopPropagation(); handleBenchmark(); }}
-          disabled={!device.online}
-        >
-          BENCHMARK
-        </Button>
-        <Button 
-          size="sm" 
-          variant="secondary"
-          className="flex-1 text-xs uppercase tracking-wide"
-          onClick={(e) => { e.stopPropagation(); onConfig(device); }}
-          disabled={!device.online}
-        >
-          CONFIG
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          className="flex-1 text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
-          onClick={(e) => { e.stopPropagation(); onDelete(device); }}
-        >
-          DELETE
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size="sm" 
+              variant="default"
+              className="flex-1 text-xs uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.25)]"
+              onClick={(e) => { e.stopPropagation(); handleBenchmark(); }}
+              disabled={!device.online}
+            >
+              BENCHMARK
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            Start a benchmark with this device preselected (only one benchmark runs at a time).
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size="sm" 
+              variant="secondary"
+              className="flex-1 text-xs uppercase tracking-wide"
+              onClick={(e) => { e.stopPropagation(); onConfig(device); }}
+              disabled={!device.online}
+            >
+              CONFIG
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            Open device config to set voltage/frequency, fan target, and PSU assignment.
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="flex-1 text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
+              onClick={(e) => { e.stopPropagation(); onDelete(device); }}
+            >
+              DELETE
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            Remove this device from AxeBench (backend delete); cannot be undone.
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { usePersistentState } from '@/hooks/usePersistentState';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Benchmark() {
   const { status: benchmarkStatus, refreshStatus } = useBenchmark();
@@ -606,37 +607,58 @@ export default function Benchmark() {
             <h3 className="text-xl font-bold text-glow-green mb-4">CONTROL_PANEL</h3>
             {!benchmarkStatus.running ? (
               <div className="space-y-3">
-                <Button
-                  onClick={handleStart}
-                  disabled={!selectedDevice}
-                  variant="default"
-                  className="w-full text-lg py-6 shadow-[0_0_22px_hsla(var(--primary),0.3)]"
-                >
-                  ▶ START_BENCHMARK
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleStart}
+                      disabled={!selectedDevice}
+                      variant="default"
+                      className="w-full text-lg py-6 shadow-[0_0_22px_hsla(var(--primary),0.3)]"
+                    >
+                      ▶ START_BENCHMARK
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    Runs a benchmark on the selected device (only one benchmark can run at a time).
+                  </TooltipContent>
+                </Tooltip>
                 <div className="relative flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-[var(--grid-gray)]"></div>
                   </div>
                   <span className="relative bg-[var(--bg-primary)] px-2 text-xs text-[var(--text-muted)]">OR</span>
                 </div>
-                <Button
-                  onClick={handleAutoTune}
-                  disabled={!selectedDevice}
-                  variant="accent"
-                  className="w-full text-lg py-6 shadow-[0_0_24px_hsla(var(--accent),0.4)]"
-                >
-                  🪄 AUTO_TUNE (FULL)
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleAutoTune}
+                      disabled={!selectedDevice}
+                      variant="accent"
+                      className="w-full text-lg py-6 shadow-[0_0_24px_hsla(var(--accent),0.4)]"
+                    >
+                      🪄 AUTO_TUNE (FULL)
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    Launches full auto tune: benchmark, generate Quiet/Efficient/Balanced/Max, fine-tune, then apply Efficient.
+                  </TooltipContent>
+                </Tooltip>
               </div>
             ) : (
-              <Button
-                onClick={handleStop}
-                variant="destructive"
-                className="w-full text-lg py-6 shadow-[0_0_22px_rgba(239,68,68,0.45)]"
-              >
-                ■ STOP_BENCHMARK
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleStop}
+                    variant="destructive"
+                    className="w-full text-lg py-6 shadow-[0_0_22px_rgba(239,68,68,0.45)]"
+                  >
+                    ■ STOP_BENCHMARK
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  Signals the running benchmark to stop; current test may take a moment to exit.
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
 

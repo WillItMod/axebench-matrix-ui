@@ -104,14 +104,14 @@ export default function Monitoring() {
         <div className="flex flex-wrap gap-2">
           {devices.map((device, idx) => {
             const colorPalette = DEVICE_COLOR_PALETTES[idx % DEVICE_COLOR_PALETTES.length];
-            return (
-              <Button
-                key={device.name}
-                onClick={() => toggleDevice(device.name)}
-                variant={selectedDevices.includes(device.name) ? 'default' : 'outline'}
+                return (
+                  <Button
+                    key={device.name}
+                    onClick={() => toggleDevice(device.name)}
+                    variant={selectedDevices.includes(device.name) ? 'default' : 'outline'}
                 className={selectedDevices.includes(device.name)
-                  ? 'flex flex-col items-start gap-1 uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]'
-                  : 'flex flex-col items-start gap-1 uppercase tracking-wide'
+                  ? 'flex items-center justify-start gap-3 uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]'
+                  : 'flex items-center justify-start gap-3 uppercase tracking-wide'
                 }
                 style={
                   selectedDevices.includes(device.name)
@@ -120,7 +120,6 @@ export default function Monitoring() {
                 }
               >
                 <span className="text-sm">{device.name}</span>
-                <span className="text-xs opacity-80 normal-case">{device.model}</span>
               </Button>
             );
           })}

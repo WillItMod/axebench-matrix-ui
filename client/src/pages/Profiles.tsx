@@ -234,10 +234,9 @@ export default function Profiles() {
                     key={device.name}
                     onClick={() => toggleDevice(device.name)}
                     variant={isSelected ? 'default' : 'outline'}
-                    className={`w-full justify-start text-left flex-col items-start gap-1 ${isSelected ? 'shadow-[0_0_14px_hsla(var(--primary),0.35)]' : ''}`}
+                    className={`w-full justify-start text-left ${isSelected ? 'shadow-[0_0_14px_hsla(var(--primary),0.35)]' : ''}`}
                   >
                     <span className="font-bold text-foreground text-sm">{device.name}</span>
-                    <span className="text-xs text-muted-foreground">{device.model}</span>
                   </Button>
                 );
               })}

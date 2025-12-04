@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type ProfileKey = 'quiet' | 'efficient' | 'balanced' | 'max';
 
@@ -760,41 +761,63 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
         </div>
 
         <div className="flex gap-2 ml-4">
-          <Button
-            size="sm"
-            onClick={onView}
-            variant="secondary"
-            className="text-xs uppercase tracking-wide"
-          >
-            VIEW
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                onClick={onView}
+                variant="secondary"
+                className="text-xs uppercase tracking-wide"
+              >
+                VIEW
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Open session details, plots, and logs.</TooltipContent>
+          </Tooltip>
           {session.status?.toLowerCase() === 'completed' && (
-            <Button
-              size="sm"
-              onClick={onGenerateProfiles}
-              disabled={generating}
-              variant="accent"
-              className="text-xs uppercase tracking-wide disabled:opacity-70 shadow-[0_0_14px_hsla(var(--accent),0.35)]"
-            >
-              {generating ? 'GENERATING...' : 'GENERATE_PROFILES'}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  onClick={onGenerateProfiles}
+                  disabled={generating}
+                  variant="accent"
+                  className="text-xs uppercase tracking-wide disabled:opacity-70 shadow-[0_0_14px_hsla(var(--accent),0.35)]"
+                >
+                  {generating ? 'GENERATING...' : 'GENERATE_PROFILES'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                Build Quiet/Efficient/Balanced/Max profiles from this session’s results and save to the device.
+              </TooltipContent>
+            </Tooltip>
           )}
-          <Button
-            size="sm"
-            onClick={onDownloadJson}
-            variant="outline"
-            className="text-xs uppercase tracking-wide"
-          >
-            JSON
-          </Button>
-          <Button
-            size="sm"
-            onClick={onDelete}
-            variant="destructive"
-            className="text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
-          >
-            DELETE
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                onClick={onDownloadJson}
+                variant="outline"
+                className="text-xs uppercase tracking-wide"
+              >
+                JSON
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Download normalized session JSON (includes config/results/log metadata).</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                onClick={onDelete}
+                variant="destructive"
+                className="text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
+              >
+                DELETE
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Delete session and plots from disk. This cannot be undone.</TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </div>

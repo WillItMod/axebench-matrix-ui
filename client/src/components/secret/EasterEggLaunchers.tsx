@@ -1,37 +1,25 @@
 import { useMemo, useState, type CSSProperties } from 'react';
-import {
-  ActivitySquare,
-  Antenna,
-  Atom,
-  CircuitBoard,
-  Cpu,
-  LucideIcon,
-  Radar,
-  ScanLine,
-  Shield,
-  Zap,
-} from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { MINI_GAMES, type MiniGameKey, type MiniGameEntry } from './games/registry';
 
 type Spot = {
   key: MiniGameKey;
-  Icon: LucideIcon;
   position: CSSProperties;
   label: string;
 };
 
+// Tiny “glint” triggers tucked into page chrome; double-click to open.
 const spots: Spot[] = [
-  { key: 'hash', Icon: CircuitBoard, position: { top: 88, left: 10 }, label: 'entropy tap' },
-  { key: 'breach', Icon: Antenna, position: { top: 140, right: 14 }, label: 'darkline ping' },
-  { key: 'pulse', Icon: Radar, position: { top: 210, left: 18 }, label: 'sync node' },
-  { key: 'maze', Icon: Cpu, position: { top: 280, right: 22 }, label: 'asic crawl' },
-  { key: 'volt', Icon: Zap, position: { top: 360, left: 12 }, label: 'voltage probe' },
-  { key: 'fan', Icon: Atom, position: { top: 430, right: 16 }, label: 'fan whisper' },
-  { key: 'sniff', Icon: ScanLine, position: { bottom: 160, left: 18 }, label: 'packet snare' },
-  { key: 'ports', Icon: Shield, position: { bottom: 220, right: 18 }, label: 'port trap' },
-  { key: 'entropy', Icon: ActivitySquare, position: { bottom: 120, left: 26 }, label: 'entropy bump' },
-  { key: 'uptime', Icon: Shield, position: { bottom: 70, right: 14 }, label: 'uptime keep' },
+  { key: 'asic-repair', position: { top: 96, left: 22 }, label: 'board service' },
+  { key: 'block-decryptor', position: { top: 188, right: 26 }, label: 'header rune' },
+  { key: 'hashrate-dodger', position: { top: 272, left: 34 }, label: 'hashstream drift' },
+  { key: 'psu-balancer', position: { top: 352, right: 32 }, label: 'rail shim' },
+  { key: 'voltage-surge', position: { top: 438, left: 28 }, label: 'pulse tap' },
+  { key: 'fan-fury', position: { bottom: 220, right: 30 }, label: 'thermal relief' },
+  { key: 'nano-tune-reflex', position: { bottom: 260, left: 40 }, label: 'signal snap' },
+  { key: 'blockbuilder', position: { bottom: 180, left: 22 }, label: 'stack probe' },
+  { key: 'countermeasure', position: { bottom: 130, right: 26 }, label: 'counterfire' },
+  { key: 'bitaxe-explorer', position: { bottom: 88, left: 30 }, label: 'inspect rig' },
 ];
 
 export default function EasterEggLaunchers() {
@@ -56,16 +44,17 @@ export default function EasterEggLaunchers() {
   return (
     <>
       <div className="pointer-events-none fixed inset-0 z-30 select-none">
-        {spots.map(({ key, Icon, position, label }) => (
+        {spots.map(({ key, position, label }) => (
           <button
             key={key}
             type="button"
-            aria-label={`Easter egg: ${label}`}
-            onClick={() => handleTrigger(key)}
-            className="pointer-events-auto absolute w-7 h-7 text-muted-foreground/30 hover:text-primary transition transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label={`Hidden trigger: ${label}`}
+            onDoubleClick={() => handleTrigger(key)}
+            className="pointer-events-auto absolute w-4 h-4 rounded-full bg-gradient-to-br from-emerald-400/5 via-cyan-400/5 to-amber-400/5 opacity-0 hover:opacity-50 focus:opacity-70 ring-offset-background ring-1 ring-transparent focus:ring-emerald-400/70 transition duration-300"
             style={position}
+            title="Signal pin"
           >
-            <Icon className="w-6 h-6" />
+            <span className="sr-only">{label}</span>
           </button>
         ))}
       </div>
@@ -82,13 +71,11 @@ export default function EasterEggLaunchers() {
         <DialogContent className="max-w-3xl shadow-chrome">
           {Current ? (
             <div className="space-y-3">
-              <div className="text-sm text-muted-foreground">Easter egg: {Current.title}</div>
-              <div className="gridrunner-surface border border-transparent p-3">
-                <Current.component onComplete={close} />
-              </div>
+              <div className="text-sm text-muted-foreground">Hidden protocol: {Current.title}</div>
+              <Current.component onComplete={close} />
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">Activate an easter egg to begin.</div>
+            <div className="text-sm text-muted-foreground">Double-tap a hidden pin to deploy.</div>
           )}
         </DialogContent>
       </Dialog>

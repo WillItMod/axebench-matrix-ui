@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Trash2, Plus, Play, Square, RefreshCw } from 'lucide-react';
 import { usePersistentState } from '@/hooks/usePersistentState';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Pool {
   id: string;
@@ -285,20 +286,35 @@ export default function Pool() {
           <p className="text-neon-cyan">Pool Management & Switching</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={loadData} variant="outline" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
-            REFRESH
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={loadData} variant="outline" className="gap-2">
+                <RefreshCw className="w-4 h-4" />
+                REFRESH
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Reload pools, devices, and presets from AxePool.</TooltipContent>
+          </Tooltip>
           {schedulerStatus?.running ? (
-            <Button onClick={handleStopScheduler} variant="destructive" className="gap-2">
-              <Square className="w-4 h-4" />
-              STOP_SCHEDULER
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleStopScheduler} variant="destructive" className="gap-2">
+                  <Square className="w-4 h-4" />
+                  STOP_SCHEDULER
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Stop the AxePool scheduler service (no automatic pool switching).</TooltipContent>
+            </Tooltip>
           ) : (
-            <Button onClick={handleStartScheduler} className="gap-2">
-              <Play className="w-4 h-4" />
-              START_SCHEDULER
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={handleStartScheduler} className="gap-2">
+                  <Play className="w-4 h-4" />
+                  START_SCHEDULER
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Start the AxePool scheduler service to honor pool schedules.</TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -406,10 +422,9 @@ export default function Pool() {
                     key={device.name}
                     onClick={() => toggleDevice(device.name)}
                     variant={active ? 'default' : 'outline'}
-                    className={`w-full justify-start text-left flex-col items-start gap-1 uppercase tracking-wide ${active ? 'shadow-[0_0_16px_hsla(var(--primary),0.35)]' : ''}`}
+                    className={`w-full justify-start text-left uppercase tracking-wide ${active ? 'shadow-[0_0_16px_hsla(var(--primary),0.35)]' : ''}`}
                   >
                     <span className="font-bold text-sm">{device.name}</span>
-                    <span className="text-xs text-muted-foreground">{device.model}</span>
                   </Button>
                 );
               })}
@@ -432,9 +447,16 @@ export default function Pool() {
               ))}
             </div>
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleBulkApply} variant="default" className="uppercase tracking-wide shadow-[0_0_16px_hsla(var(--primary),0.3)]" disabled={!selectedPoolId || selectedDevices.length === 0}>
-                APPLY_TO_SELECTED
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleBulkApply} variant="default" className="uppercase tracking-wide shadow-[0_0_16px_hsla(var(--primary),0.3)]" disabled={!selectedPoolId || selectedDevices.length === 0}>
+                    APPLY_TO_SELECTED
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  Push the chosen pool to all selected devices (device will restart after apply).
+                </TooltipContent>
+              </Tooltip>
               <Button
                 variant="outline"
                 onClick={() => {
@@ -591,23 +613,37 @@ export default function Pool() {
                       </SelectContent>
                     </Select>
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="flex-1 uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.3)]"
-                        onClick={() => selectedPoolId && handleApplyPool(deviceName, selectedPoolId)}
-                        disabled={!selectedPoolId}
-                      >
-                        APPLY_POOL
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => handleSwapPool(deviceName)}
-                      >
-                        SWAP_POOL
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="flex-1 uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.3)]"
+                            onClick={() => selectedPoolId && handleApplyPool(deviceName, selectedPoolId)}
+                            disabled={!selectedPoolId}
+                          >
+                            APPLY_POOL
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          Apply the selected pool to this device (device restarts after apply).
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1"
+                            onClick={() => handleSwapPool(deviceName)}
+                          >
+                            SWAP_POOL
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          Swap main and fallback pools on the device; requires a configured fallback.
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 </Card>

@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Calendar, Layers, Play, RefreshCcw, Square, Trash2 } from 'lucide-react';
 import { usePersistentState } from '@/hooks/usePersistentState';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
@@ -519,14 +520,21 @@ export default function Operations() {
             <h2 className="text-xl font-bold text-[var(--neon-cyan)]">Schedule editor</h2>
             <p className="text-xs text-[var(--text-muted)]">Targets: {targetLabel}</p>
           </div>
-          <Button
-            onClick={handleSave}
-            disabled={saving || !selectedDevices.length}
-            variant="default"
-            className="uppercase tracking-wide shadow-[0_0_16px_hsla(var(--primary),0.3)]"
-          >
-            {saving ? 'Saving...' : selectedDevices.length ? 'Save to selected' : 'Select devices to save'}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleSave}
+                disabled={saving || !selectedDevices.length}
+                variant="default"
+                className="uppercase tracking-wide shadow-[0_0_16px_hsla(var(--primary),0.3)]"
+              >
+                {saving ? 'Saving...' : selectedDevices.length ? 'Save to selected' : 'Select devices to save'}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              Push profile and pool schedules to the selected devices. If AxeShed or AxePool is unreachable, that part is skipped.
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -673,12 +681,22 @@ function ServiceToggle({
         </div>
       </div>
       <div className="flex gap-2">
-        <Button size="sm" variant={running ? 'outline' : 'default'} onClick={onStart}>
-          <Play className="w-4 h-4 mr-1" /> Start
-        </Button>
-        <Button size="sm" variant={!running ? 'outline' : 'default'} onClick={onStop}>
-          <Square className="w-4 h-4 mr-1" /> Stop
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" variant={running ? 'outline' : 'default'} onClick={onStart}>
+              <Play className="w-4 h-4 mr-1" /> Start
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Starts the scheduler service for this category.</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button size="sm" variant={!running ? 'outline' : 'default'} onClick={onStop}>
+              <Square className="w-4 h-4 mr-1" /> Stop
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">Stops the scheduler service; schedules won’t auto-apply while stopped.</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );
