@@ -36,6 +36,7 @@ const SECRET_THEME_KEY = 'axebench_secret_theme';
 export default function DarkModeChallengeHub() {
   const { setTheme, secretUnlocked, setSecretUnlocked } = useTheme();
   const [unlocked, setUnlocked] = useState(false);
+  const [replayMode, setReplayMode] = useState(false);
   const [gameKey, setGameKey] = useState<string>(() => games[Math.floor(Math.random() * games.length)].key);
 
   useEffect(() => {
@@ -54,11 +55,12 @@ export default function DarkModeChallengeHub() {
     setSecretUnlocked(true);
     setTheme('forge');
     window.dispatchEvent(new CustomEvent('forge-celebrate'));
+    setReplayMode(false);
   };
 
   if (unlocked) {
     return (
-      <div className="bg-slate-900 border border-lime-500/50 rounded-lg p-5 text-slate-100 shadow-[0_0_25px_rgba(34,197,94,0.35)] relative overflow-hidden">
+      <div className="bg-slate-900 border border-lime-500/50 rounded-lg p-5 text-slate-100 shadow-[0_0_25px_rgba(34,197,94,0.35)] relative overflow-hidden space-y-3">
         <div className="absolute inset-0 bg-gradient-to-br from-lime-500/10 via-cyan-500/5 to-emerald-500/10 pointer-events-none" />
         <div className="relative">
           <div className="text-xl font-bold text-lime-400">DARK MATRIX ONLINE</div>
@@ -68,6 +70,36 @@ export default function DarkModeChallengeHub() {
             <span className="px-3 py-1 rounded border border-cyan-400/60 text-cyan-300">matrix core</span>
             <span className="px-3 py-1 rounded border border-emerald-400/60 text-emerald-300">hacker mode</span>
           </div>
+        </div>
+        <div className="relative flex flex-col gap-2">
+          {!replayMode && (
+            <button
+              onClick={() => {
+                const next = games[Math.floor(Math.random() * games.length)]?.key ?? games[0].key;
+                setGameKey(next);
+                setReplayMode(true);
+              }}
+              className="self-start text-xs px-3 py-2 rounded border border-lime-500/60 hover:border-cyan-400 bg-slate-900/60"
+            >
+              Run a challenge for fun
+            </button>
+          )}
+          {replayMode && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-slate-300">Bonus challenge (Forge already unlocked)</div>
+                <button
+                  onClick={() => setReplayMode(false)}
+                  className="text-xs px-3 py-1 rounded border border-slate-700 hover:border-cyan-400"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="bg-slate-950/70 border border-slate-700 rounded-md p-3">
+                <Current onComplete={complete} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

@@ -220,7 +220,7 @@ export default function Layout({ children }: LayoutProps) {
               type="button"
               onClick={() => {
                 if (secretUnlocked) setCelebrate(true);
-                else setShowSecret(true);
+                setShowSecret(true);
               }}
               className="flex items-center gap-1 text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
             >
