@@ -263,10 +263,25 @@ export default function Layout({ children }: LayoutProps) {
       settingsTapCountRef.current = 0;
       setSatoshiMode(true);
       toast.success('Satoshi mode unlocked');
-    } else if (satoshiMode && next >= SATOSHI_LOCK_TAPS) {
+      return;
+    }
+
+    if (satoshiMode && next >= SATOSHI_LOCK_TAPS) {
       settingsTapCountRef.current = 0;
       setSatoshiMode(false);
       toast.info('Satoshi mode locked');
+      return;
+    }
+
+    // Give occasional feedback so users know taps are being counted
+    const remainingToUnlock = SATOSHI_UNLOCK_TAPS - next;
+    if (!satoshiMode && (next === 1 || next % 10 === 0)) {
+      toast.info(`${remainingToUnlock} taps to unlock Satoshi mode`);
+    } else if (satoshiMode) {
+      const remainingToLock = SATOSHI_LOCK_TAPS - next;
+      if (remainingToLock > 0) {
+        toast.info(`${remainingToLock} taps to lock Satoshi mode`);
+      }
     }
   };
 
