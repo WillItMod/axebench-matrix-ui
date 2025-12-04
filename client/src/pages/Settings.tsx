@@ -29,7 +29,6 @@ export default function Settings() {
     setFontScale,
     matrixCodeColor,
     setMatrixCodeColor,
-    fontOverride,
     resetFontOverride,
     matrixBrightness,
     setMatrixBrightness,
@@ -100,14 +99,6 @@ export default function Settings() {
     () => availableThemes.find((t) => t.name === theme)?.label ?? theme,
     [theme]
   );
-  const currentFontLabel = useMemo(
-    () => fontChoices.find((f) => f.key === fontKey)?.label ?? fontKey,
-    [fontKey]
-  );
-  const defaultFontLabel = useMemo(() => {
-    const def = themePalettes[theme]?.defaults.font;
-    return fontChoices.find((f) => f.key === def)?.label ?? def ?? 'Share Tech Mono';
-  }, [theme]);
   const dashboardRefreshSec = useMemo(
     () => Number((Math.max(1000, dashboardRefreshMs) / 1000).toFixed(1)),
     [dashboardRefreshMs]
@@ -131,7 +122,7 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Licensing / Patreon</div>
-              <div className="text-lg font-semibold text-foreground">
+              <div className="text-lg font-semibold text-glow-cyan">
                 Tier: {tier.toUpperCase()}
               </div>
             </div>
@@ -162,9 +153,6 @@ export default function Settings() {
               <div className="text-sm text-muted-foreground">Appearance & Typography</div>
               <div className="text-xl font-semibold text-glow-cyan">THEME & FONT LAB</div>
             </div>
-            <Badge variant="secondary" className="text-xs">
-              {fontOverride ? 'Custom font' : 'Theme default'}
-            </Badge>
           </div>
 
           <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
@@ -321,7 +309,7 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-muted-foreground">Monitoring & refresh</div>
-              <div className="text-lg font-semibold text-foreground">Poll cadence</div>
+              <div className="text-lg font-semibold text-glow-cyan">Poll cadence</div>
             </div>
             <Badge variant="outline" className="text-xs">Per-device</Badge>
           </div>
@@ -362,7 +350,7 @@ export default function Settings() {
         <Card className="p-5 space-y-4">
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Units & display</div>
-            <div className="text-lg font-semibold text-foreground">How values render</div>
+            <div className="text-lg font-semibold text-glow-cyan">How values render</div>
           </div>
           <div className="space-y-3">
             <div className="flex flex-col gap-1">
@@ -408,7 +396,7 @@ export default function Settings() {
         <Card className="p-5 space-y-4">
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">Performance & visuals</div>
-            <div className="text-lg font-semibold text-foreground">Animation comfort</div>
+            <div className="text-lg font-semibold text-glow-cyan">Animation comfort</div>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">

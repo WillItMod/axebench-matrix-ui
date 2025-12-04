@@ -517,7 +517,7 @@ export default function Operations() {
       <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-xl font-bold text-[var(--neon-cyan)]">SCHEDULE_EDITOR</h2>
+            <h2 className="text-xl font-bold text-glow-cyan">SCHEDULE_EDITOR</h2>
             <p className="text-xs text-[var(--text-muted)]">Targets: {targetLabel}</p>
           </div>
           <Tooltip>

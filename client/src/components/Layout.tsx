@@ -317,8 +317,8 @@ export default function Layout({ children }: LayoutProps) {
                       className={cn(
                         'uppercase tracking-[0.14em] font-bold px-5',
                         isActive
-                          ? 'shadow-[0_0_18px_hsla(var(--primary),0.45)]'
-                          : 'text-foreground/85 border-border'
+                          ? 'bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] shadow-[0_0_22px_hsla(var(--accent),0.45)]'
+                          : 'text-[hsl(var(--accent))] border-[hsl(var(--accent))]/50 hover:border-[hsl(var(--accent))]'
                       )}
                     >
                       {tab.label}

@@ -8,18 +8,18 @@ type Spot = {
   label: string;
 };
 
-// Tiny “glint” triggers tucked into page chrome; double-click to open.
+// Visible glow badges anchored near header/nav/footer
 const spots: Spot[] = [
-  { key: '2048', position: { top: 96, left: 22 }, label: 'board service' },
-  { key: 'hextris', position: { top: 188, right: 26 }, label: 'header rune' },
-  { key: 'clumsy-bird', position: { top: 272, left: 34 }, label: 'hashstream drift' },
-  { key: 'hexgl', position: { top: 352, right: 32 }, label: 'rail shim' },
-  { key: 'astray', position: { top: 438, left: 28 }, label: 'pulse tap' },
-  { key: 'js13k', position: { bottom: 260, left: 40 }, label: 'signal snap' },
-  { key: 'pixel-defense', position: { bottom: 220, right: 30 }, label: 'thermal relief' },
-  { key: 'breakout', position: { bottom: 180, left: 22 }, label: 'stack probe' },
-  { key: 'dark-room', position: { bottom: 130, right: 26 }, label: 'counterfire' },
-  { key: 'kontra', position: { bottom: 88, left: 30 }, label: 'inspect rig' },
+  { key: '2048', position: { top: 110, left: '2%' }, label: 'Status beacon' },
+  { key: 'hextris', position: { top: 110, right: '2%' }, label: 'Status beacon' },
+  { key: 'clumsy-bird', position: { top: 180, left: '6%' }, label: 'Nav pulse' },
+  { key: 'hexgl', position: { top: 180, right: '6%' }, label: 'Nav pulse' },
+  { key: 'astray', position: { top: 250, left: '12%' }, label: 'Grid scan' },
+  { key: 'js13k', position: { top: 250, right: '12%' }, label: 'Grid scan' },
+  { key: 'pixel-defense', position: { bottom: 220, left: '8%' }, label: 'Footer node' },
+  { key: 'breakout', position: { bottom: 220, right: '8%' }, label: 'Footer node' },
+  { key: 'dark-room', position: { bottom: 140, left: '20%' }, label: 'Console spark' },
+  { key: 'kontra', position: { bottom: 140, right: '20%' }, label: 'Console spark' },
 ];
 
 export default function EasterEggLaunchers() {
@@ -49,12 +49,12 @@ export default function EasterEggLaunchers() {
             key={key}
             type="button"
             aria-label={`Hidden trigger: ${label}`}
-            onDoubleClick={() => handleTrigger(key)}
-            className="pointer-events-auto absolute w-4 h-4 rounded-full bg-gradient-to-br from-emerald-400/5 via-cyan-400/5 to-amber-400/5 opacity-0 hover:opacity-50 focus:opacity-70 ring-offset-background ring-1 ring-transparent focus:ring-emerald-400/70 transition duration-300"
+            onClick={() => handleTrigger(key)}
+            className="pointer-events-auto absolute flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400/15 via-cyan-400/12 to-amber-400/15 text-[10px] uppercase tracking-[0.18em] text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.35)] border border-emerald-300/30 hover:scale-105 transition"
             style={position}
-            title="Signal pin"
+            title="Hidden protocol"
           >
-            <span className="sr-only">{label}</span>
+            SCAN
           </button>
         ))}
       </div>
@@ -75,7 +75,7 @@ export default function EasterEggLaunchers() {
               <Current.component onComplete={close} />
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">Double-tap a hidden pin to deploy.</div>
+            <div className="text-sm text-muted-foreground">Click a glowing scan badge to deploy.</div>
           )}
         </DialogContent>
       </Dialog>
