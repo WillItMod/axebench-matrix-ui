@@ -14,6 +14,7 @@ import DarkModeChallengeHub from './secret/DarkModeChallengeHub';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import EasterEggLaunchers from './secret/EasterEggLaunchers';
+import BitcoinLoreModal from './secret/BitcoinLoreModal';
 
 interface LayoutProps {
   children: ReactNode;
@@ -137,6 +138,8 @@ export default function Layout({ children }: LayoutProps) {
   );
   const [showSecret, setShowSecret] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const [coinTaps, setCoinTaps] = useState(0);
+  const [loreOpen, setLoreOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => {
@@ -149,19 +152,15 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleBitcoinClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (secretUnlocked && event.altKey) {
-      setCelebrate(true);
-      setShowSecret(false);
+      setShowSecret((prev) => !prev);
       return;
     }
-    setCelebrate(false);
-    setShowSecret((prev) => !prev);
+    setCoinTaps(0);
+    setCelebrate(true);
   };
 
   const handleCelebrationFinished = () => {
-    setCelebrate(false);
-    if (secretUnlocked) {
-      setShowSecret(true);
-    }
+    // Keep overlay for coin tapping; do not auto-close here.
   };
 
   const renderLicenseBanner = () => {
@@ -233,15 +232,31 @@ export default function Layout({ children }: LayoutProps) {
 
   const licenseBanner = renderLicenseBanner();
 
+  const handleLoreUnlocked = () => {
+    setShowSecret(true);
+    setLoreOpen(false);
+  };
+
   return (
     <div className="min-h-screen relative bg-background text-foreground overflow-x-hidden">
-      <BitcoinCelebrationOverlay active={celebrate} onFinished={handleCelebrationFinished} />
+      <BitcoinCelebrationOverlay
+        active={celebrate}
+        onFinished={handleCelebrationFinished}
+        onCoinTap={(count) => {
+          setCoinTaps(count);
+          if (count >= 10) {
+            setCelebrate(false);
+            setLoreOpen(true);
+          }
+        }}
+        onDismiss={() => setCelebrate(false)}
+      />
       {/* Matrix Background */}
       <MatrixBackground />
       <EasterEggLaunchers />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <div className="relative z-30 space-y-2 px-2 pt-0 -mt-6">
+      <div className="relative z-30 space-y-2 px-3 pt-2">
         <div className="min-h-[36px]">
           <BenchmarkStatusBanner />
         </div>
@@ -259,7 +274,7 @@ export default function Layout({ children }: LayoutProps) {
         {/* Header */}
         <header className="px-4">
           <div className="container mx-auto">
-            <div className="gridrunner-surface border border-transparent shadow-chrome px-4 py-4 flex items-center justify-between gap-3">
+            <div className="gridrunner-surface border border-transparent shadow-chrome px-4 py-3 flex items-center justify-between gap-3">
               {/* Logo */}
               <div className="flex items-center gap-3">
                 <button
@@ -287,7 +302,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </header>
 
-        <nav className="px-4 mt-1">
+        <nav className="px-4 mt-0.5">
           <div className="container mx-auto">
             <div className="gridrunner-surface border border-transparent shadow-chrome px-3 py-2">
               <div className="flex flex-wrap gap-2">
@@ -334,6 +349,8 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </footer>
+
+        <BitcoinLoreModal open={loreOpen} onClose={() => setLoreOpen(false)} onUnlocked={handleLoreUnlocked} />
 
         <Dialog open={showSecret} onOpenChange={setShowSecret}>
           <DialogContent className="max-w-3xl shadow-chrome">

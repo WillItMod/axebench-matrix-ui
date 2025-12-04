@@ -576,10 +576,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (matrixCodeColor) {
       document.documentElement.style.setProperty('--matrix-green', matrixCodeColor);
       localStorage.setItem(MATRIX_CODE_COLOR_KEY, matrixCodeColor);
-      if (!matrixCodeColorOverride) {
-        setMatrixCodeColorOverride(true);
-        localStorage.setItem(MATRIX_COLOR_OVERRIDE_KEY, 'true');
-      }
     }
   }, [matrixCodeColor]);
 
@@ -602,6 +598,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = (name: ThemeName) => {
     setThemeState(name);
     localStorage.setItem(THEME_KEY, name);
+    if (name === 'solarSynth' && !matrixRainbow) {
+      setMatrixRainbow(true);
+    }
     if (name === 'forge') {
       localStorage.setItem(SECRET_THEME_KEY, 'forge');
       localStorage.setItem(SECRET_UNLOCK_KEY, 'true');
