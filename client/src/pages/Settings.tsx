@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useTheme, availableThemes, fonts } from '@/contexts/ThemeContext';
+import { Badge } from '@/components/ui/badge';
+import FontAppearanceSplash from '@/components/FontAppearanceSplash';
+import { useTheme, availableThemes, fonts as fontChoices, themePalettes } from '@/contexts/ThemeContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -20,17 +22,18 @@ export default function Settings() {
     theme,
     setTheme,
     fontKey,
-    setFontKey,
     fontScale,
     setFontScale,
     matrixCodeColor,
     setMatrixCodeColor,
+    fontOverride,
   } = useTheme();
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [tier, setTier] = useState<'free' | 'premium' | 'ultimate'>('free');
   const [deviceLimit, setDeviceLimit] = useState<number>(5);
   const [deviceCount, setDeviceCount] = useState<number>(0);
   const [patreonUrl, setPatreonUrl] = useState<string | null>(null);
+  const [showAppearanceModal, setShowAppearanceModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -66,116 +69,120 @@ export default function Settings() {
     setTier('free');
   };
 
+  const currentThemeLabel = useMemo(
+    () => availableThemes.find((t) => t.name === theme)?.label ?? theme,
+    [theme]
+  );
+  const currentFontLabel = useMemo(
+    () => fontChoices.find((f) => f.key === fontKey)?.label ?? fontKey,
+    [fontKey]
+  );
+  const defaultFontLabel = useMemo(() => {
+    const def = themePalettes[theme]?.defaults.font;
+    return fontChoices.find((f) => f.key === def)?.label ?? def ?? 'Share Tech Mono';
+  }, [theme]);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-[var(--theme-primary)] mb-2">SETTINGS</h1>
-        <p className="text-[var(--text-secondary)]">Configure your AxeBench experience</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <p className="text-muted-foreground">Configure AxeBench to match your rig and preferences.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowAppearanceModal(true)}>
+            Fonts & Appearance
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-        {/* Licensing */}
-        <Card className="p-4 bg-card border border-border space-y-3 text-foreground h-full">
-          <div className="text-lg font-bold text-[var(--theme-accent)]">LICENSING / PATREON</div>
-          <div className="text-sm text-[var(--text-secondary)]">
-            Current tier: {tier.toUpperCase()} | Devices {deviceCount}/{deviceLimit}
+        <Card className="p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="text-sm text-muted-foreground">Licensing / Patreon</div>
+              <div className="text-lg font-semibold text-foreground">
+                Tier: {tier.toUpperCase()}
+              </div>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              Devices {deviceCount}/{deviceLimit}
+            </Badge>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="text-sm text-muted-foreground">
+            {tier === 'free'
+              ? 'Free tier is limited. Upgrade to unlock higher device counts and patron perks.'
+              : 'Thanks for supporting AxeBench. Your subscription keeps the rigs humming.'}
+          </div>
+          <div className="flex flex-wrap gap-2">
             {patreonUrl && (
-              <Button onClick={() => window.open(patreonUrl!, '_blank')} className="bg-primary text-primary-foreground">
+              <Button size="sm" onClick={() => window.open(patreonUrl!, '_blank')}>
                 Open Patreon Login
               </Button>
             )}
-            <Button variant="outline" onClick={handleLogout}>
+            <Button size="sm" variant="outline" onClick={handleLogout}>
               Logout
             </Button>
           </div>
+          {license?.auth_url && (
+            <div className="text-xs text-muted-foreground">
+              Auth URL: <span className="break-all">{license.auth_url}</span>
+            </div>
+          )}
         </Card>
 
-        {/* Fonts */}
-        <Card className="p-4 bg-card border border-border space-y-3 text-foreground h-full">
-          <div className="text-lg font-bold text-[var(--theme-accent)]">FONTS & SIZE</div>
-          <div className="grid grid-cols-2 gap-2">
-            {fonts.map((font) => {
-              const selected = fontKey === font.key;
-              return (
-                <button
-                  key={font.key}
-                  onClick={() => setFontKey(font.key)}
-                  style={{ fontFamily: font.stack }}
-                  className={`rounded-md border p-3 text-left transition-all ${
-                    selected
-                      ? 'border-[var(--theme-primary)] shadow-[0_0_12px_rgba(0,255,65,0.35)] bg-[var(--theme-bg-hover)]'
-                      : 'border-border hover:border-[var(--theme-accent)] hover:shadow-[0_0_10px_rgba(0,255,255,0.25)]'
-                  }`}
-                >
-                  {font.label}
-                </button>
-              );
-            })}
+        <Card className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-muted-foreground">Current Theme</div>
+              <div className="text-xl font-semibold text-foreground">{currentThemeLabel}</div>
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {fontOverride ? 'Custom font' : 'Theme default'}
+            </Badge>
           </div>
-          <div className="text-xs text-[var(--text-secondary)]">Apply a font stack across the UI.</div>
-          <div className="mt-3">
-            <Label className="text-xs text-[var(--text-secondary)]">Global Text Size</Label>
-            <input
-              type="range"
-              min="0.9"
-              max="1.2"
-              step="0.02"
-              value={fontScale}
-              onChange={(e) => setFontScale(parseFloat(e.target.value))}
-              className="w-full accent-[var(--theme-primary)]"
-            />
-            <div className="text-xs text-[var(--text-secondary)]">Scale: {fontScale.toFixed(2)}x</div>
+          <div className="text-sm text-muted-foreground">
+            Font: {currentFontLabel} · Default: {defaultFontLabel} · Scale {fontScale.toFixed(2)}x
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowAppearanceModal(true)}>
+              Adjust fonts & appearance
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setTheme('matrix')}>
+              Reset to Matrix Dark
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Matrix Code Color</Label>
+              <Input
+                type="color"
+                value={matrixCodeColor}
+                onChange={(e) => setMatrixCodeColor(e.target.value)}
+                className="h-10 w-full"
+              />
+              <div className="text-[11px] text-muted-foreground">
+                Adjust digital rain hue. Animation & brightness stay untouched.
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Font scale</Label>
+              <input
+                type="range"
+                min="0.9"
+                max="1.2"
+                step="0.02"
+                value={fontScale}
+                onChange={(e) => setFontScale(parseFloat(e.target.value))}
+                className="w-full accent-[hsl(var(--primary))]"
+              />
+              <div className="text-[11px] text-muted-foreground">Scale: {fontScale.toFixed(2)}x</div>
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* Appearance */}
-      <Card className="p-6 bg-card border border-border space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[var(--theme-accent)]">APPEARANCE</h2>
-          <div className="text-sm text-[var(--text-secondary)]">Theme and matrix rain tweaks</div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {availableThemes.map((t) => {
-            const active = theme === t.name;
-            return (
-              <button
-                key={t.name}
-                onClick={() => setTheme(t.name as any)}
-                className={`rounded-lg border p-3 text-left transition-all bg-card/80 ${
-                  active
-                    ? 'border-[hsl(var(--primary))] shadow-[0_0_12px_rgba(34,197,94,0.3)]'
-                    : 'border-border hover:border-[hsl(var(--primary))]/70'
-                }`}
-              >
-                <div className="font-bold text-sm text-foreground">{t.label}</div>
-                <div className="mt-2 flex gap-1">
-                  <span className="h-4 w-4 rounded" style={{ background: 'var(--primary)' }} />
-                  <span className="h-4 w-4 rounded" style={{ background: 'var(--secondary)' }} />
-                  <span className="h-4 w-4 rounded border border-border" style={{ background: 'var(--card)' }} />
-                  <span className="h-4 w-4 rounded border border-border" style={{ background: 'var(--muted)' }} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="flex flex-col gap-1">
-            <Label className="text-xs text-[var(--text-secondary)] uppercase">Matrix Code Color</Label>
-            <Input
-              type="color"
-              value={matrixCodeColor}
-              onChange={(e) => setMatrixCodeColor(e.target.value)}
-              className="h-10 w-full"
-            />
-            <div className="text-[var(--text-secondary)] text-xs">Adjust the digital rain hue (animation unchanged).</div>
-          </div>
-        </div>
-      </Card>
+      <FontAppearanceSplash open={showAppearanceModal} onOpenChange={setShowAppearanceModal} />
     </div>
   );
 }

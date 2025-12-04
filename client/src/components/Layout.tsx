@@ -1,4 +1,5 @@
-﻿import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { Bitcoin } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import MatrixBackground from './MatrixBackground';
 import BenchmarkStatusBanner from './BenchmarkStatusBanner';
@@ -9,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import BitcoinCelebrationOverlay from './BitcoinCelebrationOverlay';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import DarkModeChallengeHub from './DarkModeChallengeHub';
+import DarkModeChallengeHub from './secret/DarkModeChallengeHub';
 import { useTheme } from '@/contexts/ThemeContext';
+import { cn } from '@/lib/utils';
 
 interface LayoutProps {
   children: ReactNode;
@@ -114,9 +116,12 @@ export default function Layout({ children }: LayoutProps) {
   }, [licenseTier, isPatron, deviceLimit, licenseLoaded]);
 
   const overLimit = deviceCount > deviceLimit;
-  const [patreonUrl, setPatreonUrl] = useState<string>(import.meta.env.VITE_PATREON_URL || 'https://www.patreon.com/axebench');
+  const [patreonUrl, setPatreonUrl] = useState<string>(
+    import.meta.env.VITE_PATREON_URL || 'https://www.patreon.com/axebench'
+  );
   const [showSecret, setShowSecret] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+
   useEffect(() => {
     const handler = () => {
       setCelebrate(true);
@@ -126,21 +131,40 @@ export default function Layout({ children }: LayoutProps) {
     return () => window.removeEventListener('forge-celebrate', handler);
   }, []);
 
+  const handleBitcoinClick = () => {
+    if (!secretUnlocked) {
+      setShowSecret((prev) => !prev);
+      setCelebrate(false);
+      return;
+    }
+    if (showSecret) {
+      setShowSecret(false);
+      setCelebrate(false);
+      return;
+    }
+    setCelebrate(true);
+  };
+
+  const handleCelebrationFinished = () => {
+    setCelebrate(false);
+    if (secretUnlocked) {
+      setShowSecret(true);
+    }
+  };
+
   const renderLicenseBanner = () => {
-    const bannerBase = 'bg-card border border-border text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg shadow-sm';
+    const bannerBase =
+      'bg-card border border-border text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg shadow-sm';
 
     if (licenseTier === 'free') {
       return (
         <div className={bannerBase}>
           <div className="text-sm text-muted-foreground">
-            Free tier: up to {deviceLimit} devices. You have {deviceCount}. {overLimit ? 'Some features may be limited.' : 'Support to unlock more.'}
+            Free tier: up to {deviceLimit} devices. You have {deviceCount}.{' '}
+            {overLimit ? 'Some features may be limited.' : 'Support to unlock more.'}
           </div>
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => window.open(patreonUrl, '_blank')}
-            >
+            <Button size="sm" variant="secondary" onClick={() => window.open(patreonUrl, '_blank')}>
               Support on Patreon
             </Button>
           </div>
@@ -154,11 +178,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="text-sm text-muted-foreground">
             Premium: up to {deviceLimit} devices. Thanks for supporting! Devices: {deviceCount}.
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.open(patreonUrl, '_blank')}
-          >
+          <Button size="sm" variant="outline" onClick={() => window.open(patreonUrl, '_blank')}>
             Upgrade to Ultimate
           </Button>
         </div>
@@ -193,7 +213,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen relative bg-background text-foreground">
-      <BitcoinCelebrationOverlay active={celebrate} onFinished={() => setCelebrate(false)} />
+      <BitcoinCelebrationOverlay active={celebrate} onFinished={handleCelebrationFinished} />
       {/* Matrix Background */}
       <MatrixBackground />
 
@@ -208,9 +228,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="min-h-[36px]">
           <AutoTuneStatusBanner />
         </div>
-        <div className="min-h-[56px] flex items-stretch transition-all duration-200">
-          {licenseBanner}
-        </div>
+        <div className="min-h-[56px] flex items-stretch transition-all duration-200">{licenseBanner}</div>
       </div>
 
       {/* Main Content */}
@@ -218,28 +236,22 @@ export default function Layout({ children }: LayoutProps) {
         {/* Header */}
         <header className="border-b border-border bg-card/90 backdrop-blur-sm">
           <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               {/* Logo */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (secretUnlocked) {
-                      setCelebrate(true);
-                    } else {
-                      setShowSecret(true);
-                    }
-                  }}
-                  className="flex items-center gap-1 text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
+                  onClick={handleBitcoinClick}
+                  className="group flex items-center gap-2 text-foreground transition"
                 >
-                  <span className="text-foreground">AXE</span>
-                  <span className="relative inline-flex items-center justify-center w-9 h-9 -mx-[3px] rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.75)] border-2 border-amber-200">
-                    ₿
+                  <span className="text-2xl font-semibold tracking-tight">AXE</span>
+                  <span className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.65)] border-2 border-amber-200 group-hover:scale-105 transition-transform">
+                    <Bitcoin className="w-5 h-5" />
                   </span>
-                  <span className="text-foreground">ENCH</span>
+                  <span className="text-2xl font-semibold tracking-tight">BENCH</span>
                 </button>
-                <div className="text-sm text-muted-foreground">
-                  UI v2.0 | AxeBench v3.0.0
+                <div className="text-xs uppercase text-muted-foreground">
+                  UI v2.0 | AxeBench v3.0.0 {secretUnlocked ? ' | Forge Ready' : ''}
                 </div>
               </div>
 
@@ -260,14 +272,12 @@ export default function Layout({ children }: LayoutProps) {
                 return (
                   <Link key={tab.path} href={tab.path}>
                     <button
-                      className={`
-                        px-6 py-3 font-bold uppercase tracking-wide transition-all relative rounded-md border
-                        ${
-                          isActive
-                            ? 'text-[hsl(var(--primary-foreground))] bg-[hsl(var(--primary))] border-[hsl(var(--primary))] shadow-[0_0_16px_rgba(34,197,94,0.35)]'
-                            : 'text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary))] hover:shadow-[0_0_10px_rgba(34,211,238,0.25)] hover:bg-[hsl(var(--muted))]/60 border-border bg-card/60'
-                        }
-                      `}
+                      className={cn(
+                        'px-6 py-3 font-bold uppercase tracking-wide transition-all relative rounded-md border',
+                        isActive
+                          ? 'text-[hsl(var(--primary-foreground))] bg-[hsl(var(--primary))] border-[hsl(var(--primary))] shadow-[0_0_16px_rgba(34,197,94,0.35)]'
+                          : 'text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary))] hover:shadow-[0_0_10px_rgba(34,211,238,0.25)] hover:bg-[hsl(var(--muted))]/60 border-border bg-card/60'
+                      )}
                     >
                       {tab.label}
                       {isActive && (
@@ -282,27 +292,27 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
 
         {/* Page Content */}
-        <main className="container mx-auto px-4 py-6">
-          {children}
-        </main>
+        <main className="container mx-auto px-4 py-6">{children}</main>
 
         {/* Footer */}
         <footer className="border-t border-border bg-card/80 backdrop-blur-sm mt-12">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <div>
-                AxeBench Interface | Bitaxe Fleet Management System
-              </div>
+              <div>AxeBench Interface | Bitaxe Fleet Management System</div>
               <div className="flex items-center gap-4">
-                <span>STATUS: <span className="text-primary">OPERATIONAL</span></span>
-                <span>UPTIME: <span className="text-secondary">{uptime}</span></span>
+                <span>
+                  STATUS: <span className="text-[hsl(var(--primary))]">OPERATIONAL</span>
+                </span>
+                <span>
+                  UPTIME: <span className="text-[hsl(var(--secondary))]">{uptime}</span>
+                </span>
               </div>
             </div>
           </div>
         </footer>
 
         <Dialog open={showSecret} onOpenChange={setShowSecret}>
-          <DialogContent className="bg-[var(--dark-gray)] border border-[var(--grid-gray)] shadow-[0_0_20px_rgba(0,255,65,0.25)] max-w-3xl">
+          <DialogContent className="bg-card border border-border shadow-[0_0_20px_rgba(34,197,94,0.25)] max-w-3xl text-foreground">
             <DarkModeChallengeHub />
           </DialogContent>
         </Dialog>

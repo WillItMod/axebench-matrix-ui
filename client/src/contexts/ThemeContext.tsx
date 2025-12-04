@@ -17,10 +17,13 @@ export type ThemeName =
 const THEME_KEY = 'axebench_theme';
 const FONT_KEY = 'axebench_font';
 const FONT_SCALE_KEY = 'axebench_font_scale';
+const FONT_OVERRIDE_KEY = 'axebench_font_override';
 const SECRET_UNLOCK_KEY = 'axebench_secret_unlocked';
 const SECRET_THEME_KEY = 'axebench_secret_theme';
 const MATRIX_BRIGHTNESS_KEY = 'axebench-matrix-brightness';
 const MATRIX_CODE_COLOR_KEY = 'axebench-matrix-code-color';
+
+const defaultFontForTheme = (theme: ThemeName) => palettes[theme]?.defaults.font || 'share-tech';
 
 export interface Palette {
   name: ThemeName;
@@ -365,6 +368,8 @@ interface ThemeContextType {
   palette: Palette;
   fontKey: string;
   setFontKey: (key: string) => void;
+  fontOverride: boolean;
+  resetFontOverride: () => void;
   fontScale: number;
   setFontScale: (val: number) => void;
   fonts: FontChoice[];
@@ -379,22 +384,29 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [secretUnlocked, setSecretUnlocked] = useState<boolean>(() => {
-    return localStorage.getItem(SECRET_UNLOCK_KEY) === 'true';
-  });
+  const initialSecretUnlocked = localStorage.getItem(SECRET_UNLOCK_KEY) === 'true';
+  const savedTheme = localStorage.getItem(THEME_KEY) as ThemeName | null;
+  const savedSecretTheme = localStorage.getItem(SECRET_THEME_KEY) as ThemeName | null;
+  const initialTheme: ThemeName =
+    savedSecretTheme === 'forge' && initialSecretUnlocked
+      ? 'forge'
+      : savedTheme && palettes[savedTheme]
+        ? savedTheme
+        : 'matrix';
 
-  const [theme, setThemeState] = useState<ThemeName>(() => {
-    const saved = localStorage.getItem(THEME_KEY) as ThemeName | null;
-    const secretTheme = localStorage.getItem(SECRET_THEME_KEY) as ThemeName | null;
-    if (secretTheme === 'forge' && secretUnlocked) return 'forge';
-    return saved && palettes[saved] ? saved : 'matrix';
-  });
+  const savedFont = localStorage.getItem(FONT_KEY);
+  const initialDefaultFont = defaultFontForTheme(initialTheme);
+  const storedOverride = localStorage.getItem(FONT_OVERRIDE_KEY);
+  const initialFontOverride =
+    storedOverride !== null
+      ? storedOverride === 'true'
+      : !!(savedFont && savedFont !== initialDefaultFont);
+  const initialFontKey = savedFont || initialDefaultFont;
 
-  const [fontKey, setFontKey] = useState<string>(() => {
-    const saved = localStorage.getItem(FONT_KEY);
-    if (saved) return saved;
-    return palettes[theme]?.defaults.font || 'share-tech';
-  });
+  const [secretUnlocked, setSecretUnlocked] = useState<boolean>(initialSecretUnlocked);
+  const [theme, setThemeState] = useState<ThemeName>(initialTheme);
+  const [fontKey, setFontKeyState] = useState<string>(initialFontKey);
+  const [fontOverride, setFontOverride] = useState<boolean>(initialFontOverride);
 
   const [fontScale, setFontScale] = useState<number>(() => {
     const saved = localStorage.getItem(FONT_SCALE_KEY);
@@ -413,6 +425,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   const palette = useMemo(() => palettes[theme] || palettes.matrix, [theme]);
+
+  const applyFont = (key: string, override = true) => {
+    setFontKeyState(key);
+    setFontOverride(override);
+    localStorage.setItem(FONT_KEY, key);
+    localStorage.setItem(FONT_OVERRIDE_KEY, override ? 'true' : 'false');
+  };
 
   useEffect(() => {
     const root = document.documentElement;
@@ -514,6 +533,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [fontKey]);
 
   useEffect(() => {
+    if (!fontOverride) {
+      const themeDefault = defaultFontForTheme(theme);
+      if (fontKey !== themeDefault) {
+        setFontKeyState(themeDefault);
+      }
+      localStorage.setItem(FONT_KEY, themeDefault);
+      localStorage.setItem(FONT_OVERRIDE_KEY, 'false');
+    }
+  }, [theme, fontOverride, fontKey]);
+
+  useEffect(() => {
+    localStorage.setItem(FONT_OVERRIDE_KEY, fontOverride ? 'true' : 'false');
+  }, [fontOverride]);
+
+  useEffect(() => {
     const clamped = Math.min(Math.max(fontScale, 0.9), 1.2);
     document.documentElement.style.fontSize = `${clamped * 16}px`;
     localStorage.setItem(FONT_SCALE_KEY, String(clamped));
@@ -543,8 +577,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setFont = (key: string) => {
-    setFontKey(key);
-    localStorage.setItem(FONT_KEY, key);
+    applyFont(key, true);
   };
 
   return (
@@ -555,6 +588,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         palette,
         fontKey,
         setFontKey: setFont,
+        fontOverride,
+        resetFontOverride: () => applyFont(defaultFontForTheme(theme), false),
         fontScale,
         setFontScale,
         fonts: fontChoices,
@@ -583,3 +618,4 @@ export function useTheme() {
 export const availableThemes = Object.values(palettes).map(({ name, label }) => ({ name, label }));
 
 export const fonts = fontChoices;
+export const themePalettes: Readonly<Record<ThemeName, Palette>> = palettes;

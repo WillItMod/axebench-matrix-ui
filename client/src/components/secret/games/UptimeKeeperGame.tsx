@@ -12,6 +12,7 @@ type Service = {
   tile?: Phaser.GameObjects.Rectangle;
   button?: Phaser.GameObjects.Rectangle;
   label?: Phaser.GameObjects.Text;
+  barWidth?: number;
 };
 
 const serviceNames = ['AxeBench API', 'Pool Proxy', 'Matrix Sync', 'Telemetry', 'Cooling Daemon'];
@@ -86,6 +87,7 @@ class UptimeKeeperScene extends Phaser.Scene {
 
       this.add.rectangle(x + 12, y + 52, tileWidth - 24, 14, 0x0f172a, 0.75).setOrigin(0, 0.5).setStrokeStyle(1, 0x1f2937, 0.9);
       service.bar = this.add.rectangle(x + 12, y + 52, ((tileWidth - 24) * service.health) / 100, 14, 0x22c55e, 0.85).setOrigin(0, 0.5);
+      service.barWidth = tileWidth - 24;
 
       service.button = this.add.rectangle(x + tileWidth - 64, y + tileHeight - 18, 52, 22, 0x111827, 0.95)
         .setOrigin(0, 0.5)
@@ -103,12 +105,12 @@ class UptimeKeeperScene extends Phaser.Scene {
   private restart(service: Service) {
     if (this.failed || this.completed) return;
     service.health = Math.min(100, service.health + 35);
-    const baseWidth = 176;
+    const baseWidth = service.barWidth ?? 176;
     if (service.bar) {
       service.bar.setFillStyle(0x22c55e, 0.9);
       this.tweens.add({
         targets: service.bar,
-        width: (baseWidth * service.health) / 100,
+        displayWidth: (baseWidth * service.health) / 100,
         duration: 140,
       });
     }
@@ -125,8 +127,9 @@ class UptimeKeeperScene extends Phaser.Scene {
     this.services.forEach((service) => {
       service.health = Math.max(0, service.health - (service.decay * delta) / 1000);
       if (service.bar) {
-        const tileWidth = 200;
-        service.bar.width = ((tileWidth - 24) * service.health) / 100;
+        const width = (service.barWidth ?? 176) * (service.health / 100);
+        service.bar.setDisplaySize(width, 14);
+        service.bar.setSize(width, 14);
         service.bar.setFillStyle(service.health > 35 ? 0x22c55e : 0xf59e0b, 0.9);
       }
     });
