@@ -10,7 +10,6 @@ import fanFury from '@/games/fanFury';
 import nanoTuneReflex from '@/games/nanoTuneReflex';
 import blockbuilder from '@/games/blockbuilder';
 import countermeasure from '@/games/countermeasure';
-import bitaxeExplorer from '@/games/bitaxeExplorer';
 
 export type MiniGameKey =
   | 'asic-repair'
@@ -21,8 +20,7 @@ export type MiniGameKey =
   | 'fan-fury'
   | 'nano-tune-reflex'
   | 'blockbuilder'
-  | 'countermeasure'
-  | 'bitaxe-explorer';
+  | 'countermeasure';
 
 export type MiniGameEntry = {
   key: MiniGameKey;
@@ -70,7 +68,6 @@ export const MINI_GAMES: MiniGameEntry[] = [
   wrap(nanoTuneReflex, 'React instantly to the incoming tuning glyphs.'),
   wrap(blockbuilder, 'Stack aligned templates; only overlaps persist.'),
   wrap(countermeasure, 'Target hostile packets before they breach your perimeter.'),
-  wrap(bitaxeExplorer, 'Inspect the rig; highlight every critical component.'),
 ];
 
 export const getMiniGameByKey = (key: MiniGameKey) =>

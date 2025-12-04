@@ -191,7 +191,7 @@ export default function Settings() {
                 type="color"
                 value={matrixCodeColor}
                 onChange={(e) => setMatrixCodeColor(e.target.value)}
-                className="h-10 w-full"
+                className="h-10 w-28 rounded-md border border-border bg-card px-1 cursor-pointer"
               />
               <div className="text-[11px] text-muted-foreground">
                 Adjust digital rain hue. Animation & brightness stay untouched.

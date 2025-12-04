@@ -19,7 +19,6 @@ const spots: Spot[] = [
   { key: 'nano-tune-reflex', position: { bottom: 260, left: 40 }, label: 'signal snap' },
   { key: 'blockbuilder', position: { bottom: 180, left: 22 }, label: 'stack probe' },
   { key: 'countermeasure', position: { bottom: 130, right: 26 }, label: 'counterfire' },
-  { key: 'bitaxe-explorer', position: { bottom: 88, left: 30 }, label: 'inspect rig' },
 ];
 
 export default function EasterEggLaunchers() {

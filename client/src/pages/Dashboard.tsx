@@ -1022,6 +1022,7 @@ const loadPsus = async () => {
 }
 
 function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device; onRefresh: () => void; onConfig: (device: Device) => void; onDelete: (device: Device) => void }) {
+  const { formatHashrate, formatTemp, formatPower } = useSettings();
   const [, setLocation] = useLocation();
   const modelColor = MODEL_COLORS[device.model?.toLowerCase()] || '#666';
   const modelName = MODEL_NAMES[device.model?.toLowerCase()] || device.model?.toUpperCase() || 'UNKNOWN';

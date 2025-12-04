@@ -64,6 +64,17 @@ export const startGame = (canvas: HTMLCanvasElement) =>
       board.hitArea = new Rectangle(0, 0, size, size);
       board.eventMode = 'static';
 
+      // Subtle holo grid background to avoid empty look on dark canvases.
+      const grid = new Graphics();
+      grid.lineStyle({ width: 1, color: 0x1b3a36, alpha: 0.8 });
+      for (let i = 0; i <= boardSize; i += 1) {
+        grid.moveTo(0, i * cell);
+        grid.lineTo(size, i * cell);
+        grid.moveTo(i * cell, 0);
+        grid.lineTo(i * cell, size);
+      }
+      board.addChild(grid);
+
       for (let y = 0; y < boardSize; y += 1) {
         for (let x = 0; x < boardSize; x += 1) {
           const idx = y * boardSize + x;
@@ -88,20 +99,24 @@ export const startGame = (canvas: HTMLCanvasElement) =>
       const runeColor = pickAccent(tile.idx);
       const g = tile.graphics;
       g.clear();
-      g.lineStyle({ width: 2, color: 0x0d1512, alpha: 0.9 });
-      g.beginFill(0x0b1412, 0.85);
-      g.drawRoundedRect(0, 0, cell - 6, cell - 6, 10);
+      g.lineStyle({ width: 2, color: 0x11332d, alpha: 0.9 });
+      g.beginFill(0x0c1916, 0.9);
+      g.drawRoundedRect(0, 0, cell - 6, cell - 6, 12);
       g.endFill();
 
       // Outer glow
-      g.lineStyle({ width: 2, color: runeColor, alpha: tile.rotation === tile.target ? 0.8 : 0.4 });
-      g.drawRoundedRect(6, 6, cell - 18, cell - 18, 8);
+      g.lineStyle({
+        width: 2.5,
+        color: runeColor,
+        alpha: tile.rotation === tile.target ? 0.9 : 0.55,
+      });
+      g.drawRoundedRect(5, 5, cell - 16, cell - 16, 10);
 
       // Glyph lines
-      g.lineStyle({ width: 3, color: runeColor, alpha: 0.75 });
+      g.lineStyle({ width: 3.2, color: runeColor, alpha: 0.9 });
       const cx = (cell - 6) / 2;
       const cy = (cell - 6) / 2;
-      const radius = cell * 0.22;
+      const radius = cell * 0.26;
       for (let i = 0; i < 4; i += 1) {
         const angle = ((tile.rotation + i) % 4) * (Math.PI / 2);
         const x1 = cx + Math.cos(angle) * radius * 0.4;
@@ -113,10 +128,18 @@ export const startGame = (canvas: HTMLCanvasElement) =>
       }
 
       // Target hint (subtle)
-      g.lineStyle({ width: 1, color: 0x89ffd2, alpha: 0.25 });
+      g.lineStyle({ width: 1.4, color: 0x89ffd2, alpha: 0.4 });
       const targetAngle = tile.target * (Math.PI / 2);
       g.moveTo(cx, cy);
-      g.lineTo(cx + Math.cos(targetAngle) * radius * 1.1, cy + Math.sin(targetAngle) * radius * 1.1);
+      g.lineTo(cx + Math.cos(targetAngle) * radius * 1.15, cy + Math.sin(targetAngle) * radius * 1.15);
+
+      // Center rune core
+      g.beginFill(0x0f241f, 0.8);
+      g.drawCircle(cx, cy, 6);
+      g.endFill();
+      g.beginFill(runeColor, 0.8);
+      g.drawCircle(cx, cy, 3.4);
+      g.endFill();
     };
 
     const rotateTile = (tile: Tile) => {

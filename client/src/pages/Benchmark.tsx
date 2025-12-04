@@ -30,6 +30,25 @@ export default function Benchmark() {
   const [status, setStatus] = useState<any>(null);
   const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
   const [preset, setPreset] = useState('standard'); // For EASY mode
+  const presetOptions = [
+    { key: 'quick', label: 'QUICK', detail: 'Fast scan' },
+    { key: 'standard', label: 'STANDARD', detail: 'Balanced pass' },
+    { key: 'deep', label: 'DEEP', detail: 'Thorough sweep' },
+  ];
+  const goalOptions = [
+    { key: 'quiet', label: 'QUIET' },
+    { key: 'efficient', label: 'EFFICIENT' },
+    { key: 'balanced', label: 'BALANCED' },
+    { key: 'max', label: 'MAX' },
+  ];
+  const toggleButtonClass = (active: boolean, tone: 'accent' | 'green' = 'green') =>
+    `px-4 py-2 text-sm font-bold rounded transition-colors border ${
+      active
+        ? tone === 'accent'
+          ? 'bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] border-[hsl(var(--accent))] shadow-[0_0_16px_hsla(var(--accent),0.45)]'
+          : 'bg-[var(--matrix-green)] text-black border-[var(--matrix-green)] shadow-[0_0_14px_rgba(34,197,94,0.45)]'
+        : 'text-[var(--text-secondary)] border-[var(--grid-gray)] hover:text-[var(--text-primary)] hover:border-[hsl(var(--accent))]'
+    }`;
   
   // Configuration state
   const [config, setConfig] = useState({
@@ -272,24 +291,16 @@ export default function Benchmark() {
           <div className="matrix-card">
             <div className="flex items-center justify-between">
               <Label className="text-[var(--text-secondary)]">TUNING MODE</Label>
-              <div className="flex bg-[var(--dark-gray)] rounded p-1">
+              <div className="flex bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded-lg p-1 shadow-[0_0_12px_rgba(0,0,0,0.35)]">
                 <button
                   onClick={() => setTuningMode('auto')}
-                  className={`px-4 py-2 text-sm font-bold rounded transition-colors ${
-                    tuningMode === 'auto'
-                      ? 'bg-[var(--matrix-green)] text-black'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
+                  className={toggleButtonClass(tuningMode === 'auto')}
                 >
                   EASY (PRESET)
                 </button>
                 <button
                   onClick={() => setTuningMode('manual')}
-                  className={`px-4 py-2 text-sm font-bold rounded transition-colors ${
-                    tuningMode === 'manual'
-                      ? 'bg-[var(--neon-cyan)] text-black'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
+                  className={toggleButtonClass(tuningMode === 'manual', 'accent')}
                 >
                   ADVANCED
                 </button>
@@ -298,41 +309,42 @@ export default function Benchmark() {
           </div>
 
           {/* EASY Mode: Preset Selection */}
-          {tuningMode === 'auto' && (
-            <div className="matrix-card space-y-4">
-              <h3 className="text-xl font-bold text-glow-cyan">⚡ PRESET_PROFILE</h3>
-              <div>
-                <Label className="text-[var(--text-secondary)]">Select Preset</Label>
-                <Select value={preset} onValueChange={setPreset}>
-                  <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
-                    <SelectItem value="quick">⚡ Quick Scan (Fast)</SelectItem>
-                    <SelectItem value="standard">⚖️ Standard (Balanced)</SelectItem>
-                    <SelectItem value="deep">🔬 Deep Dive (Thorough)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-[var(--text-secondary)]">Optimization Goal</Label>
-                <Select value={config.goal} onValueChange={(v) => setConfig({...config, goal: v})}>
-                  <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
-                    <SelectItem value="quiet">Quiet</SelectItem>
-                    <SelectItem value="efficient">Efficient</SelectItem>
-                    <SelectItem value="balanced">Balanced</SelectItem>
-                    <SelectItem value="max">Max</SelectItem>
-                  </SelectContent>
-                </Select>
+        {tuningMode === 'auto' && (
+          <div className="matrix-card space-y-4">
+            <h3 className="text-xl font-bold text-glow-cyan">PRESET_PROFILE</h3>
+            <div className="space-y-2">
+              <Label className="text-[var(--text-secondary)]">Select Preset</Label>
+              <div className="grid sm:grid-cols-3 gap-2">
+                {presetOptions.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setPreset(opt.key)}
+                    className={`${toggleButtonClass(preset === opt.key, 'accent')} text-left px-3 py-3 h-full`}
+                  >
+                    <div>{opt.label}</div>
+                    <div className="text-[11px] text-[var(--text-muted)]">{opt.detail}</div>
+                  </button>
+                ))}
               </div>
             </div>
-          )}
-
-          {/* ADVANCED Mode: Full Configuration */}
-          {tuningMode === 'manual' && (
+            <div className="space-y-2">
+              <Label className="text-[var(--text-secondary)]">Optimization Goal</Label>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {goalOptions.map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setConfig((prev) => ({ ...prev, goal: opt.key }))}
+                    className={`${toggleButtonClass(config.goal === opt.key)} py-3`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ADVANCED Mode: Full Configuration */}
+        {tuningMode === 'manual' && (
             <>
               {/* Auto Mode */}
               <div className="matrix-card">
