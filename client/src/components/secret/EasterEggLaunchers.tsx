@@ -10,15 +10,16 @@ type Spot = {
 
 // Tiny “glint” triggers tucked into page chrome; double-click to open.
 const spots: Spot[] = [
-  { key: 'asic-repair', position: { top: 96, left: 22 }, label: 'board service' },
-  { key: 'block-decryptor', position: { top: 188, right: 26 }, label: 'header rune' },
-  { key: 'hashrate-dodger', position: { top: 272, left: 34 }, label: 'hashstream drift' },
-  { key: 'psu-balancer', position: { top: 352, right: 32 }, label: 'rail shim' },
-  { key: 'voltage-surge', position: { top: 438, left: 28 }, label: 'pulse tap' },
-  { key: 'fan-fury', position: { bottom: 220, right: 30 }, label: 'thermal relief' },
-  { key: 'nano-tune-reflex', position: { bottom: 260, left: 40 }, label: 'signal snap' },
-  { key: 'blockbuilder', position: { bottom: 180, left: 22 }, label: 'stack probe' },
-  { key: 'countermeasure', position: { bottom: 130, right: 26 }, label: 'counterfire' },
+  { key: '2048', position: { top: 96, left: 22 }, label: 'board service' },
+  { key: 'hextris', position: { top: 188, right: 26 }, label: 'header rune' },
+  { key: 'clumsy-bird', position: { top: 272, left: 34 }, label: 'hashstream drift' },
+  { key: 'hexgl', position: { top: 352, right: 32 }, label: 'rail shim' },
+  { key: 'astray', position: { top: 438, left: 28 }, label: 'pulse tap' },
+  { key: 'js13k', position: { bottom: 260, left: 40 }, label: 'signal snap' },
+  { key: 'pixel-defense', position: { bottom: 220, right: 30 }, label: 'thermal relief' },
+  { key: 'breakout', position: { bottom: 180, left: 22 }, label: 'stack probe' },
+  { key: 'dark-room', position: { bottom: 130, right: 26 }, label: 'counterfire' },
+  { key: 'kontra', position: { bottom: 88, left: 30 }, label: 'inspect rig' },
 ];
 
 export default function EasterEggLaunchers() {

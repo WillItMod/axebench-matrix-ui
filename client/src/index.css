@@ -31,7 +31,7 @@
     --matrix-brightness: 1;
     --matrix-code-color: #22c55e;
     /* gridrunner surface tokens */
-    --card-surface-opacity: 0.52;
+    --card-surface-opacity: 0.35;
     --surface-strong: var(--card-surface-opacity);
     --surface-medium: var(--card-surface-opacity);
     --surface-soft: var(--card-surface-opacity);
@@ -566,14 +566,22 @@
 
 @layer utilities {
   .text-glow-cyan {
-    color: hsl(var(--accent));
+    color: hsl(var(--accent)) !important;
     text-shadow: 0 0 12px hsla(var(--accent), 0.5), 0 0 18px hsla(var(--accent), 0.35);
   }
   .text-glow-green {
-    color: var(--matrix-green);
+    color: var(--matrix-green) !important;
     text-shadow: 0 0 12px rgba(34, 197, 94, 0.6), 0 0 18px rgba(34, 197, 94, 0.4);
   }
   .text-glow-primary { text-shadow: 0 0 15px hsla(var(--primary), 0.45); }
   .box-glow-primary { box-shadow: 0 0 15px hsla(var(--primary), 0.45), 0 0 30px hsla(var(--primary), 0.25); }
   .border-glow-primary { box-shadow: 0 0 10px hsla(var(--primary), 0.5); }
+
+  /* Default heading accent inside surface cards */
+  .matrix-card :is(h1, h2, h3):not([class*="text-["]):not([class*="text-glow"]),
+  .chrome-card :is(h1, h2, h3):not([class*="text-["]):not([class*="text-glow"]),
+  .hud-panel :is(h1, h2, h3):not([class*="text-["]):not([class*="text-glow"]) {
+    color: hsl(var(--accent));
+    text-shadow: 0 0 12px hsla(var(--accent), 0.45);
+  }
 }

@@ -309,58 +309,58 @@ export default function Benchmark() {
           </div>
 
           {/* EASY Mode: Preset Selection */}
-        {tuningMode === 'auto' && (
-          <div className="matrix-card space-y-4">
-            <h3 className="text-xl font-bold text-glow-cyan">PRESET_PROFILE</h3>
-            <div className="space-y-2">
-              <Label className="text-[var(--text-secondary)]">Select Preset</Label>
-              <div className="grid sm:grid-cols-3 gap-2">
-                {presetOptions.map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setPreset(opt.key)}
-                    className={`${toggleButtonClass(preset === opt.key, 'accent')} text-left px-3 py-3 h-full`}
-                  >
-                    <div>{opt.label}</div>
-                    <div className="text-[11px] text-[var(--text-muted)]">{opt.detail}</div>
-                  </button>
-                ))}
+          {tuningMode === 'auto' && (
+            <div className="matrix-card space-y-4">
+              <h3 className="text-xl font-bold text-glow-cyan">PRESET_PROFILE</h3>
+              <div className="space-y-2">
+                <Label className="text-[var(--text-secondary)]">Select Preset</Label>
+                <div className="grid sm:grid-cols-3 gap-2">
+                  {presetOptions.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setPreset(opt.key)}
+                      className={`${toggleButtonClass(preset === opt.key, 'accent')} text-left px-3 py-3 h-full`}
+                    >
+                      <div>{opt.label}</div>
+                      <div className="text-[11px] text-[var(--text-muted)]">{opt.detail}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[var(--text-secondary)]">Optimization Goal</Label>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {goalOptions.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setConfig((prev) => ({ ...prev, goal: opt.key }))}
+                      className={`${toggleButtonClass(config.goal === opt.key)} py-3`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-[var(--text-secondary)]">Optimization Goal</Label>
-              <div className="grid sm:grid-cols-2 gap-2">
-                {goalOptions.map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setConfig((prev) => ({ ...prev, goal: opt.key }))}
-                    className={`${toggleButtonClass(config.goal === opt.key)} py-3`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+          )}
         {/* ADVANCED Mode: Full Configuration */}
-        {tuningMode === 'manual' && (
+          {tuningMode === 'manual' && (
             <>
               {/* Auto Mode */}
               <div className="matrix-card">
-            <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xl font-bold text-glow-cyan">AUTO_STEP</h3>
                 <p className="text-[var(--text-muted)] text-sm mt-1">
-                  Intelligent step adjustment (25→5mV, 50→10MHz)
+                  Intelligent step adjustment (25→5 mV, 50→10 MHz)
                 </p>
               </div>
               <Switch
-                checked={config.auto_mode}
-                onCheckedChange={(checked) => setConfig({...config, auto_mode: checked})}
-              />
-            </div>
-          </div>
+                    checked={config.auto_mode}
+                    onCheckedChange={(checked) => setConfig({...config, auto_mode: checked})}
+                  />
+                </div>
+              </div>
 
           {/* Voltage/Frequency Settings */}
           <div className="matrix-card">

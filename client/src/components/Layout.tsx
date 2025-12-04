@@ -29,6 +29,7 @@ export default function Layout({ children }: LayoutProps) {
   const [deviceLimit, setDeviceLimit] = useState<number>(5);
   const [isPatron, setIsPatron] = useState<boolean>(false);
   const [licenseLoaded, setLicenseLoaded] = useState(false);
+  const REMINDER_KEY = 'axebench_egg_reminder_at';
 
   // Fetch uptime from backend
   useEffect(() => {
@@ -115,6 +116,20 @@ export default function Layout({ children }: LayoutProps) {
       });
     }
   }, [licenseTier, isPatron, deviceLimit, licenseLoaded]);
+
+  // Monthly nudge to hunt easter eggs
+  useEffect(() => {
+    if (secretUnlocked) return;
+    const now = Date.now();
+    const last = Number(localStorage.getItem(REMINDER_KEY) || 0);
+    const monthMs = 30 * 24 * 60 * 60 * 1000;
+    if (now - last > monthMs && Math.random() < 0.6) {
+      toast.info('Hidden protocols detected. Hunt the easter eggs to unlock the secret profile.', {
+        duration: 9000,
+      });
+      localStorage.setItem(REMINDER_KEY, String(now));
+    }
+  }, [secretUnlocked]);
 
   const overLimit = deviceCount > deviceLimit;
   const [patreonUrl, setPatreonUrl] = useState<string>(
@@ -226,7 +241,7 @@ export default function Layout({ children }: LayoutProps) {
       <EasterEggLaunchers />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <div className="relative z-30 space-y-2 px-2 pt-2 -mt-8">
+      <div className="relative z-30 space-y-2 px-2 pt-0 -mt-6">
         <div className="min-h-[36px]">
           <BenchmarkStatusBanner />
         </div>
@@ -272,7 +287,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </header>
 
-        <nav className="px-4 mt-3">
+        <nav className="px-4 mt-1">
           <div className="container mx-auto">
             <div className="gridrunner-surface border border-transparent shadow-chrome px-3 py-2">
               <div className="flex flex-wrap gap-2">
