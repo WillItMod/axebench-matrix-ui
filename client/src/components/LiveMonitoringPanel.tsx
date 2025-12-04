@@ -12,6 +12,7 @@ import {
   ChartOptions,
 } from 'chart.js';
 import { api } from '@/lib/api';
+import { useSettings } from '@/contexts/SettingsContext';
 
 // Register Chart.js components
 ChartJS.register(
@@ -33,7 +34,7 @@ interface LiveStats {
   vrTemp: number;
   asicErrors: number;
   efficiency: number; // J/TH
-  timestamp: string;
+  timestamp: number;
 }
 
 interface LiveMonitoringPanelProps {
@@ -46,6 +47,16 @@ const MAX_HISTORY = 60; // Keep last 60 readings
 const DEFAULT_COLORS = ['#ff0000', '#0000ff', '#ff8800', '#00ff00', '#ffff00', '#0088ff'];
 
 export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT_COLORS }: LiveMonitoringPanelProps) {
+  const {
+    monitoringRefreshMs,
+    formatTemp,
+    formatHashrate,
+    formatPower,
+    formatTime,
+    temperatureUnit,
+    hashrateDisplay,
+    toDisplayTemp,
+  } = useSettings();
   const [stats, setStats] = useState<LiveStats | null>(null);
   const [history, setHistory] = useState<LiveStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +80,7 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
           vrTemp: status.vrTemp || status.vr_temp || 0,
           asicErrors: status.asic_errors || status.errors || 0,
           efficiency,
-          timestamp: new Date().toLocaleTimeString(),
+          timestamp: Date.now(),
         };
         
         setStats(newStats);
@@ -86,10 +97,10 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
     // Initial fetch
     void fetchStats();
 
-    // Poll every 2 seconds
-    const interval = setInterval(() => void fetchStats(), 2000);
+    const intervalMs = Math.max(1000, monitoringRefreshMs || 2000);
+    const interval = setInterval(() => void fetchStats(), intervalMs);
     return () => clearInterval(interval);
-  }, [deviceName]);
+  }, [deviceName, monitoringRefreshMs]);
 
   if (!stats) {
     return (
@@ -106,11 +117,11 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
     );
   }
 
-  const StatCard = ({ label, value, unit, color = 'var(--matrix-green)' }: { label: string; value: number; unit: string; color?: string }) => (
+  const StatCard = ({ label, display, color = 'var(--matrix-green)' }: { label: string; display: string; color?: string }) => (
     <div className="matrix-card p-4">
       <div className="text-xs text-[var(--text-muted)] mb-1">{label}</div>
       <div className="text-2xl font-bold" style={{ color }}>
-        {value.toFixed(2)} <span className="text-sm">{unit}</span>
+        {display}
       </div>
     </div>
   );
@@ -171,15 +182,17 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
     },
   };
 
-  const timestamps = history.map(h => h.timestamp);
+  const timestamps = history.map((h) => formatTime(h.timestamp));
+  const tempUnitLabel = temperatureUnit === 'F' ? 'F' : 'C';
+  const hashrateLabel = hashrateDisplay === 'th' ? 'Hashrate (TH/s)' : 'Hashrate (GH/s)';
 
   // Hashrate chart
   const hashrateData = {
     labels: timestamps,
     datasets: [
       {
-        label: 'Hashrate (GH/s)',
-        data: history.map(h => h.hashrate),
+        label: hashrateLabel,
+        data: history.map((h) => (hashrateDisplay === 'th' ? h.hashrate / 1000 : h.hashrate)),
         borderColor: '#00d4ff',
         backgroundColor: 'rgba(0, 212, 255, 0.1)',
         borderWidth: 2,
@@ -196,8 +209,8 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
     labels: timestamps,
     datasets: [
       {
-        label: 'Chip Temp (°C)',
-        data: history.map(h => h.chipTemp),
+        label: `Chip Temp (${tempUnitLabel})`,
+        data: history.map((h) => toDisplayTemp(h.chipTemp)),
         borderColor: '#ffaa00',
         backgroundColor: 'rgba(255, 170, 0, 0.1)',
         borderWidth: 2,
@@ -207,8 +220,8 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
         pointHoverBackgroundColor: '#ffaa00',
       },
       {
-        label: 'VR Temp (°C)',
-        data: history.map(h => h.vrTemp),
+        label: `VR Temp (${tempUnitLabel})`,
+        data: history.map((h) => toDisplayTemp(h.vrTemp)),
         borderColor: '#ff6600',
         backgroundColor: 'rgba(255, 102, 0, 0.1)',
         borderWidth: 2,
@@ -318,12 +331,12 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
 
       {/* Current Values Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6">
-        <StatCard label="VOLTAGE" value={stats.voltage} unit="mV" />
-        <StatCard label="FREQUENCY" value={stats.frequency} unit="MHz" color="var(--neon-magenta)" />
-        <StatCard label="HASHRATE" value={stats.hashrate} unit="GH/s" color="var(--neon-cyan)" />
-        <StatCard label="POWER" value={stats.power} unit="W" color="var(--warning-yellow)" />
-        <StatCard label="CHIP_TEMP" value={stats.chipTemp} unit="°C" color={getTempColor(stats.chipTemp)} />
-        <StatCard label="VR_TEMP" value={stats.vrTemp} unit="°C" color={getTempColor(stats.vrTemp)} />
+        <StatCard label="VOLTAGE" display={`${stats.voltage.toFixed(0)} mV`} />
+        <StatCard label="FREQUENCY" display={`${stats.frequency.toFixed(0)} MHz`} color="var(--neon-magenta)" />
+        <StatCard label="HASHRATE" display={formatHashrate(stats.hashrate)} color="var(--neon-cyan)" />
+        <StatCard label="POWER" display={formatPower(stats.power)} color="var(--warning-yellow)" />
+        <StatCard label="CHIP_TEMP" display={formatTemp(stats.chipTemp)} color={getTempColor(stats.chipTemp)} />
+        <StatCard label="VR_TEMP" display={formatTemp(stats.vrTemp)} color={getTempColor(stats.vrTemp)} />
       </div>
 
       {/* Real-time Charts */}
@@ -338,7 +351,7 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
                 <Line data={asicErrorsData} options={commonOptions} />
               </div>
               <div className="h-48">
-                <div className="text-xs text-[var(--neon-cyan)] mb-2">Hashrate (GH/s)</div>
+                <div className="text-xs text-[var(--neon-cyan)] mb-2">{hashrateLabel}</div>
                 <Line data={hashrateData} options={commonOptions} />
               </div>
             </div>
@@ -388,7 +401,7 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
       )}
 
       <div className="text-xs text-[var(--text-muted)] text-center mt-4">
-        Updates every 2 seconds • Showing last {history.length} readings
+        Updates every {(Math.max(1000, monitoringRefreshMs || 2000) / 1000).toFixed(1)}s · Showing last {history.length} readings
       </div>
     </div>
   );

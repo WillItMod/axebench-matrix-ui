@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
-import { api, formatHashrate, formatPower, formatTemp, MODEL_COLORS, MODEL_NAMES } from '@/lib/api';
+import { api, MODEL_COLORS, MODEL_NAMES } from '@/lib/api';
 import { formatDifficulty } from '@/lib/formatDifficulty';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useSettings } from '@/contexts/SettingsContext';
 
 interface Device {
   name: string;
@@ -190,6 +191,14 @@ const getPsuMetrics = (psu: any, assignedDevices: Device[]) => {
 };
 
 export default function Dashboard() {
+  const {
+    formatTemp,
+    formatHashrate,
+    formatPower,
+    alertChipTemp,
+    alertVrTemp,
+    dashboardRefreshMs,
+  } = useSettings();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -404,13 +413,13 @@ const loadPsus = async () => {
   useEffect(() => {
     logger.info('Dashboard', 'Component mounted, starting initial load');
     loadDevices();
-    // Auto-refresh every 5 seconds
-    const interval = setInterval(loadDevices, 5000);
+    const intervalMs = Math.max(1000, dashboardRefreshMs || 5000);
+    const interval = setInterval(loadDevices, intervalMs);
     return () => {
       logger.info('Dashboard', 'Component unmounting, clearing interval');
       clearInterval(interval);
     };
-  }, []);
+  }, [dashboardRefreshMs]);
   
   // Load PSUs when devices change
   useEffect(() => {
@@ -429,24 +438,24 @@ const loadPsus = async () => {
       const asicErr = status.asic_errors || status.errors || 0;
       const poolFailover = status.poolFailover || status.pool_failover;
 
-      if (temp >= 70) {
+      if (temp >= alertChipTemp) {
         const k = `${d.name}-temp`;
         if (!keyset.has(k)) {
           enqueueWarning({
             id: k,
             title: `${d.name} temperature`,
-            message: `High ASIC temperature detected (${temp}C). Consider reducing load or improving cooling.`,
+            message: `High ASIC temperature detected (${formatTemp(temp)}). Consider reducing load or improving cooling.`,
             level: 'warning',
           });
         }
       }
-      if (vrTemp >= 85) {
+      if (vrTemp >= alertVrTemp) {
         const k = `${d.name}-vr`;
         if (!keyset.has(k)) {
           enqueueWarning({
             id: k,
             title: `${d.name} VR temperature`,
-            message: `Voltage regulator temperature is high (${vrTemp}C). Check airflow or reduce power.`,
+            message: `Voltage regulator temperature is high (${formatTemp(vrTemp)}). Check airflow or reduce power.`,
             level: 'warning',
           });
         }

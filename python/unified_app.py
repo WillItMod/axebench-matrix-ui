@@ -24,7 +24,8 @@ def create_unified_app():
     bench_app.wsgi_app,
     {
       "/shed": shed_app,
-      "/pool": pool_app,
+      # Mount pool API under /pool/api so /pool can be handled by the SPA.
+      "/pool/api": pool_app,
     },
   )
 

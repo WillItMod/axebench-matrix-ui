@@ -11,9 +11,11 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useSettings } from '@/contexts/SettingsContext';
 
 export default function Benchmark() {
   const { status: benchmarkStatus, refreshStatus } = useBenchmark();
+  const { applySafetyCaps } = useSettings();
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevice, setSelectedDevice] = usePersistentState<string>('benchmark-selected-device', '');
   
@@ -147,9 +149,13 @@ export default function Benchmark() {
         strategy: 'adaptive_progression',
       };
 
-      await api.benchmark.start(benchmarkConfig);
+      const { config: safeConfig, changed, capped } = applySafetyCaps(benchmarkConfig);
+      await api.benchmark.start(safeConfig);
       await refreshStatus(); // Update global benchmark state
       toast.success('Benchmark started');
+      if (changed) {
+        toast.info(`Safety caps enforced (${capped.join(', ')})`);
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to start benchmark');
     }
@@ -200,9 +206,13 @@ export default function Benchmark() {
         strategy: 'adaptive_progression',
       };
 
-      await api.benchmark.start(autoTuneConfig);
+      const { config: safeConfig, changed, capped } = applySafetyCaps(autoTuneConfig);
+      await api.benchmark.start(safeConfig);
       await refreshStatus(); // Update global benchmark state
       toast.success('Auto Tune started - Phase 1: Precision Benchmark');
+      if (changed) {
+        toast.info(`Safety caps enforced (${capped.join(', ')})`);
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to start Auto Tune');
     }

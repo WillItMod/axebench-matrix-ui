@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { SettingsProvider } from "./contexts/SettingsContext";
 import { BenchmarkProvider } from "./contexts/BenchmarkContext";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
@@ -43,14 +44,16 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <BenchmarkProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </BenchmarkProvider>
-      </ThemeProvider>
+      <SettingsProvider>
+        <ThemeProvider>
+          <BenchmarkProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </BenchmarkProvider>
+        </ThemeProvider>
+      </SettingsProvider>
     </ErrorBoundary>
   );
 }

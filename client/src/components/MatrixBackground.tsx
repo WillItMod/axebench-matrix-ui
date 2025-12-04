@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSettings } from '@/contexts/SettingsContext';
 
 /**
  * MatrixBackground
@@ -10,8 +11,13 @@ import { useTheme } from '@/contexts/ThemeContext';
  */
 export default function MatrixBackground() {
   const { theme, matrixRainbow } = useTheme();
+  const { reduceMotion, pauseMatrix } = useSettings();
   const baseRef = useRef<HTMLCanvasElement>(null);
   const forgeRef = useRef<HTMLCanvasElement>(null);
+
+  if (pauseMatrix) {
+    return null;
+  }
 
   // Base Matrix rain (unchanged)
   useEffect(() => {
@@ -66,12 +72,12 @@ export default function MatrixBackground() {
       }
     };
 
-    const interval = setInterval(draw, 50);
+    const interval = setInterval(draw, reduceMotion ? 90 : 50);
     return () => {
       clearInterval(interval);
       window.removeEventListener('resize', resize);
     };
-  }, [matrixRainbow]);
+  }, [matrixRainbow, reduceMotion]);
 
   // Forge overlay (hash/BTC rain + block columns)
   useEffect(() => {
@@ -111,7 +117,7 @@ export default function MatrixBackground() {
       glyphs.push({
         x: Math.random() * canvas.width,
         y: -30,
-        speed: 60 + Math.random() * 120 + activity * 40,
+        speed: (60 + Math.random() * 120 + activity * 40) * (reduceMotion ? 0.6 : 1),
         text: baseGlyphs[Math.floor(Math.random() * baseGlyphs.length)],
         color: Math.random() > 0.15 ? lava : gold,
         size: 12 + Math.random() * 6,
@@ -125,7 +131,7 @@ export default function MatrixBackground() {
       columns.push({
         x: Math.random() * canvas.width,
         y: -rowsCount * 16,
-        speed: 40 + Math.random() * 40 + activity * 30,
+        speed: (40 + Math.random() * 40 + activity * 30) * (reduceMotion ? 0.55 : 1),
         rows,
         locked: false,
         lockTime: 0,
@@ -210,7 +216,7 @@ export default function MatrixBackground() {
       window.removeEventListener('resize', resize);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [theme]);
+  }, [theme, reduceMotion]);
 
   return (
     <>
