@@ -918,7 +918,7 @@ export default function Benchmark() {
                     className="w-full whitespace-normal text-sm py-2"
                     onClick={() => setAutoTuneNano(true)}
                   >
-                    Run Nano tune
+                    NANO
                   </Button>
                   <Button
                     size="sm"
@@ -926,7 +926,7 @@ export default function Benchmark() {
                     className="w-full whitespace-normal text-sm py-2"
                     onClick={() => setAutoTuneNano(false)}
                   >
-                    Skip Nano
+                    SKIP
                   </Button>
                 </div>
                 <p className="text-xs text-[var(--text-secondary)]">Turn off Nano to stop after profiles are created.</p>
@@ -935,9 +935,24 @@ export default function Benchmark() {
               <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
                 <div className="font-bold text-[var(--text-primary)] mb-2">Profiles created</div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-[var(--text-primary)]">
-                  <div className="rounded border border-[var(--grid-gray)] bg-gradient-to-br from-amber-500/25 to-amber-700/15 p-2">
+                  <div className="rounded border border-[var(--grid-gray)] bg-gradient-to-br from-amber-500/25 to-amber-700/15 p-2 space-y-1">
                     <div className="font-bold text-amber-200">QUIET</div>
                     <div className="text-[var(--text-secondary)]">Low noise priority.</div>
+                    {config.goal === 'quiet' && (
+                      <div className="space-y-1">
+                        <div className="text-[10px] text-[var(--text-secondary)]">Quiet fan target (%)</div>
+                        <input
+                          type="range"
+                          min={30}
+                          max={100}
+                          step={5}
+                          value={(config.fan_target ?? 60).toString()}
+                          onChange={(e) => setConfig({ ...config, fan_target: parseInt(e.target.value) })}
+                          className="w-full accent-[hsl(var(--accent))]"
+                        />
+                        <div className="text-[10px] text-[var(--text-primary)] text-right">{config.fan_target ?? 60}%</div>
+                      </div>
+                    )}
                   </div>
                   <div className="rounded border border-[var(--grid-gray)] bg-gradient-to-br from-emerald-500/25 to-emerald-700/15 p-2">
                     <div className="font-bold text-emerald-200">EFFICIENT</div>
