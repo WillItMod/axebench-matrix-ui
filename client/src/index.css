@@ -530,6 +530,27 @@
     filter: blur(0.5px);
     animation: forge-shimmer 5s ease-in-out infinite;
   }
+
+  .matrix-card,
+  .chrome-card,
+  .hud-panel {
+    background: rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid rgba(34, 211, 238, 0.3) !important;
+    border-radius: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35), 0 0 24px rgba(34, 211, 238, 0.25);
+    clip-path: none;
+    backdrop-filter: blur(6px);
+  }
+
+  .matrix-card::before,
+  .matrix-card::after,
+  .chrome-card::before,
+  .chrome-card::after,
+  .hud-panel::before,
+  .hud-panel::after {
+    content: none !important;
+    display: none;
+  }
 }
 
 /* Celebration coins animation */

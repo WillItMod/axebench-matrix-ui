@@ -14,6 +14,7 @@ const baseSlots: Spot[] = [
   { key: 'hextris', position: { top: 110, right: '3%' }, label: 'Status beacon' },
   { key: 'clumsy-bird', position: { top: 175, left: '8%' }, label: 'Nav pulse' },
   { key: 'astray', position: { top: 175, right: '8%' }, label: 'Nav pulse' },
+  { key: 'hexgl', position: { top: 245, left: '15%' }, label: 'Grid scan' },
   { key: 'cat-survivors', position: { bottom: 200, left: '10%' }, label: 'Footer node' },
   { key: 'catapoolt', position: { bottom: 200, right: '10%' }, label: 'Footer node' },
   { key: 'clawstrike', position: { bottom: 120, left: '18%' }, label: 'Console spark' },
@@ -124,7 +125,7 @@ export default function EasterEggLaunchers() {
           }
         }}
       >
-        <DialogContent className="max-w-5xl w-[92vw] shadow-chrome">
+        <DialogContent className="w-[98vw] max-w-[1280px] max-h-[90vh] shadow-chrome">
           {Current ? (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">Hidden protocol: {Current.title}</div>

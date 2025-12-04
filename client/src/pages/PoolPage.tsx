@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,11 +89,11 @@ export default function PoolPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Add New Pool Form */}
-        <Card className="glass-panel border-neon-cyan/30 h-fit">
+        <Card className="h-fit">
           <CardHeader>
-            <CardTitle className="text-neon-cyan font-mono flex items-center gap-2">
+            <SectionHeader className="flex items-center gap-2 text-base md:text-lg">
               <Plus className="h-5 w-5" /> ADD NEW POOL
-            </CardTitle>
+            </SectionHeader>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -167,11 +168,11 @@ export default function PoolPage() {
         </Card>
 
         {/* Pool List */}
-        <Card className="lg:col-span-2 glass-panel border-white/10">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white font-mono flex items-center gap-2">
+            <SectionHeader className="flex items-center gap-2 text-base md:text-lg">
               <Layers className="h-5 w-5" /> ACTIVE CONFIGURATIONS
-            </CardTitle>
+            </SectionHeader>
           </CardHeader>
           <CardContent>
             <Table>

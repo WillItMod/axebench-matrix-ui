@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -454,7 +455,7 @@ export default function Operations() {
         </p>
       </div>
 
-      <Card className="p-6 bg-black/80 border-[var(--matrix-green)] space-y-4">
+      <Card className="p-6 space-y-4">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2 items-center">
             <Label className="text-[var(--text-secondary)] mr-2">Devices</Label>
@@ -514,10 +515,10 @@ export default function Operations() {
         </div>
       </Card>
 
-      <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
+      <Card className="p-6 space-y-4">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-xl font-bold text-glow-cyan">SCHEDULE_EDITOR</h2>
+            <SectionHeader className="mb-1 text-base md:text-lg">SCHEDULE_EDITOR</SectionHeader>
             <p className="text-xs text-[var(--text-muted)]">Targets: {targetLabel}</p>
           </div>
           <Tooltip>
@@ -538,12 +539,12 @@ export default function Operations() {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <Card className="p-4 gridrunner-surface border border-transparent shadow-soft space-y-3">
+          <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
                 <div>
-                  <div className="text-sm font-bold text-[var(--neon-cyan)]">TUNING_PROFILES</div>
+                  <SectionHeader className="text-xs md:text-sm">TUNING_PROFILES</SectionHeader>
                   <div className="text-xs text-[var(--text-muted)]">Start-only blocks; nearest previous start stays active.</div>
                 </div>
               </div>
@@ -573,12 +574,12 @@ export default function Operations() {
             />
           </Card>
 
-          <Card className="p-4 bg-[var(--dark-gray)] border-[var(--matrix-green)] space-y-3">
+          <Card className="p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
                 <div>
-                  <div className="text-sm font-bold text-[var(--matrix-green)]">POOL_PROFILES</div>
+                  <SectionHeader className="text-xs md:text-sm">POOL_PROFILES</SectionHeader>
                   <div className="text-xs text-[var(--text-muted)]">Start-only blocks; nearest previous start stays active.</div>
                 </div>
               </div>
@@ -610,9 +611,9 @@ export default function Operations() {
         </div>
       </Card>
 
-      <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
+      <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-glow-green">PER-DEVICE_SCHEDULES</h2>
+          <SectionHeader className="text-base md:text-lg">PER-DEVICE_SCHEDULES</SectionHeader>
           <Button size="sm" variant="outline" onClick={() => loadSchedules(selectedDevices)}>
             <RefreshCcw className="w-4 h-4 mr-1" /> Reload selected
           </Button>
@@ -620,7 +621,7 @@ export default function Operations() {
         {selectedList.length === 0 && <div className="text-[var(--text-muted)] text-sm">No devices selected.</div>}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {selectedList.map(({ name, schedule }) => (
-            <Card key={name} className="p-4 bg-[var(--dark-gray)] border-[var(--grid-gray)] space-y-3">
+            <Card key={name} className="p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-bold text-[var(--text-primary)]">{name}</div>
                 <div className="flex items-center gap-2">

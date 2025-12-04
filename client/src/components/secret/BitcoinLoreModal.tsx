@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '@/contexts/ThemeContext';
-import { toast } from 'sonner';
 
 type Question = {
   id: string;
@@ -155,7 +154,14 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [factsIndex, setFactsIndex] = useState(0);
   const [factsPaused, setFactsPaused] = useState(false);
-  const [rewarded, setRewarded] = useState(false);
+
+  useEffect(() => {
+    if (!open || factsPaused) return;
+    const id = setInterval(() => {
+      setFactsIndex((i) => (i + 1) % factList.length);
+    }, 10000);
+    return () => clearInterval(id);
+  }, [open, factsPaused]);
 
   if (!open) return null;
 
@@ -177,25 +183,8 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
   const passed = submitted && correctCount >= 20;
 
   const handleSubmit = () => {
-    const COIN_KEY = 'axebench_uptime_coins';
-    const addCoins = (count: number) => {
-      const existing = Number(localStorage.getItem(COIN_KEY) || '0');
-      const next = existing + count;
-      localStorage.setItem(COIN_KEY, String(next));
-      toast.success(`+${count} coins earned (total ${next})`);
-    };
-
-    if (rewarded && submitted && correctCount >= 20) {
-      setSubmitted(true);
-      return;
-    }
-
     setSubmitted(true);
     if (correctCount >= 20) {
-      if (!rewarded) {
-        addCoins(5);
-        setRewarded(true);
-      }
       setSecretUnlocked(true);
       setTheme('forge');
       onUnlocked();
@@ -207,16 +196,7 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
     setActiveIndex(0);
     setAnswers({});
     setSubmitted(false);
-    setRewarded(false);
   };
-
-  useEffect(() => {
-    if (!open || factsPaused) return;
-    const id = setInterval(() => {
-      setFactsIndex((i) => (i + 1) % factList.length);
-    }, 10000);
-    return () => clearInterval(id);
-  }, [open, factsPaused]);
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 px-3">

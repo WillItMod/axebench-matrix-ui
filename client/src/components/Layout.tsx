@@ -230,6 +230,11 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/settings', label: 'SETTINGS' },
   ];
 
+  const baseTabClass =
+    'px-6 py-2 rounded-xl border border-cyan-400/40 text-xs md:text-sm tracking-[0.25em] uppercase transition-colors duration-150';
+  const inactiveTabClass = 'bg-black/40 text-cyan-200/70 hover:bg-cyan-500/10';
+  const activeTabClass = 'bg-cyan-500 text-black shadow-[0_0_25px_rgba(34,211,238,0.7)] border-cyan-400';
+
   const licenseBanner = renderLicenseBanner();
 
   const handleLoreUnlocked = () => {
@@ -298,25 +303,19 @@ export default function Layout({ children }: LayoutProps) {
 
         <nav className="px-4 mt-0.5">
           <div className="container mx-auto">
-            <div className="gridrunner-surface border border-transparent shadow-chrome px-3 py-2">
+              <div className="gridrunner-surface border border-transparent shadow-chrome px-3 py-2">
               <div className="flex flex-wrap gap-2">
                 {tabs.map((tab) => {
                   const isActive = location === tab.path;
                   return (
-                    <Button
+                    <button
                       key={tab.path}
+                      type="button"
                       onClick={() => setLocation(tab.path)}
-                      variant={isActive ? 'default' : 'outline'}
-                      size="lg"
-                      className={cn(
-                        'uppercase tracking-[0.14em] font-bold px-5',
-                        isActive
-                          ? 'bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] shadow-[0_0_22px_hsla(var(--accent),0.45)]'
-                          : 'text-[hsl(var(--accent))] border-[hsl(var(--accent))]/50 hover:border-[hsl(var(--accent))]'
-                      )}
+                      className={cn(baseTabClass, isActive ? activeTabClass : inactiveTabClass)}
                     >
                       {tab.label}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>

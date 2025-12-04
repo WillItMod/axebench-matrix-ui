@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Zap } from 'lucide-react';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { Card } from '@/components/ui/card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Input } from '@/components/ui/input';
 
 const ACTIVE_PROFILE_KEY = 'axebench:activeProfiles';
@@ -204,18 +205,16 @@ export default function Profiles() {
 
   return (
     <div className="space-y-6">
-      <Card className="p-6 chrome-card">
+      <Card className="p-6">
         <h1 className="text-3xl font-bold text-glow-green mb-2">PROFILES</h1>
-        <p className="text-muted-foreground text-sm">
-          Manage and apply voltage/frequency profiles.
-        </p>
+        <p className="text-muted-foreground text-sm">Manage and apply voltage/frequency profiles.</p>
       </Card>
 
       {/* Quick Profile Apply - Multi-Device */}
-      <Card className="p-6 space-y-4 chrome-card">
+      <Card className="p-6 space-y-4">
         <div className="flex items-center gap-2">
           <Zap className="w-6 h-6 text-[hsl(var(--primary))]" />
-          <h2 className="text-2xl font-bold text-glow-green">QUICK_PROFILE_APPLY</h2>
+          <SectionHeader className="text-base md:text-lg">QUICK_PROFILE_APPLY</SectionHeader>
         </div>
 
         {/* Device Selection Grid */}
@@ -263,7 +262,7 @@ export default function Profiles() {
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-xl font-bold text-glow-green">DEVICE_PROFILES</h3>
+            <SectionHeader className="mb-1 text-base md:text-lg">DEVICE_PROFILES</SectionHeader>
             <p className="text-muted-foreground text-sm">
               Selected devices render below. Use quick apply above or apply per-device.
             </p>
@@ -279,7 +278,7 @@ export default function Profiles() {
         </div>
 
         {selectedDevices.length === 0 ? (
-          <Card className="p-8 text-center chrome-card text-muted-foreground">
+          <Card className="p-8 text-center text-muted-foreground">
             Select one or more devices above to view their profiles.
           </Card>
         ) : (
@@ -293,7 +292,7 @@ export default function Profiles() {
               const isLoading = loadingDevices[deviceName];
 
               return (
-                <Card key={deviceName} className="space-y-3 p-5 chrome-card">
+                <Card key={deviceName} className="space-y-3 p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-lg font-bold text-foreground">{deviceName}</div>
@@ -330,10 +329,10 @@ export default function Profiles() {
                       {profileList.map(([name, profile]) => (
                         <div
                           key={`${deviceName}-${name}`}
-                          className={`gridrunner-surface border border-transparent p-3 ${
+                          className={`bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg p-3 ${
                             activeProfiles[deviceName]?.toLowerCase() === name.toLowerCase()
                               ? 'border-[hsl(var(--primary))] shadow-[0_0_12px_hsla(var(--primary),0.25)]'
-                              : 'border-border/70'
+                              : ''
                           }`}
                         >
                           <div className="flex items-start justify-between">
@@ -461,8 +460,8 @@ export default function Profiles() {
         )}
       </div>
 
-      <Card className="p-5 chrome-card">
-        <h3 className="text-lg font-bold mb-2">INFO</h3>
+      <Card className="p-5">
+        <SectionHeader className="mb-2">INFO</SectionHeader>
         <div className="text-xs text-muted-foreground space-y-2">
           <p>
             <strong className="text-foreground">QUICK_APPLY:</strong> Apply profile to multiple devices
@@ -481,7 +480,7 @@ export default function Profiles() {
 
       {/* Save Profile Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="chrome-card">
+        <DialogContent className="bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg">
           <DialogHeader>
             <DialogTitle className="text-foreground">SAVE_CURRENT_PROFILE</DialogTitle>
           </DialogHeader>
@@ -513,7 +512,7 @@ export default function Profiles() {
 
       {/* Edit Profile Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="chrome-card">
+        <DialogContent className="bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg">
           <DialogHeader>
             <DialogTitle className="text-foreground">EDIT_PROFILE: {editingProfile.toUpperCase()}</DialogTitle>
           </DialogHeader>
@@ -565,11 +564,11 @@ export default function Profiles() {
 
       {/* JSON Preview Dialog */}
       <Dialog open={jsonPreview.open} onOpenChange={(open) => setJsonPreview((prev) => ({ ...prev, open }))}>
-        <DialogContent className="chrome-card max-w-2xl">
+        <DialogContent className="bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-foreground">Profile JSON - {jsonPreview.title}</DialogTitle>
           </DialogHeader>
-          <div className="gridrunner-surface border border-transparent p-3 max-h-[60vh] overflow-auto font-mono text-sm text-foreground">
+          <div className="bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg p-3 max-h-[60vh] overflow-auto font-mono text-sm text-foreground">
             <pre className="whitespace-pre-wrap">{jsonPreview.body}</pre>
           </div>
           <DialogFooter>
@@ -644,7 +643,7 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md shadow-chrome">
+      <DialogContent className="max-w-md bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-glow-green">
             🔬 NANO_TUNE
@@ -652,7 +651,7 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
-          <div className="gridrunner-surface border border-transparent p-3 text-sm">
+          <div className="bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg p-3 text-sm">
             <div className="text-[hsl(var(--accent))] font-bold mb-1">Fine-tune existing profile</div>
             <div className="text-muted-foreground text-xs">
               Base Profile: <span className="text-foreground">{profile}</span>
@@ -680,7 +679,7 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
             </Select>
           </div>
 
-          <div className="gridrunner-surface border border-transparent p-3 text-xs text-muted-foreground">
+          <div className="bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg p-3 text-xs text-muted-foreground">
             <div className="font-bold text-foreground mb-1">Auto-Configuration</div>
             Nano Tune will automatically determine optimal voltage and frequency ranges based on the selected profile.
           </div>

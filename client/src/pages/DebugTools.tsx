@@ -31,7 +31,7 @@ export default function DebugTools() {
   if (!debugEnabled) {
     return (
       <div className="p-6">
-        <Card className="p-6 bg-black/70 border-red-500 text-red-400">
+        <Card className="p-6 text-red-400">
           <div className="font-bold">DEBUG DISABLED</div>
           <div className="text-sm mt-1">Enable with VITE_ENABLE_DEBUG=true to access.</div>
         </Card>
@@ -51,7 +51,7 @@ export default function DebugTools() {
         </p>
       </div>
 
-      <Card className="p-4 bg-[var(--dark-gray)]/80 border-[var(--grid-gray)] space-y-3">
+      <Card className="p-4 space-y-3">
         <div className="font-semibold text-[var(--text-primary)]">Quick Pings</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Button variant="outline" onClick={() => withPing('uptime', () => api.system.uptime())}>
@@ -66,7 +66,7 @@ export default function DebugTools() {
         </div>
       </Card>
 
-      <Card className="p-4 bg-[var(--dark-gray)]/80 border-[var(--grid-gray)] space-y-3">
+      <Card className="p-4 space-y-3">
         <div className="font-semibold text-[var(--text-primary)]">Device-specific checks</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
           <div className="space-y-1">
@@ -102,7 +102,7 @@ export default function DebugTools() {
         </div>
       </Card>
 
-      <Card className="p-4 bg-[var(--dark-gray)]/80 border-[var(--grid-gray)] space-y-3">
+      <Card className="p-4 space-y-3">
         <div className="font-semibold text-[var(--text-primary)]">Local cache helpers</div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -142,7 +142,7 @@ export default function DebugTools() {
       </Card>
 
       {Object.keys(results).length > 0 && (
-        <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
+        <Card className="p-4 space-y-3">
           <div className="font-semibold text-[var(--text-primary)]">Results</div>
           <div className="space-y-2">
             {Object.entries(results).map(([key, res]) => (

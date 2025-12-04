@@ -7,7 +7,7 @@ function Card({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "gridrunner-surface chrome-card flex flex-col gap-6 text-[hsl(var(--card-foreground))] py-6",
+        "bg-black/60 backdrop-blur-sm rounded-2xl border border-cyan-400/30 shadow-lg flex flex-col gap-6 text-[hsl(var(--card-foreground))] py-6",
         className
       )}
       {...props}

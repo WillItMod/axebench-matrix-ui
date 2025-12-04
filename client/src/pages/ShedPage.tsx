@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,11 +49,11 @@ export default function ShedPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Add Schedule Form */}
-        <Card className="glass-panel border-neon-green/30 h-fit">
+        <Card className="h-fit">
           <CardHeader>
-            <CardTitle className="text-neon-green font-mono flex items-center gap-2">
+            <SectionHeader className="flex items-center gap-2 text-base md:text-lg">
               <Clock className="h-5 w-5" /> NEW RULE
-            </CardTitle>
+            </SectionHeader>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -104,11 +105,11 @@ export default function ShedPage() {
         </Card>
 
         {/* Timeline Visualization */}
-        <Card className="lg:col-span-2 glass-panel border-white/10">
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white font-mono flex items-center gap-2">
+            <SectionHeader className="flex items-center gap-2 text-base md:text-lg">
               <Calendar className="h-5 w-5" /> DAILY TIMELINE
-            </CardTitle>
+            </SectionHeader>
           </CardHeader>
           <CardContent className="space-y-4">
             {schedules.length === 0 ? (
@@ -120,7 +121,7 @@ export default function ShedPage() {
                 {schedules.map((schedule) => (
                   <div 
                     key={schedule.id} 
-                    className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/5 hover:border-neon-green/30 transition-all"
+                    className="flex items-center justify-between p-4 rounded-2xl bg-black/60 backdrop-blur-sm border border-cyan-400/30 shadow-lg hover:border-cyan-300/50 transition-all"
                   >
                     <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-full bg-neon-green/10 flex items-center justify-center text-neon-green">

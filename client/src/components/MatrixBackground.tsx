@@ -15,12 +15,10 @@ export default function MatrixBackground() {
   const baseRef = useRef<HTMLCanvasElement>(null);
   const forgeRef = useRef<HTMLCanvasElement>(null);
 
-  if (pauseMatrix) {
-    return null;
-  }
-
   // Base Matrix rain (unchanged)
   useEffect(() => {
+    if (pauseMatrix) return;
+
     const canvas = baseRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -77,10 +75,12 @@ export default function MatrixBackground() {
       clearInterval(interval);
       window.removeEventListener('resize', resize);
     };
-  }, [matrixRainbow, reduceMotion]);
+  }, [matrixRainbow, reduceMotion, pauseMatrix]);
 
   // Forge overlay (hash/BTC rain + block columns)
   useEffect(() => {
+    if (pauseMatrix) return;
+
     const canvas = forgeRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -216,7 +216,11 @@ export default function MatrixBackground() {
       window.removeEventListener('resize', resize);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [theme, reduceMotion]);
+  }, [theme, reduceMotion, pauseMatrix]);
+
+  if (pauseMatrix) {
+    return null;
+  }
 
   return (
     <>

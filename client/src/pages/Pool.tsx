@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -321,7 +322,7 @@ export default function Pool() {
 
       {/* Scheduler Status */}
       {schedulerStatus && (
-        <Card className="p-4 bg-black/80 border-matrix-green">
+        <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-gray-400">SCHEDULER_STATUS</div>
@@ -340,8 +341,8 @@ export default function Pool() {
       )}
 
       {/* Create New Pool */}
-      <Card className="p-6 bg-black/80 border-matrix-green">
-        <h2 className="text-xl font-bold text-glow-green mb-4">CREATE_NEW_POOL</h2>
+      <Card className="p-6 space-y-4">
+        <SectionHeader className="text-base md:text-lg">CREATE_NEW_POOL</SectionHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="pool-name">Pool Name *</Label>
@@ -389,11 +390,11 @@ export default function Pool() {
 
       {/* Pool Presets */}
       {presets.length > 0 && (
-        <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome">
-          <h2 className="text-xl font-bold text-glow-cyan mb-4">POOL_PRESETS</h2>
+        <Card className="p-6 space-y-4">
+          <SectionHeader className="text-base md:text-lg">POOL_PRESETS</SectionHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {presets.map((preset, idx) => (
-              <Card key={idx} className="p-4 gridrunner-surface border border-transparent shadow-soft">
+              <Card key={idx} className="p-4">
                 <div className="font-bold text-[hsl(var(--primary))]">{preset.name}</div>
                 <div className="text-sm text-muted-foreground mt-1">{preset.url}</div>
                 {preset.description && (
@@ -407,9 +408,9 @@ export default function Pool() {
 
       {/* Quick Apply (multi-device) */}
       {devices.length > 0 && pools.length > 0 && (
-        <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
+        <Card className="p-6 space-y-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="text-2xl font-bold text-glow-cyan">QUICK_POOL_APPLY</div>
+            <SectionHeader className="text-base md:text-lg">QUICK_POOL_APPLY</SectionHeader>
           </div>
 
           <div className="mb-3">
@@ -472,8 +473,8 @@ export default function Pool() {
       )}
 
       {/* Existing Pools */}
-      <Card className="p-6 bg-black/80 border-matrix-green">
-        <h2 className="text-xl font-bold text-glow-green mb-4">CONFIGURED_POOLS</h2>
+      <Card className="p-6 space-y-4">
+        <SectionHeader className="text-base md:text-lg">CONFIGURED_POOLS</SectionHeader>
         {pools.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             NO_POOLS_CONFIGURED
@@ -481,7 +482,7 @@ export default function Pool() {
         ) : (
           <div className="space-y-4">
             {pools.map((pool) => (
-              <Card key={pool.id} className="p-4 bg-black/90 border-gray-700">
+              <Card key={pool.id} className="p-4">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -570,9 +571,9 @@ export default function Pool() {
 
       {/* Per-device pools (similar to Profiles) */}
       {selectedDevices.length > 0 && pools.length > 0 && (
-        <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
+        <Card className="p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-glow-green">DEVICE_POOLS</h2>
+            <SectionHeader className="text-base md:text-lg">DEVICE_POOLS</SectionHeader>
             <Button size="sm" variant="outline" onClick={() => loadData()}>
               <RefreshCw className="w-4 h-4 mr-1" /> RELOAD
             </Button>
@@ -580,13 +581,13 @@ export default function Pool() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {selectedDevices.map((deviceName) => {
               const device = devices.find((d) => d.name === deviceName);
-              const currentPool =
-                (device?.status as any)?.poolName ||
-                device?.pool ||
-                (device?.status as any)?.pool ||
-                'N/A';
+                const currentPool =
+                  (device?.status as any)?.poolName ||
+                  device?.pool ||
+                  (device?.status as any)?.pool ||
+                  'N/A';
               return (
-                <Card key={deviceName} className="p-4 gridrunner-surface border border-transparent shadow-soft space-y-3">
+                <Card key={deviceName} className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-sm font-bold text-[var(--text-primary)]">{deviceName}</div>

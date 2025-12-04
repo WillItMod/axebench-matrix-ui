@@ -7,6 +7,7 @@ export type MiniGameKey =
   | 'hextris'
   | 'clumsy-bird'
   | 'astray'
+  | 'hexgl'
   | 'cat-survivors'
   | 'catapoolt'
   | 'clawstrike'
@@ -56,7 +57,7 @@ const HtmlGameCard = ({
           src={safeSrc}
           title={title}
           onLoad={() => setLoaded(true)}
-          className="w-full h-[640px]"
+          className="w-full h-[720px] max-h-[80vh]"
           sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-forms"
           allow="autoplay; fullscreen"
         />
@@ -116,6 +117,13 @@ export const MINI_GAMES: MiniGameEntry[] = [
     description: 'First-person maze runner (local).',
     src: '/games/astray/index.html',
     hint: 'Find the exit without falling.',
+  }),
+  makeEntry({
+    key: 'hexgl',
+    title: 'HexGL',
+    description: 'Futuristic racer (local copy).',
+    src: '/games/hexgl/HexGL-master/index.html',
+    hint: 'Accelerate, steer, avoid walls.',
   }),
   makeEntry({
     key: 'cat-survivors',

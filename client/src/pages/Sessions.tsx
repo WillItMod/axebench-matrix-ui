@@ -290,6 +290,8 @@ export default function Sessions() {
   const [savingProfiles, setSavingProfiles] = useState(false);
   const [appendSuffix, setAppendSuffix] = useState(false);
   const [profileSuffix, setProfileSuffix] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     loadSessions();
@@ -342,6 +344,7 @@ export default function Sessions() {
       const data = await api.sessions.list();
       const normalized = Array.isArray(data) ? data.map(normalizeSession) : [];
       setSessions(normalized);
+      setSelectedIds(new Set());
     } catch (error) {
       console.error('Failed to load sessions:', error);
       setSessions([]);
@@ -357,8 +360,36 @@ export default function Sessions() {
       await api.sessions.delete(id);
       toast.success('Session deleted');
       loadSessions();
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete session');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedIds.size) {
+      toast.error('Select at least one session');
+      return;
+    }
+    if (!confirm(`Delete ${selectedIds.size} selected session(s)?`)) return;
+    try {
+      setBulkDeleting(true);
+      for (const id of selectedIds) {
+        // best-effort delete each, continue on errors
+        // eslint-disable-next-line no-await-in-loop
+        await api.sessions.delete(id);
+      }
+      toast.success(`Deleted ${selectedIds.size} session${selectedIds.size > 1 ? 's' : ''}`);
+      setSelectedIds(new Set());
+      loadSessions();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete selected sessions');
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -517,9 +548,19 @@ export default function Sessions() {
               Benchmark session history and results
             </p>
           </div>
-          <Button onClick={loadSessions} variant="secondary" className="uppercase tracking-wide">
-            REFRESH
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleBulkDelete}
+              variant="destructive"
+              className="uppercase tracking-wide"
+              disabled={!selectedIds.size || bulkDeleting}
+            >
+              {bulkDeleting ? 'DELETING…' : `DELETE_SELECTED (${selectedIds.size || 0})`}
+            </Button>
+            <Button onClick={loadSessions} variant="secondary" className="uppercase tracking-wide">
+              REFRESH
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -609,6 +650,15 @@ export default function Sessions() {
                           onGenerateProfiles={() => handleGenerateProfiles(session.id)}
                           generating={processingSessionId === session.id}
                           onDownloadJson={() => handleDownloadJson(session)}
+                          selected={selectedIds.has(session.id)}
+                          onToggleSelect={(checked: boolean) => {
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (checked) next.add(session.id);
+                              else next.delete(session.id);
+                              return next;
+                            });
+                          }}
                         />
                       ))
                     )}
@@ -632,6 +682,15 @@ export default function Sessions() {
                           onGenerateProfiles={() => handleGenerateProfiles(session.id)}
                           generating={processingSessionId === session.id}
                           onDownloadJson={() => handleDownloadJson(session)}
+                          selected={selectedIds.has(session.id)}
+                          onToggleSelect={(checked: boolean) => {
+                            setSelectedIds((prev) => {
+                              const next = new Set(prev);
+                              if (checked) next.add(session.id);
+                              else next.delete(session.id);
+                              return next;
+                            });
+                          }}
                         />
                       ))
                     )}
@@ -671,7 +730,16 @@ export default function Sessions() {
   );
 }
 
-function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownloadJson, generating }: any) {
+function SessionCard({
+  session,
+  onView,
+  onDelete,
+  onGenerateProfiles,
+  onDownloadJson,
+  generating,
+  selected,
+  onToggleSelect,
+}: any) {
   const formatDate = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -698,7 +766,15 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
 
   return (
     <div className="matrix-card">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
+        <div className="pt-1">
+          <Checkbox
+            id={`select-${session.id}`}
+            checked={selected}
+            onCheckedChange={(checked) => onToggleSelect?.(Boolean(checked))}
+            className="border-[var(--grid-gray)] data-[state=checked]:bg-[var(--matrix-green)]"
+          />
+        </div>
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h3 className="text-lg font-bold text-[var(--text-primary)] text-glow-green">
