@@ -480,7 +480,12 @@ export default function Settings() {
               );
             })}
           </div>
-          <Button variant="outline" size="sm" onClick={() => { setDraftGlobalDefaults(globalBenchmarkDefaults); setShowGlobalDefaults(true); }}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-center"
+            onClick={() => { setDraftGlobalDefaults(globalBenchmarkDefaults); setShowGlobalDefaults(true); }}
+          >
             Global test defaults
           </Button>
         </Card>
@@ -626,44 +631,6 @@ export default function Settings() {
           </div>
         </Card>
       </div>
-
-      {/* Benchmark defaults */}
-      <Card className="p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-muted-foreground">Bench tuning</div>
-            <div className="text-xl font-semibold text-glow-cyan">DEFAULT BENCHMARK PROFILES</div>
-            <p className="text-sm text-muted-foreground">
-              Set per-model defaults that prefill benchmarking and Autopilot for each device family.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => { setDraftGlobalDefaults(globalBenchmarkDefaults); setShowGlobalDefaults(true); }}>
-            Global test defaults
-          </Button>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {modelCards.map((m) => {
-            const hasCustom = !!modelBenchmarkDefaults[m.key];
-            return (
-              <div
-                key={m.key}
-                className="rounded-lg border border-border/60 bg-card/60 p-3 flex items-center justify-between"
-              >
-                <div>
-                  <div className="text-sm font-semibold text-[var(--text-primary)]">{m.label}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {hasCustom ? 'Custom defaults set' : 'Using global defaults'}
-                  </div>
-                </div>
-                <Button size="sm" variant="secondary" onClick={() => handleOpenModelDefaults(m.key)}>
-                  Configure
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5 space-y-4">
