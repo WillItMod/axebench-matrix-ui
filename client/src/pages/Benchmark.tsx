@@ -270,7 +270,7 @@ export default function Benchmark() {
       await refreshStatus(); // Update global benchmark state
       if (!silent) {
         toast.success(
-          `Full Sweep Optimizer engaged${nanoPass ? ' with Nano finish' : ''} - Stage 1: Full sweep`
+          `AUTOPILOT engaged${nanoPass ? ' with Nano finish' : ''} - Stage 1: Full sweep`
         );
         if (changed) {
           toast.info(`Safety caps enforced (${capped.join(', ')})`);
@@ -831,15 +831,15 @@ export default function Benchmark() {
           }
         }}
       >
-        <DialogContent className="max-w-4xl bg-[var(--bg-primary)] border-[rgba(168,85,247,0.5)] shadow-[0_0_36px_rgba(168,85,247,0.35)]">
+        <DialogContent className="w-[min(95vw,1200px)] max-h-[85vh] overflow-y-auto bg-[var(--bg-primary)] border-[rgba(168,85,247,0.5)] shadow-[0_0_36px_rgba(168,85,247,0.35)]">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold text-glow-green">FULL SWEEP OPTIMIZER</DialogTitle>
+            <DialogTitle className="text-2xl font-bold text-glow-green">AUTOPILOT</DialogTitle>
             <DialogDescription className="text-[var(--text-secondary)] text-sm space-y-1">
               <p>
-                We are about to run a full sweep to squeeze performance. This can be a 5 minute jog or an hours long marathon—bring snacks.
+                Autopilot will run a full sweep, capture session data, and produce four ready profiles: QUIET, EFFICIENT, BALANCED, MAX. You can optionally run Nano tune on each profile for extra refinement.
               </p>
               <p>
-                We will run the sweep, log everything, and auto build four ready to go profiles: QUIET, EFFICIENT, BALANCED, MAX. Optional victory lap: Nano tune each profile for that last 1–2% of bragging rights.
+                Duration depends on your ranges—anywhere from a few minutes to much longer on wide sweeps. Keep airflow clear and stay within your PSU/thermal limits.
               </p>
             </DialogDescription>
           </DialogHeader>
@@ -849,10 +849,10 @@ export default function Benchmark() {
               <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
                 <div className="font-bold text-[var(--text-primary)] mb-1">What happens</div>
                 <ol className="list-decimal pl-5 space-y-1">
-                  <li>Full sweep with current settings (Easy ⇒ optimized defaults).</li>
-                  <li>Analyze session data; auto generate QUIET / EFFICIENT / BALANCED / MAX.</li>
-                  <li>Optional Nano tune each profile. Coffee break recommended.</li>
-                  <li>Set device to EFFICIENT when done. Celebrate responsibly.</li>
+                  <li>Run a full sweep with current settings (Easy uses optimized defaults).</li>
+                  <li>Analyze session data; generate QUIET / EFFICIENT / BALANCED / MAX profiles.</li>
+                  <li>Optional: Nano tune each profile for tighter results.</li>
+                  <li>Apply EFFICIENT when finished.</li>
                 </ol>
               </div>
 
@@ -908,7 +908,7 @@ export default function Benchmark() {
                   </div>
                 </div>
                 <p className="text-sm text-[var(--text-secondary)]">
-                  Toggle Nano tuning for all four profiles after the sweep. Turning it off ends right after profiles are created.
+                  Toggle Nano tuning for all four profiles after the sweep. Turning it off stops after profiles are created.
                 </p>
               </div>
 
@@ -933,8 +933,8 @@ export default function Benchmark() {
               </div>
 
               <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3 text-sm text-[var(--text-secondary)]">
-                <div className="font-bold text-[var(--text-primary)] mb-1">Vibe check</div>
-                <p>Optional victory lap: Nano tune each profile for that last 1–2% of bragging rights.</p>
+                <div className="font-bold text-[var(--text-primary)] mb-1">Refinement</div>
+                <p>Nano tuning is optional and adds time; enable it when you want the most polished profiles.</p>
               </div>
             </div>
           </div>
@@ -963,4 +963,5 @@ export default function Benchmark() {
     </>
   );
 }
+
 

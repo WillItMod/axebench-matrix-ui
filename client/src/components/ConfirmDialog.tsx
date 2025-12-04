@@ -42,7 +42,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(val) => !val && onCancel()}>
-      <DialogContent className="matrix-card max-w-lg">
+      <DialogContent className="matrix-card w-[min(90vw,760px)] md:w-[min(90vw,920px)] max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className={`text-xl font-bold ${toneClasses[tone]}`}>{title}</DialogTitle>
           {description && (
