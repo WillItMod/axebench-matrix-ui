@@ -4,7 +4,6 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import FontAppearanceSplash from '@/components/FontAppearanceSplash';
 import { useTheme, availableThemes, fonts as fontChoices, themePalettes } from '@/contexts/ThemeContext';
 import { useSettings } from '@/contexts/SettingsContext';
 import { api } from '@/lib/api';
@@ -25,16 +24,19 @@ export default function Settings() {
     theme,
     setTheme,
     fontKey,
+    setFontKey,
     fontScale,
     setFontScale,
     matrixCodeColor,
     setMatrixCodeColor,
     fontOverride,
+    resetFontOverride,
     matrixBrightness,
     setMatrixBrightness,
     matrixRainbow,
     setMatrixRainbow,
     resetMatrixVisuals,
+    secretUnlocked,
   } = useTheme();
   const {
     temperatureUnit,
@@ -59,7 +61,6 @@ export default function Settings() {
   const [deviceLimit, setDeviceLimit] = useState<number>(5);
   const [deviceCount, setDeviceCount] = useState<number>(0);
   const [patreonUrl, setPatreonUrl] = useState<string | null>(null);
-  const [showAppearanceModal, setShowAppearanceModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
