@@ -79,11 +79,11 @@ export default function EasterEggLaunchers() {
           }
         }}
       >
-        <DialogContent className="max-w-3xl bg-card border border-border text-foreground">
+        <DialogContent className="max-w-3xl shadow-chrome">
           {Current ? (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">Easter egg: {Current.title}</div>
-              <div className="border border-border rounded-lg bg-background/80 p-3">
+              <div className="gridrunner-surface border border-transparent p-3">
                 <Current.component onComplete={close} />
               </div>
             </div>

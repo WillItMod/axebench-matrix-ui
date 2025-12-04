@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MINI_GAMES, type MiniGameKey } from './games/registry';
 
@@ -56,7 +57,7 @@ export default function DarkModeChallengeHub() {
 
   if (unlocked) {
     return (
-      <div className="bg-card border border-border rounded-xl p-5 text-foreground relative overflow-hidden space-y-3">
+      <div className="gridrunner-surface border border-transparent p-5 text-foreground relative overflow-hidden space-y-3 shadow-chrome">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/5 to-primary/10 pointer-events-none" />
         <div className="relative space-y-1">
           <div className="text-lg font-semibold">Unlocked - Satoshi&apos;s Forge Online</div>
@@ -66,16 +67,18 @@ export default function DarkModeChallengeHub() {
         </div>
         <div className="relative flex flex-col gap-2">
           {!replayMode && (
-            <button
+            <Button
               onClick={() => {
                 const next = games[Math.floor(Math.random() * games.length)]?.key ?? games[0].key;
                 setGameKey(next);
                 setReplayMode(true);
               }}
-              className="self-start text-xs px-3 py-2 rounded border border-border bg-background/80 text-foreground hover:border-primary/60"
+              variant="accent"
+              size="sm"
+              className="self-start uppercase tracking-wide"
             >
               Run a challenge for fun
-            </button>
+            </Button>
           )}
           {replayMode && (
             <div className="space-y-2">
@@ -83,14 +86,11 @@ export default function DarkModeChallengeHub() {
                 <div className="text-sm text-muted-foreground">
                   Bonus challenge (Forge already unlocked)
                 </div>
-                <button
-                  onClick={() => setReplayMode(false)}
-                  className="text-xs px-3 py-1 rounded border border-border hover:border-primary/60"
-                >
+                <Button onClick={() => setReplayMode(false)} variant="secondary" size="sm" className="uppercase">
                   Close
-                </button>
+                </Button>
               </div>
-              <div className="bg-background/80 border border-border rounded-md p-3">
+              <div className="gridrunner-surface border border-transparent p-3">
                 <Current onComplete={complete} />
               </div>
             </div>
@@ -107,7 +107,7 @@ export default function DarkModeChallengeHub() {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 sm:p-5 text-foreground space-y-3">
+    <div className="gridrunner-surface border border-transparent p-4 sm:p-5 text-foreground space-y-3 shadow-chrome">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-lg font-semibold">Dark Mode Challenges</div>
@@ -115,14 +115,11 @@ export default function DarkModeChallengeHub() {
             Beat any challenge to unlock Satoshi&apos;s Forge.
           </div>
         </div>
-        <button
-          onClick={reroll}
-          className="text-xs px-3 py-2 rounded border border-border bg-background/80 hover:border-primary/60"
-        >
+        <Button onClick={reroll} variant="accent" size="sm" className="uppercase">
           Spin another
-        </button>
+        </Button>
       </div>
-      <div className="bg-background/80 border border-border rounded-lg p-3">
+      <div className="gridrunner-surface border border-transparent p-3">
         <Current onComplete={complete} />
       </div>
     </div>

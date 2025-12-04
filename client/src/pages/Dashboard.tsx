@@ -710,17 +710,17 @@ const loadPsus = async () => {
                       </span>
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="secondary"
                         onClick={() => handleEditPsu(psu)}
-                        className="h-6 px-2 text-xs text-[var(--neon-cyan)] hover:bg-[var(--neon-cyan)]/10"
+                        className="h-7 px-3 text-xs uppercase tracking-wide"
                       >
                         EDIT
                       </Button>
                       <Button
                         size="sm"
-                        variant="ghost"
+                        variant="destructive"
                         onClick={() => setConfirmPsu({ id: psu.id, name: psu.name })}
-                        className="h-6 px-2 text-xs text-[var(--error-red)] hover:bg-[var(--error-red)]/10"
+                        className="h-7 px-3 text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
                       >
                         DELETE
                       </Button>
@@ -810,21 +810,30 @@ const loadPsus = async () => {
               setShowScanModal(true);
             }}
             variant="outline"
-            className="gap-2"
+            className="gap-2 uppercase tracking-wide"
           >
             SCAN
           </Button>
           <Button
             onClick={loadDevices}
             disabled={refreshing}
-            className="btn-cyan"
+            variant="secondary"
+            className="uppercase tracking-wide"
           >
             {refreshing ? '⟳ SYNCING...' : '🔄 REFRESH'}
           </Button>
-          <Button onClick={() => setShowAddModal(true)} className="btn-matrix">
+          <Button
+            onClick={() => setShowAddModal(true)}
+            variant="default"
+            className="uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]"
+          >
             ➕ ADD_DEVICE
           </Button>
-          <Button onClick={() => setShowPsuModal(true)} className="bg-yellow-600 hover:bg-yellow-700 text-white">
+          <Button
+            onClick={() => setShowPsuModal(true)}
+            variant="accent"
+            className="uppercase tracking-wide shadow-[0_0_18px_hsla(var(--accent),0.4)]"
+          >
             ⚡ PSU_CONFIG
           </Button>
         </div>
@@ -836,7 +845,11 @@ const loadPsus = async () => {
           <div className="text-[var(--text-muted)] text-lg mb-4">
             NO_DEVICES_DETECTED
           </div>
-          <Button onClick={() => setShowAddModal(true)} className="btn-matrix">
+          <Button
+            onClick={() => setShowAddModal(true)}
+            variant="default"
+            className="uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]"
+          >
             ➕ ADD_YOUR_FIRST_DEVICE
           </Button>
         </div>
@@ -886,7 +899,7 @@ const loadPsus = async () => {
       />
 
       <Dialog open={showScanModal} onOpenChange={setShowScanModal}>
-        <DialogContent className="bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] text-[var(--text-primary)] max-w-lg">
+        <DialogContent className="max-w-lg shadow-chrome">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-glow-green">SCAN_NETWORK</DialogTitle>
           </DialogHeader>
@@ -897,10 +910,10 @@ const loadPsus = async () => {
                 value={scanSubnet}
                 onChange={(e) => setScanSubnet(e.target.value)}
                 placeholder="e.g., 192.168.1.0"
-                className="bg-[var(--dark-gray)] border-[var(--grid-gray)] mt-1"
+                className="mt-1 bg-card/70 border-border/70"
               />
             </div>
-            <Button onClick={handleScan} disabled={scanning} className="btn-matrix w-full">
+            <Button onClick={handleScan} disabled={scanning} className="w-full uppercase tracking-wide">
               {scanning ? 'SCANNING...' : 'START_SCAN'}
             </Button>
             {scanResults.length > 0 && (
@@ -957,7 +970,8 @@ const loadPsus = async () => {
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={dismissActiveWarning}>Dismiss</Button>
             <Button
-              className={activeWarning?.level === 'danger' ? 'bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white' : 'btn-matrix'}
+              variant={activeWarning?.level === 'danger' ? 'destructive' : 'default'}
+              className="uppercase tracking-wide"
               onClick={dismissActiveWarning}
             >
               OK
@@ -1127,7 +1141,8 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
       <div className="flex gap-2">
         <Button 
           size="sm" 
-          className="flex-1 btn-matrix text-xs"
+          variant="default"
+          className="flex-1 text-xs uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.25)]"
           onClick={(e) => { e.stopPropagation(); handleBenchmark(); }}
           disabled={!device.online}
         >
@@ -1135,7 +1150,8 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
         </Button>
         <Button 
           size="sm" 
-          className="flex-1 btn-cyan text-xs"
+          variant="secondary"
+          className="flex-1 text-xs uppercase tracking-wide"
           onClick={(e) => { e.stopPropagation(); onConfig(device); }}
           disabled={!device.online}
         >
@@ -1144,7 +1160,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
         <Button
           size="sm"
           variant="destructive"
-          className="flex-1 text-xs"
+          className="flex-1 text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
           onClick={(e) => { e.stopPropagation(); onDelete(device); }}
         >
           DELETE

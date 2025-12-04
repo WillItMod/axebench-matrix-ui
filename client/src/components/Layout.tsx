@@ -1,6 +1,6 @@
 import { MouseEvent, ReactNode, useEffect, useState } from 'react';
 import { Bitcoin } from 'lucide-react';
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
 import MatrixBackground from './MatrixBackground';
 import BenchmarkStatusBanner from './BenchmarkStatusBanner';
 import NanoTuneStatusBanner from './NanoTuneStatusBanner';
@@ -21,7 +21,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { secretUnlocked } = useTheme();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [uptime, setUptime] = useState<string>('N/A');
   const [uptimeAvailable, setUptimeAvailable] = useState(true);
   const [licenseTier, setLicenseTier] = useState<'free' | 'premium' | 'ultimate'>('free');
@@ -151,7 +151,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const renderLicenseBanner = () => {
     const bannerBase =
-      'bg-card border border-border text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg shadow-sm';
+      'gridrunner-surface text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-chrome border border-transparent';
 
     if (licenseTier === 'free') {
       return (
@@ -161,7 +161,12 @@ export default function Layout({ children }: LayoutProps) {
             {overLimit ? 'Some features may be limited.' : 'Support to unlock more.'}
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={() => window.open(patreonUrl, '_blank')}>
+            <Button
+              size="sm"
+              variant="accent"
+              className="uppercase tracking-wide"
+              onClick={() => window.open(patreonUrl, '_blank')}
+            >
               Support on Patreon
             </Button>
           </div>
@@ -175,7 +180,12 @@ export default function Layout({ children }: LayoutProps) {
           <div className="text-sm text-muted-foreground">
             Premium: up to {deviceLimit} devices. Thanks for supporting! Devices: {deviceCount}.
           </div>
-          <Button size="sm" variant="outline" onClick={() => window.open(patreonUrl, '_blank')}>
+          <Button
+            size="sm"
+            variant="accent"
+            className="uppercase tracking-wide"
+            onClick={() => window.open(patreonUrl, '_blank')}
+          >
             Upgrade to Ultimate
           </Button>
         </div>
@@ -232,9 +242,9 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <div className="relative z-20">
         {/* Header */}
-        <header className="border-b border-border bg-card/90 backdrop-blur-sm">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
+        <header className="px-4">
+          <div className="container mx-auto">
+            <div className="gridrunner-surface border border-transparent shadow-chrome px-4 py-4 flex items-center justify-between gap-3">
               {/* Logo */}
               <div className="flex items-center gap-3">
                 <button
@@ -262,29 +272,30 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </header>
 
-        <nav className="border-b border-border bg-card/80 backdrop-blur-sm">
-          <div className="container mx-auto px-4">
-            <div className="flex gap-1">
-              {tabs.map((tab) => {
-                const isActive = location === tab.path;
-                return (
-                  <Link key={tab.path} href={tab.path}>
-                    <button
+        <nav className="px-4 mt-3">
+          <div className="container mx-auto">
+            <div className="gridrunner-surface border border-transparent shadow-chrome px-3 py-2">
+              <div className="flex flex-wrap gap-2">
+                {tabs.map((tab) => {
+                  const isActive = location === tab.path;
+                  return (
+                    <Button
+                      key={tab.path}
+                      onClick={() => setLocation(tab.path)}
+                      variant={isActive ? 'default' : 'outline'}
+                      size="lg"
                       className={cn(
-                        'px-6 py-3 font-bold uppercase tracking-wide transition-all relative rounded-md border',
+                        'uppercase tracking-[0.14em] font-bold px-5',
                         isActive
-                          ? 'text-[hsl(var(--primary-foreground))] bg-[hsl(var(--primary))] border-[hsl(var(--primary))] shadow-[0_0_16px_rgba(34,197,94,0.35)]'
-                          : 'text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary))] hover:shadow-[0_0_10px_rgba(34,211,238,0.25)] hover:bg-[hsl(var(--muted))]/60 border-border bg-card/60'
+                          ? 'shadow-[0_0_18px_hsla(var(--primary),0.45)]'
+                          : 'text-foreground/85 border-border'
                       )}
                     >
                       {tab.label}
-                      {isActive && (
-                        <div className="absolute inset-0 rounded-md pointer-events-none shadow-[0_0_18px_rgba(34,197,94,0.35)]" />
-                      )}
-                    </button>
-                  </Link>
-                );
-              })}
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </nav>
@@ -293,9 +304,9 @@ export default function Layout({ children }: LayoutProps) {
         <main className="container mx-auto px-4 py-6">{children}</main>
 
         {/* Footer */}
-        <footer className="border-t border-border bg-card/80 backdrop-blur-sm mt-12">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <footer className="px-4 mt-12">
+          <div className="container mx-auto">
+            <div className="gridrunner-surface border border-transparent shadow-chrome px-4 py-4 flex items-center justify-between text-sm text-muted-foreground">
               <div>AxeBench Interface | Bitaxe Fleet Management System</div>
               <div className="flex items-center gap-4">
                 <span>
@@ -310,7 +321,7 @@ export default function Layout({ children }: LayoutProps) {
         </footer>
 
         <Dialog open={showSecret} onOpenChange={setShowSecret}>
-          <DialogContent className="bg-card border border-border shadow-[0_0_20px_rgba(34,197,94,0.25)] max-w-3xl text-foreground">
+          <DialogContent className="max-w-3xl shadow-chrome">
             <DarkModeChallengeHub />
           </DialogContent>
         </Dialog>

@@ -516,7 +516,7 @@ export default function Sessions() {
               Benchmark session history and results
             </p>
           </div>
-          <Button onClick={loadSessions} className="btn-cyan">
+          <Button onClick={loadSessions} variant="secondary" className="uppercase tracking-wide">
             REFRESH
           </Button>
         </div>
@@ -531,8 +531,8 @@ export default function Sessions() {
                 <Button
                   key={mode}
                   size="sm"
-                  variant="outline"
-                  className={`text-xs ${modeFilter === mode ? 'btn-matrix shadow-[0_0_0_1px_var(--theme-primary)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
+                  variant={modeFilter === mode ? 'default' : 'outline'}
+                  className="text-xs uppercase tracking-wide"
                   aria-pressed={modeFilter === mode}
                   onClick={() => setModeFilter(mode)}
                 >
@@ -545,8 +545,8 @@ export default function Sessions() {
                 <Button
                   key={dev}
                   size="sm"
-                  variant="outline"
-                  className={`text-xs ${deviceFilter === dev ? 'btn-matrix shadow-[0_0_0_1px_var(--matrix-green)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
+                  variant={deviceFilter === dev ? 'default' : 'outline'}
+                  className="text-xs uppercase tracking-wide"
                   aria-pressed={deviceFilter === dev}
                   onClick={() => setDeviceFilter(deviceFilter === dev ? '' : dev)}
                 >
@@ -739,9 +739,9 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
           </div>
 
           {session.best_profile && (
-            <div className="bg-[var(--grid-gray)] border border-[var(--matrix-green)] rounded p-2 text-xs">
+            <div className="gridrunner-surface border border-transparent p-2 text-xs">
               <div className="text-[var(--success-green)] font-bold mb-1">BEST RESULT</div>
-              <div className="grid grid-cols-4 gap-2 text-[var(--text-secondary)]">
+              <div className="grid grid-cols-4 gap-2 text-muted-foreground">
                 <div>
                   V: <span className="text-[var(--text-primary)]">{session.best_profile.voltage}mV</span>
                 </div>
@@ -763,7 +763,8 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
           <Button
             size="sm"
             onClick={onView}
-            className="btn-cyan text-xs"
+            variant="secondary"
+            className="text-xs uppercase tracking-wide"
           >
             VIEW
           </Button>
@@ -772,7 +773,8 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
               size="sm"
               onClick={onGenerateProfiles}
               disabled={generating}
-              className="btn-matrix text-xs disabled:opacity-70"
+              variant="accent"
+              className="text-xs uppercase tracking-wide disabled:opacity-70 shadow-[0_0_14px_hsla(var(--accent),0.35)]"
             >
               {generating ? 'GENERATING...' : 'GENERATE_PROFILES'}
             </Button>
@@ -780,14 +782,16 @@ function SessionCard({ session, onView, onDelete, onGenerateProfiles, onDownload
           <Button
             size="sm"
             onClick={onDownloadJson}
-            className="bg-[var(--neon-cyan)] hover:bg-[var(--neon-cyan)]/80 text-black text-xs"
+            variant="outline"
+            className="text-xs uppercase tracking-wide"
           >
             JSON
           </Button>
           <Button
             size="sm"
             onClick={onDelete}
-            className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white text-xs"
+            variant="destructive"
+            className="text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
           >
             DELETE
           </Button>
@@ -944,15 +948,15 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
               <h3 className="text-lg font-bold text-glow-cyan mb-3">VISUALIZATION</h3>
               <div className="grid grid-cols-2 gap-2">
                 {['hashrate', 'efficiency', 'temperature', 'power'].map((plotType) => (
-                  <a
-                    key={plotType}
-                    href={api.sessions.getPlot(session.id, plotType)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-matrix text-center text-xs py-2"
-                  >
-                    VIEW {plotType.toUpperCase()}
-                  </a>
+                  <Button key={plotType} asChild variant="default" className="text-xs uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.25)]">
+                    <a
+                      href={api.sessions.getPlot(session.id, plotType)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      VIEW {plotType.toUpperCase()}
+                    </a>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -984,11 +988,12 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
                 URL.revokeObjectURL(url);
                 toast.success('JSON exported');
               }}
-              className="btn-matrix"
+              variant="default"
+              className="uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.25)]"
             >
               EXPORT_JSON
             </Button>
-            <Button onClick={onClose} className="btn-cyan">
+            <Button onClick={onClose} variant="outline" className="uppercase tracking-wide">
               CLOSE
             </Button>
           </div>
@@ -1142,7 +1147,8 @@ function ProfilePreviewDialog({ state, onOpenChange, onSave, onToggleOverwrite, 
               <Button
                 onClick={onSave}
                 disabled={saving || (preview.hasExistingProfiles && !overwriteExisting)}
-                className="btn-matrix min-w-[150px]"
+                variant="default"
+                className="min-w-[150px] uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.3)]"
               >
                 {saving ? 'Saving...' : 'Save Profiles'}
               </Button>

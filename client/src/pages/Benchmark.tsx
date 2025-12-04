@@ -609,7 +609,8 @@ export default function Benchmark() {
                 <Button
                   onClick={handleStart}
                   disabled={!selectedDevice}
-                  className="w-full btn-matrix text-lg py-6"
+                  variant="default"
+                  className="w-full text-lg py-6 shadow-[0_0_22px_hsla(var(--primary),0.3)]"
                 >
                   ▶ START_BENCHMARK
                 </Button>
@@ -622,7 +623,8 @@ export default function Benchmark() {
                 <Button
                   onClick={handleAutoTune}
                   disabled={!selectedDevice}
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg py-6"
+                  variant="accent"
+                  className="w-full text-lg py-6 shadow-[0_0_24px_hsla(var(--accent),0.4)]"
                 >
                   🪄 AUTO_TUNE (FULL)
                 </Button>
@@ -630,7 +632,8 @@ export default function Benchmark() {
             ) : (
               <Button
                 onClick={handleStop}
-                className="w-full bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white text-lg py-6"
+                variant="destructive"
+                className="w-full text-lg py-6 shadow-[0_0_22px_rgba(239,68,68,0.45)]"
               >
                 ■ STOP_BENCHMARK
               </Button>

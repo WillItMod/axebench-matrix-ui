@@ -30,6 +30,16 @@
     --matrix-green: #22c55e;
     --matrix-brightness: 1;
     --matrix-code-color: #22c55e;
+    /* gridrunner surface tokens */
+    --surface-strong: 0.9;
+    --surface-medium: 0.82;
+    --surface-soft: 0.72;
+    --frame-radius: 18px;
+    --frame-notch: 12px;
+    --frame-border: hsla(var(--border), 0.7);
+    --frame-ambient: hsla(var(--primary), 0.08);
+    --frame-glow: 0 0 22px hsla(var(--primary), 0.25);
+    --panel-blur: 14px;
 
     /* defaults (Matrix) */
     --background: 229 84% 5%;
@@ -379,99 +389,104 @@
     scrollbar-color: hsla(var(--primary), 0.8) hsla(var(--card), 0.6);
   }
 
-  .chrome-card {
+  .gridrunner-surface,
+  .chrome-card,
+  .matrix-card,
+  .hud-panel,
+  .glass-panel {
+    --surface-level: var(--surface-strong);
     position: relative;
     overflow: hidden;
-    background: linear-gradient(145deg, hsla(var(--card), 0.96), hsla(var(--background), 0.88));
-    border-color: hsla(var(--border), 0.85);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.02),
-      0 18px 40px rgba(0, 0, 0, 0.32),
-      0 0 28px hsla(var(--primary), 0.12);
-    backdrop-filter: blur(8px);
-  }
-
-  .chrome-card::after {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.02),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-  }
-
-  /* Legacy containers upgraded to chrome styling */
-  .matrix-card,
-  .hud-panel {
-    position: relative;
-    border-radius: 14px;
-    padding: 1.1rem;
-    background: linear-gradient(155deg, hsla(var(--card), 0.9), hsla(var(--background), 0.82));
-    border: 1px solid hsla(var(--border), 0.85);
+    border-radius: var(--frame-radius);
+    clip-path: polygon(
+      0% var(--frame-notch),
+      var(--frame-notch) 0%,
+      calc(100% - var(--frame-notch)) 0%,
+      100% var(--frame-notch),
+      100% calc(100% - var(--frame-notch)),
+      calc(100% - var(--frame-notch)) 100%,
+      var(--frame-notch) 100%,
+      0% calc(100% - var(--frame-notch))
+    );
+    background:
+      linear-gradient(135deg, hsla(var(--primary), 0.06), transparent 35%),
+      linear-gradient(215deg, hsla(var(--accent), 0.05), transparent 32%),
+      linear-gradient(140deg, hsla(var(--card), var(--surface-level)), hsla(var(--background), calc(var(--surface-level) - 0.08)));
+    border: 1px solid var(--frame-border);
     color: hsl(var(--foreground));
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.02),
-      0 16px 38px rgba(0, 0, 0, 0.32),
-      0 0 26px hsla(var(--primary), 0.12);
-    backdrop-filter: blur(10px);
+      0 0 0 1px rgba(255, 255, 255, 0.03),
+      0 18px 40px rgba(0, 0, 0, 0.35),
+      0 0 26px hsla(var(--primary), 0.18),
+      0 0 18px hsla(var(--accent), 0.14);
+    backdrop-filter: blur(var(--panel-blur));
   }
 
+  .gridrunner-surface::before,
+  .chrome-card::before,
   .matrix-card::before,
-  .hud-panel::before {
+  .hud-panel::before,
+  .glass-panel::before {
     content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: radial-gradient(circle at 20% 20%, hsla(var(--primary), 0.08), transparent 35%),
-      radial-gradient(circle at 80% 0%, hsla(var(--secondary), 0.08), transparent 32%),
-      radial-gradient(circle at 50% 100%, hsla(var(--accent), 0.05), transparent 38%);
-    opacity: 0.7;
+    background:
+      radial-gradient(circle at 12% 18%, hsla(var(--primary), 0.16), transparent 32%),
+      radial-gradient(circle at 84% 12%, hsla(var(--secondary), 0.12), transparent 30%),
+      linear-gradient(120deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02), transparent 65%),
+      repeating-linear-gradient(90deg, hsla(var(--primary), 0.08) 0, hsla(var(--primary), 0.08) 1px, transparent 1px, transparent 18px),
+      repeating-linear-gradient(0deg, hsla(var(--accent), 0.05) 0, hsla(var(--accent), 0.05) 1px, transparent 1px, transparent 18px);
+    background-size:
+      auto,
+      auto,
+      auto,
+      120px 120px,
+      120px 120px;
+    mix-blend-mode: screen;
+    opacity: 0.85;
+    filter: drop-shadow(0 0 12px hsla(var(--primary), 0.12));
   }
 
+  .gridrunner-surface::after,
+  .chrome-card::after,
   .matrix-card::after,
-  .hud-panel::after {
-    content: "";
-    position: absolute;
-    inset: 1px;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.03),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-  }
-
-  .matrix-card {
-    gap: 0.75rem;
-  }
-
-  .hud-panel {
-    gap: 0.4rem;
-  }
-
-  .glass-panel {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(150deg, hsla(var(--card), 0.94), hsla(var(--background), 0.86));
-    border: 1px solid hsla(var(--border), 0.9);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.02),
-      0 16px 36px rgba(0, 0, 0, 0.3),
-      0 0 24px hsla(var(--primary), 0.1);
-    backdrop-filter: blur(10px);
-  }
-
+  .hud-panel::after,
   .glass-panel::after {
     content: "";
     position: absolute;
     inset: 1px;
     border-radius: inherit;
     pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.04);
     box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.02),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+      0 0 0 1px rgba(255, 255, 255, 0.03),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+      inset 0 0 30px hsla(var(--primary), 0.08);
+  }
+
+  .matrix-card,
+  .glass-panel {
+    --surface-level: var(--surface-medium);
+  }
+
+  .hud-panel {
+    --surface-level: var(--surface-soft);
+  }
+
+  .matrix-card {
+    gap: 0.75rem;
+    padding: 1.1rem;
+  }
+
+  .hud-panel {
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  .glass-panel {
+    padding: 1rem;
   }
 
   [data-theme="forge"] [data-slot="button"][data-variant="default"] {

@@ -110,7 +110,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                 <div className="text-sm text-muted-foreground">Themes</div>
                 <div className="text-xs text-muted-foreground">Pick a shell; fonts follow unless overridden</div>
               </div>
-              <ScrollArea className="h-[380px] rounded-2xl border border-border/80 bg-card/70 backdrop-blur-sm shadow-chrome appearance-scroll">
+              <ScrollArea className="gridrunner-surface h-[380px] border border-transparent shadow-chrome appearance-scroll">
                 <div className="grid gap-3 p-4 sm:grid-cols-2">
                   {availableThemes.map((t) => {
                     const locked = t.name === 'forge' && !secretUnlocked;
@@ -123,7 +123,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                         disabled={locked}
                         onClick={() => setPendingTheme(t.name as ThemeName)}
                         className={cn(
-                          'relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all bg-card/80 backdrop-blur-sm shadow-soft min-h-[130px]',
+                          'relative overflow-hidden gridrunner-surface border border-transparent px-4 py-3 text-left transition-all shadow-soft min-h-[130px]',
                           'before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-[hsl(var(--primary))/10] before:via-transparent before:to-[hsl(var(--secondary))/10]',
                           locked && 'opacity-50 cursor-not-allowed',
                           active
@@ -171,7 +171,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                   Use theme default
                 </Button>
               </div>
-              <ScrollArea className="h-[380px] rounded-2xl border border-border/80 bg-card/70 backdrop-blur-sm shadow-chrome appearance-scroll">
+              <ScrollArea className="gridrunner-surface h-[380px] border border-transparent shadow-chrome appearance-scroll">
                 <div className="grid gap-2 p-3">
                   {fontChoices.map((font) => {
                     const active = pendingFont === font.key;
@@ -182,7 +182,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                         type="button"
                         onClick={() => setPendingFont(font.key)}
                         className={cn(
-                          'relative overflow-hidden rounded-lg border px-3 py-2 text-left transition-all bg-card/80 backdrop-blur-sm shadow-soft',
+                          'relative overflow-hidden gridrunner-surface border border-transparent px-3 py-2 text-left transition-all shadow-soft',
                           active
                             ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.3),0_0_18px_hsla(var(--primary),0.2)]'
                             : 'border-border hover:border-[hsl(var(--primary))]/60 hover:shadow-[0_0_16px_hsla(var(--primary),0.12)]'
@@ -205,7 +205,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                   })}
                 </div>
               </ScrollArea>
-              <div className="space-y-2 rounded-xl border border-border/80 bg-card/70 p-3 shadow-soft">
+              <div className="space-y-2 gridrunner-surface border border-transparent p-3 shadow-soft">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs text-muted-foreground">Font scale</Label>
                   <div className="text-xs text-muted-foreground">Scale: {pendingScale.toFixed(2)}x</div>
@@ -226,7 +226,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-            <div className="rounded-2xl border border-border/80 bg-card/80 p-4 shadow-chrome min-h-[260px]">
+            <div className="gridrunner-surface border border-transparent p-4 shadow-chrome min-h-[260px]">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">Live preview</div>
                 <Badge variant="outline" className="text-xs">

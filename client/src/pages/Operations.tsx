@@ -513,19 +513,24 @@ export default function Operations() {
         </div>
       </Card>
 
-      <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
+      <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
             <h2 className="text-xl font-bold text-[var(--neon-cyan)]">Schedule editor</h2>
             <p className="text-xs text-[var(--text-muted)]">Targets: {targetLabel}</p>
           </div>
-          <Button onClick={handleSave} disabled={saving || !selectedDevices.length} className="btn-matrix">
+          <Button
+            onClick={handleSave}
+            disabled={saving || !selectedDevices.length}
+            variant="default"
+            className="uppercase tracking-wide shadow-[0_0_16px_hsla(var(--primary),0.3)]"
+          >
             {saving ? 'Saving...' : selectedDevices.length ? 'Save to selected' : 'Select devices to save'}
           </Button>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <Card className="p-4 bg-[var(--dark-gray)] border-[var(--neon-cyan)] space-y-3">
+          <Card className="p-4 gridrunner-surface border border-transparent shadow-soft space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />

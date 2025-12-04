@@ -69,7 +69,7 @@ export default function Monitoring() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={loadDevices} variant="outline" className="gap-2 text-[var(--text-primary)] hover:text-[var(--theme-accent)] border-[var(--theme-primary)]">
+            <Button onClick={loadDevices} variant="outline" className="gap-2 uppercase tracking-wide">
               <RefreshCw className="w-4 h-4" />
               REFRESH
             </Button>
@@ -82,10 +82,20 @@ export default function Monitoring() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-glow-cyan">SELECT_DEVICES</h2>
           <div className="flex gap-2">
-            <Button onClick={selectAll} size="sm" className="text-xs bg-[var(--theme-primary)] text-black hover:bg-[var(--theme-primary)]/80 border-[var(--theme-primary)]">
+            <Button
+              onClick={selectAll}
+              size="sm"
+              variant="default"
+              className="text-xs uppercase tracking-wide shadow-[0_0_16px_hsla(var(--primary),0.25)]"
+            >
               SELECT_ALL
             </Button>
-            <Button onClick={clearAll} size="sm" variant="outline" className="text-xs text-[var(--text-secondary)] border-[var(--grid-gray)] hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)]">
+            <Button
+              onClick={clearAll}
+              size="sm"
+              variant="outline"
+              className="text-xs uppercase tracking-wide"
+            >
               CLEAR
             </Button>
           </div>
@@ -100,8 +110,13 @@ export default function Monitoring() {
                 onClick={() => toggleDevice(device.name)}
                 variant={selectedDevices.includes(device.name) ? 'default' : 'outline'}
                 className={selectedDevices.includes(device.name)
-                  ? 'bg-[var(--theme-primary)] text-black hover:bg-[var(--theme-primary)]/80 border-[var(--theme-primary)] flex items-center gap-2'
-                  : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] flex items-center gap-2'
+                  ? 'flex items-center gap-2 uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]'
+                  : 'flex items-center gap-2 uppercase tracking-wide'
+                }
+                style={
+                  selectedDevices.includes(device.name)
+                    ? { boxShadow: `0 0 18px ${colorPalette[0]}55`, borderColor: colorPalette[0] }
+                    : undefined
                 }
               >
                 {device.name}

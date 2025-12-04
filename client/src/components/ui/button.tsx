@@ -5,20 +5,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-[hsl(var(--ring))]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))] aria-invalid:ring-[hsl(var(--destructive))]/30 aria-invalid:border-[hsl(var(--destructive))]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold transition-all duration-200 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-[hsl(var(--ring))]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(var(--background))] aria-invalid:ring-[hsl(var(--destructive))]/30 aria-invalid:border-[hsl(var(--destructive))] shadow-[0_0_0_rgba(0,0,0,0)] hover:-translate-y-[1px] active:translate-y-[0px] border border-transparent",
   {
     variants: {
       variant: {
         default:
-          "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:bg-[hsl(var(--primary))]/90",
+          "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] border-[hsla(var(--primary),0.45)] shadow-[0_0_18px_hsla(var(--primary),0.35),0_0_28px_hsla(var(--accent),0.18)] hover:bg-[hsl(var(--primary))]/92 hover:shadow-[0_0_20px_hsla(var(--primary),0.45),0_0_32px_hsla(var(--accent),0.2)]",
         destructive:
-          "bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] hover:bg-[hsl(var(--destructive))]/90 focus-visible:ring-[hsl(var(--destructive))]/40",
+          "bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] border-[hsla(var(--destructive),0.55)] shadow-[0_0_18px_rgba(239,68,68,0.5)] hover:bg-[hsl(var(--destructive))]/90 hover:shadow-[0_0_22px_rgba(239,68,68,0.65)] focus-visible:ring-[hsl(var(--destructive))]/40",
         outline:
-          "border border-[hsl(var(--border))] bg-transparent text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]/40",
+          "border border-[hsl(var(--border))] bg-transparent text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]/35 hover:border-[hsla(var(--primary),0.4)] shadow-[0_0_12px_hsla(var(--primary),0.12)]",
         secondary:
-          "bg-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] hover:bg-[hsl(var(--secondary))]/90",
+          "bg-[hsla(var(--card),0.72)] text-[hsl(var(--foreground))] border-[hsl(var(--border))] shadow-[0_0_14px_hsla(var(--primary),0.12)] hover:bg-[hsl(var(--muted))]/40 hover:border-[hsla(var(--primary),0.35)]",
+        accent:
+          "bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(var(--primary))] to-[hsl(var(--accent))] text-[hsl(var(--primary-foreground))] border-[hsla(var(--accent),0.45)] shadow-[0_0_20px_hsla(var(--accent),0.45),0_0_28px_hsla(var(--primary),0.25)] hover:shadow-[0_0_24px_hsla(var(--accent),0.6),0_0_32px_hsla(var(--primary),0.32)]",
         ghost:
-          "bg-transparent text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]/40",
+          "bg-transparent text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]/25 hover:text-[hsl(var(--primary))]",
         link: "text-[hsl(var(--primary))] underline-offset-4 hover:underline",
       },
       size: {

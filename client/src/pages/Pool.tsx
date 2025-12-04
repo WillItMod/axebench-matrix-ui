@@ -365,7 +365,7 @@ export default function Pool() {
             />
           </div>
         </div>
-        <Button onClick={handleCreatePool} className="mt-4 gap-2 btn-matrix">
+        <Button onClick={handleCreatePool} variant="default" className="mt-4 gap-2 uppercase tracking-wide shadow-[0_0_16px_hsla(var(--primary),0.3)]">
           <Plus className="w-4 h-4" />
           CREATE_POOL
         </Button>
@@ -373,15 +373,15 @@ export default function Pool() {
 
       {/* Pool Presets */}
       {presets.length > 0 && (
-        <Card className="p-6 bg-black/80 border-neon-cyan">
-          <h2 className="text-xl font-bold text-neon-cyan mb-4">POOL_PRESETS</h2>
+        <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome">
+          <h2 className="text-xl font-bold text-glow-cyan mb-4">POOL_PRESETS</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {presets.map((preset, idx) => (
-              <Card key={idx} className="p-4 bg-black/90 border-gray-700">
-                <div className="font-bold text-matrix-green">{preset.name}</div>
-                <div className="text-sm text-gray-400 mt-1">{preset.url}</div>
+              <Card key={idx} className="p-4 gridrunner-surface border border-transparent shadow-soft">
+                <div className="font-bold text-[hsl(var(--primary))]">{preset.name}</div>
+                <div className="text-sm text-muted-foreground mt-1">{preset.url}</div>
                 {preset.description && (
-                  <div className="text-xs text-gray-500 mt-2">{preset.description}</div>
+                  <div className="text-xs text-muted-foreground mt-2">{preset.description}</div>
                 )}
               </Card>
             ))}
@@ -391,7 +391,7 @@ export default function Pool() {
 
       {/* Quick Apply (multi-device) */}
       {devices.length > 0 && pools.length > 0 && (
-        <Card className="p-6 bg-black/80 border-[var(--neon-cyan)] space-y-4">
+        <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="text-2xl font-bold text-glow-cyan">QUICK_POOL_APPLY</div>
           </div>
@@ -399,26 +399,20 @@ export default function Pool() {
           <div className="mb-3">
             <div className="text-xs text-[var(--text-secondary)] mb-2">SELECT_DEVICES</div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {devices.map((device) => (
-                <button
-                  key={device.name}
-                  onClick={() => toggleDevice(device.name)}
-                  className={`
-                    relative p-3 rounded border-2 transition-all text-left
-                    ${selectedDevices.includes(device.name)
-                      ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/20 shadow-[0_0_0_1px_var(--matrix-green)]'
-                      : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] hover:border-[var(--text-muted)]'
-                    }
-                  `}
-                >
-                  <div className="font-bold text-[var(--text-primary)] text-sm">
-                    {device.name}
-                  </div>
-                  <div className="text-xs text-[var(--text-secondary)]">
-                    {device.model}
-                  </div>
-                </button>
-              ))}
+              {devices.map((device) => {
+                const active = selectedDevices.includes(device.name);
+                return (
+                  <Button
+                    key={device.name}
+                    onClick={() => toggleDevice(device.name)}
+                    variant={active ? 'default' : 'outline'}
+                    className={`w-full justify-start text-left flex-col items-start gap-1 uppercase tracking-wide ${active ? 'shadow-[0_0_16px_hsla(var(--primary),0.35)]' : ''}`}
+                  >
+                    <span className="font-bold text-sm">{device.name}</span>
+                    <span className="text-xs text-muted-foreground">{device.model}</span>
+                  </Button>
+                );
+              })}
             </div>
           </div>
 
@@ -429,8 +423,8 @@ export default function Pool() {
                 <Button
                   key={pool.id}
                   onClick={() => setSelectedPoolId(pool.id)}
-                  variant={selectedPoolId === pool.id ? 'default' : 'outline'}
-                  className="w-full btn-matrix text-sm py-3 uppercase"
+                  variant={selectedPoolId === pool.id ? 'accent' : 'outline'}
+                  className="w-full text-sm py-3 uppercase tracking-wide"
                   aria-pressed={selectedPoolId === pool.id}
                 >
                   {pool.name}
@@ -438,7 +432,7 @@ export default function Pool() {
               ))}
             </div>
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleBulkApply} className="btn-matrix" disabled={!selectedPoolId || selectedDevices.length === 0}>
+              <Button onClick={handleBulkApply} variant="default" className="uppercase tracking-wide shadow-[0_0_16px_hsla(var(--primary),0.3)]" disabled={!selectedPoolId || selectedDevices.length === 0}>
                 APPLY_TO_SELECTED
               </Button>
               <Button
@@ -513,7 +507,7 @@ export default function Pool() {
                     <div className="flex gap-2">
                       {editingPools[pool.id] ? (
                         <>
-                          <Button size="sm" className="btn-matrix" onClick={() => saveEdit(pool.id)}>
+                          <Button size="sm" variant="default" className="uppercase tracking-wide" onClick={() => saveEdit(pool.id)}>
                             Save
                           </Button>
                           <Button
@@ -537,9 +531,9 @@ export default function Pool() {
                       )}
                       <Button
                         onClick={() => handleDeletePool(pool.id)}
-                        variant="ghost"
+                        variant="destructive"
                         size="sm"
-                        className="text-red-500 hover:text-red-400"
+                        className="shadow-[0_0_14px_rgba(239,68,68,0.35)]"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -554,7 +548,7 @@ export default function Pool() {
 
       {/* Per-device pools (similar to Profiles) */}
       {selectedDevices.length > 0 && pools.length > 0 && (
-        <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
+        <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-[var(--text-primary)]">DEVICE_POOLS</h2>
             <Button size="sm" variant="outline" onClick={() => loadData()}>
@@ -570,7 +564,7 @@ export default function Pool() {
                 (device?.status as any)?.pool ||
                 'N/A';
               return (
-                <Card key={deviceName} className="p-4 bg-black/90 border-[var(--grid-gray)] space-y-3">
+                <Card key={deviceName} className="p-4 gridrunner-surface border border-transparent shadow-soft space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-sm font-bold text-[var(--text-primary)]">{deviceName}</div>
@@ -585,7 +579,7 @@ export default function Pool() {
                       value={selectedPoolId || ''}
                       onValueChange={(val) => setSelectedPoolId(val)}
                     >
-                      <SelectTrigger className="bg-black border-[var(--grid-gray)]">
+                      <SelectTrigger>
                         <SelectValue placeholder="SELECT_POOL" />
                       </SelectTrigger>
                       <SelectContent>
@@ -599,7 +593,8 @@ export default function Pool() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="btn-matrix flex-1"
+                        variant="default"
+                        className="flex-1 uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.3)]"
                         onClick={() => selectedPoolId && handleApplyPool(deviceName, selectedPoolId)}
                         disabled={!selectedPoolId}
                       >

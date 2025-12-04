@@ -191,7 +191,7 @@ export function AIChatBox({
     <div
       ref={containerRef}
       className={cn(
-        "flex flex-col bg-card text-card-foreground rounded-lg border shadow-sm",
+        "gridrunner-surface chrome-card flex flex-col text-card-foreground border border-transparent shadow-chrome",
         className
       )}
       style={{ height }}
@@ -209,14 +209,16 @@ export function AIChatBox({
               {suggestedPrompts && suggestedPrompts.length > 0 && (
                 <div className="flex max-w-2xl flex-wrap justify-center gap-2">
                   {suggestedPrompts.map((prompt, index) => (
-                    <button
+                    <Button
                       key={index}
                       onClick={() => onSendMessage(prompt)}
                       disabled={isLoading}
-                      className="rounded-lg border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      variant="outline"
+                      size="sm"
+                      className="backdrop-blur-sm border-border/70"
                     >
                       {prompt}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -306,7 +308,7 @@ export function AIChatBox({
       <form
         ref={inputAreaRef}
         onSubmit={handleSubmit}
-        className="flex gap-2 p-4 border-t bg-background/50 items-end"
+        className="flex gap-2 p-4 border-t border-border/60 bg-card/40 backdrop-blur-sm items-end"
       >
         <Textarea
           ref={textareaRef}

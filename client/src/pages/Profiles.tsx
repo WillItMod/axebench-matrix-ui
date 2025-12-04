@@ -227,26 +227,20 @@ export default function Profiles() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {devices.map((device) => (
-                <button
-                  key={device.name}
-                  onClick={() => toggleDevice(device.name)}
-                  className={`
-                    relative p-3 rounded-lg border transition-all text-left
-                    ${selectedDevices.includes(device.name)
-                      ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))]/10 shadow-[0_0_12px_hsla(var(--primary),0.4)]'
-                      : 'border-border bg-card/70 hover:border-[hsl(var(--primary))]/60'
-                    }
-                  `}
-                >
-                  <div className="font-bold text-foreground text-sm">
-                    {device.name}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {device.model}
-                  </div>
-                </button>
-              ))}
+              {devices.map((device) => {
+                const isSelected = selectedDevices.includes(device.name);
+                return (
+                  <Button
+                    key={device.name}
+                    onClick={() => toggleDevice(device.name)}
+                    variant={isSelected ? 'default' : 'outline'}
+                    className={`w-full justify-start text-left flex-col items-start gap-1 ${isSelected ? 'shadow-[0_0_14px_hsla(var(--primary),0.35)]' : ''}`}
+                  >
+                    <span className="font-bold text-foreground text-sm">{device.name}</span>
+                    <span className="text-xs text-muted-foreground">{device.model}</span>
+                  </Button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -254,15 +248,16 @@ export default function Profiles() {
         {/* Profile Selection & Apply Type */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {(['quiet', 'efficient', 'balanced', 'max'] as const).map((name) => (
-            <Button
-              key={name}
-              onClick={() => applyPresetProfile(name)}
-              disabled={selectedDevices.length === 0}
-              className="w-full text-sm py-3 uppercase shadow-[0_0_16px_hsla(var(--primary),0.25)]"
-            >
-              {name}
-            </Button>
-          ))}
+              <Button
+                key={name}
+                onClick={() => applyPresetProfile(name)}
+                disabled={selectedDevices.length === 0}
+                variant="accent"
+                className="w-full text-sm py-3 uppercase tracking-wide shadow-[0_0_16px_hsla(var(--accent),0.35)]"
+              >
+                {name.toUpperCase()}
+              </Button>
+            ))}
         </div>
       </Card>
 
@@ -336,10 +331,10 @@ export default function Profiles() {
                       {profileList.map(([name, profile]) => (
                         <div
                           key={`${deviceName}-${name}`}
-                          className={`border rounded-lg p-3 bg-card/60 ${
+                          className={`gridrunner-surface border border-transparent p-3 ${
                             activeProfiles[deviceName]?.toLowerCase() === name.toLowerCase()
                               ? 'border-[hsl(var(--primary))] shadow-[0_0_12px_hsla(var(--primary),0.25)]'
-                              : 'border-border'
+                              : 'border-border/70'
                           }`}
                         >
                           <div className="flex items-start justify-between">
@@ -398,7 +393,8 @@ export default function Profiles() {
                               <Button
                                 size="sm"
                                 onClick={() => handleApply(name, deviceName)}
-                                className="text-xs min-w-[90px] shadow-[0_0_12px_hsla(var(--primary),0.25)]"
+                                variant="default"
+                                className="text-xs min-w-[90px] uppercase tracking-wide shadow-[0_0_12px_hsla(var(--primary),0.25)]"
                               >
                                 APPLY
                               </Button>
@@ -423,7 +419,8 @@ export default function Profiles() {
                                   setEditFrequency(profile.frequency?.toString() || '');
                                   setShowEditDialog(true);
                                 }}
-                                className="text-xs min-w-[90px] bg-[hsl(var(--warning))] hover:bg-[hsl(var(--warning))]/85 text-black shadow-[0_0_12px_hsla(var(--warning),0.4)]"
+                                variant="accent"
+                                className="text-xs min-w-[90px] uppercase tracking-wide shadow-[0_0_12px_hsla(var(--accent),0.3)]"
                               >
                                 EDIT
                               </Button>
@@ -508,7 +505,7 @@ export default function Profiles() {
             <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
               CANCEL
             </Button>
-            <Button className="btn-matrix" onClick={handleConfirmSave}>
+            <Button variant="default" className="uppercase tracking-wide" onClick={handleConfirmSave}>
               CONFIRM_SAVE
             </Button>
           </DialogFooter>
@@ -545,7 +542,7 @@ export default function Profiles() {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               CANCEL
             </Button>
-            <Button className="btn-matrix" onClick={async () => {
+            <Button variant="accent" className="uppercase tracking-wide" onClick={async () => {
               if (!editingDevice || !editingProfile) return;
               try {
                 const profileData = {
@@ -573,7 +570,7 @@ export default function Profiles() {
           <DialogHeader>
             <DialogTitle className="text-foreground">Profile JSON - {jsonPreview.title}</DialogTitle>
           </DialogHeader>
-          <div className="rounded-lg border border-border bg-card/70 p-3 max-h-[60vh] overflow-auto font-mono text-sm text-foreground">
+          <div className="gridrunner-surface border border-transparent p-3 max-h-[60vh] overflow-auto font-mono text-sm text-foreground">
             <pre className="whitespace-pre-wrap">{jsonPreview.body}</pre>
           </div>
           <DialogFooter>
@@ -648,7 +645,7 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] text-[var(--text-primary)] max-w-md">
+      <DialogContent className="max-w-md shadow-chrome">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-glow-green">
             🔬 NANO_TUNE
@@ -656,15 +653,15 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
-          <div className="bg-[var(--grid-gray)] border border-[var(--neon-cyan)] rounded p-3 text-sm">
-            <div className="text-[var(--neon-cyan)] font-bold mb-1">Fine-tune existing profile</div>
-            <div className="text-[var(--text-secondary)] text-xs">
-              Base Profile: <span className="text-[var(--text-primary)]">{profile}</span>
+          <div className="gridrunner-surface border border-transparent p-3 text-sm">
+            <div className="text-[hsl(var(--accent))] font-bold mb-1">Fine-tune existing profile</div>
+            <div className="text-muted-foreground text-xs">
+              Base Profile: <span className="text-foreground">{profile}</span>
             </div>
           </div>
 
           <div>
-            <Label className="text-[var(--text-secondary)]">Optimization Goal</Label>
+            <Label className="text-muted-foreground">Optimization Goal</Label>
             <Select 
               value={config.goal} 
               onValueChange={(v) => {
@@ -672,10 +669,10 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
                 setHasInteracted(true);
               }}
             >
-              <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
+              <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-[var(--dark-gray)] border-[var(--matrix-green)]">
+              <SelectContent>
                 <SelectItem value="quiet">Quiet</SelectItem>
                 <SelectItem value="efficient">Efficient</SelectItem>
                 <SelectItem value="balanced">Balanced</SelectItem>
@@ -684,8 +681,8 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
             </Select>
           </div>
 
-          <div className="bg-[var(--grid-gray)]/50 border border-[var(--text-muted)] rounded p-3 text-xs text-[var(--text-secondary)]">
-            <div className="font-bold text-[var(--text-primary)] mb-1">Auto-Configuration</div>
+          <div className="gridrunner-surface border border-transparent p-3 text-xs text-muted-foreground">
+            <div className="font-bold text-foreground mb-1">Auto-Configuration</div>
             Nano Tune will automatically determine optimal voltage and frequency ranges based on the selected profile.
           </div>
 
@@ -696,7 +693,8 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
                 handleStart();
               }}
               disabled={running}
-              className="flex-1 btn-matrix"
+              variant="default"
+              className="flex-1 uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]"
               type="button"
             >
               {running ? 'STARTING...' : '▶ START_NANO_TUNE'}
@@ -704,7 +702,8 @@ function NanoTuneModal({ open, onClose, device, profile, onSuccess }: NanoTuneMo
             <Button
               onClick={onClose}
               disabled={running}
-              className="flex-1 btn-cyan"
+              variant="outline"
+              className="flex-1 uppercase tracking-wide"
             >
               CANCEL
             </Button>
