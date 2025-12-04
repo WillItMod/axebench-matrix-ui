@@ -837,7 +837,7 @@ export default function Benchmark() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid lg:grid-cols-2 gap-4 mt-2">
+          <div className="grid lg:grid-cols-2 gap-4 lg:gap-6 mt-2">
             <div className="space-y-3 text-sm text-[var(--text-secondary)]">
               <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/70 p-4">
                 <div className="font-bold text-[var(--text-primary)] mb-2">Workflow</div>
@@ -871,13 +871,13 @@ export default function Benchmark() {
             </div>
 
             <div className="space-y-3">
-              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/70 p-3 space-y-2">
-                <div className="font-bold text-[var(--text-primary)]">Nano tune after profiles?</div>
+              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/70 p-4 space-y-3">
+                <div className="font-bold text-[var(--text-primary)] text-base">Nano tune after profiles?</div>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
                     variant={autoTuneNano ? 'autoTune' : 'secondary'}
-                    className="w-full"
+                    className="w-full whitespace-normal text-sm py-2"
                     onClick={() => setAutoTuneNano(true)}
                   >
                     Run Nano tune
@@ -885,7 +885,7 @@ export default function Benchmark() {
                   <Button
                     size="sm"
                     variant={!autoTuneNano ? 'accent' : 'secondary'}
-                    className="w-full"
+                    className="w-full whitespace-normal text-sm py-2"
                     onClick={() => setAutoTuneNano(false)}
                   >
                     Skip Nano
@@ -919,9 +919,6 @@ export default function Benchmark() {
           </div>
 
           <DialogFooter className="flex items-center justify-between gap-3 mt-4">
-            <div className="text-xs text-[var(--text-secondary)]">
-              Stage flow: Full sweep → Analyze → Generate profiles → {autoTuneNano ? 'Nano tune all' : 'Apply Efficient'} → Done.
-            </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => { setAutoTuneDialogOpen(false); setShowCelebration(false); }}>
                 Cancel (I got cold feet)
