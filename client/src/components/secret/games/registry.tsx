@@ -6,13 +6,13 @@ export type MiniGameKey =
   | '2048'
   | 'hextris'
   | 'clumsy-bird'
-  | 'hexgl'
   | 'astray'
-  | 'js13k'
-  | 'pixel-defense'
-  | 'breakout'
   | 'dark-room'
-  | 'kontra';
+  | 'kontra'
+  | 'cat-survivors'
+  | 'catapoolt'
+  | 'clawstrike'
+  | 'wash-the-cat';
 
 export type MiniGameEntry = {
   key: MiniGameKey;
@@ -93,72 +93,72 @@ export const MINI_GAMES: MiniGameEntry[] = [
   makeEntry({
     key: '2048',
     title: '2048',
-    description: 'Slide, merge, reach 2048. Tiny, clean, classic.',
-    src: 'https://play2048.co/',
+    description: 'Slide, merge, reach 2048. Offline build.',
+    src: '/games/2048/index.html',
     hint: 'Merge tiles into the 2048 block.',
   }),
   makeEntry({
     key: 'hextris',
     title: 'Hextris',
-    description: 'Hexagonal spin on Tetris. Keep the stack alive.',
-    src: 'https://hextris.github.io/',
+    description: 'Hexagonal spin on Tetris. Local copy.',
+    src: '/games/hextris/index.html',
     hint: 'Rotate the hex and clear lines.',
   }),
   makeEntry({
     key: 'clumsy-bird',
     title: 'Clumsy Bird',
-    description: 'Flappy-style flyer with physics polish.',
-    src: 'https://ellisonleao.github.io/clumsy-bird/',
+    description: 'Flappy-style flyer (offline assets).',
+    src: '/games/clumsy-bird/index.html',
     hint: 'Tap/space to dodge pipes.',
-  }),
-  makeEntry({
-    key: 'hexgl',
-    title: 'HexGL',
-    description: 'WebGL anti-grav racing for the “wow” factor.',
-    src: 'http://hexgl.bkcore.com/play/',
-    hint: 'Arrow keys for speed; avoid walls.',
   }),
   makeEntry({
     key: 'astray',
     title: 'Astray',
-    description: 'First-person maze runner built on Three.js.',
-    src: 'https://wwwtyro.github.io/Astray/',
+    description: 'First-person maze runner (local).',
+    src: '/games/astray/index.html',
     hint: 'Find the exit without falling.',
-  }),
-  makeEntry({
-    key: 'js13k',
-    title: 'JS13k Winner',
-    description: 'Ultra-light microgame from JS13k entries.',
-    src: 'https://js13kgames.com/games/evil-glitch/index.html',
-    hint: 'Beat the mini arcade to proceed.',
-  }),
-  makeEntry({
-    key: 'pixel-defense',
-    title: 'Pixel Defense',
-    description: 'Compact tower defense on pure canvas.',
-    src: 'https://schteppe.github.io/pixel-defense/',
-    hint: 'Defend the core; place wisely.',
-  }),
-  makeEntry({
-    key: 'breakout',
-    title: 'Breakout',
-    description: 'Mozilla’s clean breakout implementation.',
-    src: 'https://mdn.github.io/breakout/',
-    hint: 'Clear the bricks. Paddle to survive.',
   }),
   makeEntry({
     key: 'dark-room',
     title: 'A Dark Room',
-    description: 'Minimalist RPG with cult vibes.',
-    src: 'https://adarkroom.doublespeakgames.com/',
+    description: 'Minimalist RPG (local copy).',
+    src: '/games/dark-room/index.html',
     hint: 'Stoke the fire. Explore the dark.',
   }),
   makeEntry({
     key: 'kontra',
     title: 'Kontra Demo',
-    description: 'Micro-engine sample—tiny but slick.',
-    src: 'https://straker.github.io/kontra/',
+    description: 'Micro-engine samples (local).',
+    src: '/games/kontra/index.html',
     hint: 'Play a demo and claim completion.',
+  }),
+  makeEntry({
+    key: 'cat-survivors',
+    title: 'Cat Survivors',
+    description: 'Arcade survivor—local build.',
+    src: '/games/cat-survivors/index.html',
+    hint: 'Stay alive, collect power-ups.',
+  }),
+  makeEntry({
+    key: 'catapoolt',
+    title: 'Catapoolt',
+    description: 'Fling the cat—local microgame.',
+    src: '/games/catapoolt/index.html',
+    hint: 'Aim and launch to score.',
+  }),
+  makeEntry({
+    key: 'clawstrike',
+    title: 'Clawstrike',
+    description: 'Quick reflex swipes—local.',
+    src: '/games/clawstrike/index.html',
+    hint: 'Strike targets before time runs out.',
+  }),
+  makeEntry({
+    key: 'wash-the-cat',
+    title: 'Wash the Cat',
+    description: 'Casual mini—local assets.',
+    src: '/games/wash-the-cat/index.html',
+    hint: 'Keep the cat happy and clean.',
   }),
 ];
 

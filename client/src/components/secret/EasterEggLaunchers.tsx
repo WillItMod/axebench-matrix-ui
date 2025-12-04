@@ -13,13 +13,13 @@ const baseSlots: Spot[] = [
   { key: '2048', position: { top: 110, left: '3%' }, label: 'Status beacon' },
   { key: 'hextris', position: { top: 110, right: '3%' }, label: 'Status beacon' },
   { key: 'clumsy-bird', position: { top: 175, left: '8%' }, label: 'Nav pulse' },
-  { key: 'hexgl', position: { top: 175, right: '8%' }, label: 'Nav pulse' },
-  { key: 'astray', position: { top: 245, left: '15%' }, label: 'Grid scan' },
-  { key: 'js13k', position: { top: 245, right: '15%' }, label: 'Grid scan' },
-  { key: 'pixel-defense', position: { bottom: 200, left: '10%' }, label: 'Footer node' },
-  { key: 'breakout', position: { bottom: 200, right: '10%' }, label: 'Footer node' },
-  { key: 'dark-room', position: { bottom: 120, left: '18%' }, label: 'Console spark' },
-  { key: 'kontra', position: { bottom: 120, right: '18%' }, label: 'Console spark' },
+  { key: 'astray', position: { top: 175, right: '8%' }, label: 'Nav pulse' },
+  { key: 'dark-room', position: { top: 245, left: '15%' }, label: 'Grid scan' },
+  { key: 'kontra', position: { top: 245, right: '15%' }, label: 'Grid scan' },
+  { key: 'cat-survivors', position: { bottom: 200, left: '10%' }, label: 'Footer node' },
+  { key: 'catapoolt', position: { bottom: 200, right: '10%' }, label: 'Footer node' },
+  { key: 'clawstrike', position: { bottom: 120, left: '18%' }, label: 'Console spark' },
+  { key: 'wash-the-cat', position: { bottom: 120, right: '18%' }, label: 'Console spark' },
 ];
 
 export default function EasterEggLaunchers() {
@@ -40,7 +40,7 @@ export default function EasterEggLaunchers() {
       const pick = baseSlots[Math.floor(Math.random() * baseSlots.length)];
       setGlintKey(pick.key);
       setPulseTick((t) => t + 1);
-      setTimeout(() => setGlintKey(null), 2200);
+      setTimeout(() => setGlintKey(null), 100);
     };
     run();
     timerRef.current = setInterval(run, 30000);
@@ -83,16 +83,18 @@ export default function EasterEggLaunchers() {
             aria-label={`Hidden trigger: ${label}`}
             onClick={() => handleTrigger(key)}
             className={`pointer-events-auto absolute flex items-center justify-center w-12 h-12 rounded-full bg-transparent text-[0px] border border-transparent cursor-pointer transition ${
-              pulse ? 'shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'shadow-none'
+              pulse ? 'shadow-[0_0_30px_rgba(251,191,36,0.6)]' : 'shadow-none'
             }`}
             style={position}
             title="Hidden protocol"
           >
             <span
-              className={`block w-1 h-1 rounded-full transition ${
-                pulse ? 'bg-emerald-300/80 shadow-[0_0_24px_rgba(16,185,129,0.6)] scale-150' : 'bg-white/10'
+              className={`block text-[10px] leading-none text-amber-300 transition duration-75 ${
+                pulse ? 'opacity-100 scale-125' : 'opacity-0 scale-0'
               }`}
-            />
+            >
+              ₿
+            </span>
           </button>
         ))}
       </div>
