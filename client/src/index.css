@@ -305,6 +305,21 @@
   ::-webkit-scrollbar-thumb { background: hsl(var(--primary)); }
 }
 
+/* Celebration coins animation */
+@keyframes coin-fall {
+  0% {
+    transform: translateY(-12vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(120vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
 @layer utilities {
   .text-glow-primary { text-shadow: 0 0 15px hsla(var(--primary), 0.45); }
   .box-glow-primary { box-shadow: 0 0 15px hsla(var(--primary), 0.45), 0 0 30px hsla(var(--primary), 0.25); }
