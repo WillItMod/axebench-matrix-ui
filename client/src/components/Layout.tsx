@@ -22,7 +22,7 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { secretUnlocked } = useTheme();
+  const { secretUnlocked, setSecretUnlocked, setTheme, theme, setMatrixRainbow } = useTheme();
   const [location, setLocation] = useLocation();
   const [uptimeSeconds, setUptimeSeconds] = useState<number | null>(null);
   const [licenseTier, setLicenseTier] = useState<'free' | 'premium' | 'ultimate'>('free');
@@ -36,8 +36,11 @@ export default function Layout({ children }: LayoutProps) {
   const SECRET_GAME_TAPS_REQUIRED = 5;
   const SECRET_TAP_RESET_MS = 4000;
   const SATOSHI_MODE_KEY = 'axebench_satoshi_mode';
+  const SECRET_UNLOCK_KEY = 'axebench_secret_unlocked';
+  const SECRET_THEME_KEY = 'axebench_secret_theme';
   const SATOSHI_UNLOCK_TAPS = 30;
   const SATOSHI_LOCK_TAPS = 5;
+  const BANNER_FLAG_KEY = 'axebench_banner_flag';
 
   // Fetch uptime from backend and keep it ticking between polls
   useEffect(() => {
@@ -176,9 +179,26 @@ export default function Layout({ children }: LayoutProps) {
     return localStorage.getItem(SATOSHI_MODE_KEY) === 'true';
   });
   const settingsTapCountRef = useRef(0);
+  const previousThemeRef = useRef<string | null>(null);
   const hiddenGameClicksRef = useRef(0);
   const secretTapResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const uptimeDisplay = uptimeSeconds !== null ? formatUptime(uptimeSeconds) : 'N/A';
+
+  // Keep forge unlock + theme aligned when satoshiMode flips
+  useEffect(() => {
+    if (!satoshiMode) return;
+    previousThemeRef.current = theme;
+    if (theme !== 'forge') {
+      setTheme('forge');
+    }
+    if (!secretUnlocked) {
+      setSecretUnlocked(true);
+      localStorage.setItem(SECRET_UNLOCK_KEY, 'true');
+    }
+    localStorage.setItem(SECRET_THEME_KEY, 'forge');
+    setMatrixRainbow(true);
+    window.dispatchEvent(new CustomEvent('forge-celebrate'));
+  }, [satoshiMode, theme, setTheme, secretUnlocked, setSecretUnlocked, setMatrixRainbow]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -261,15 +281,34 @@ export default function Layout({ children }: LayoutProps) {
 
     if (!satoshiMode && next >= SATOSHI_UNLOCK_TAPS) {
       settingsTapCountRef.current = 0;
+      previousThemeRef.current = theme;
       setSatoshiMode(true);
-      toast.success('Satoshi mode unlocked');
+      setSecretUnlocked(true);
+      localStorage.setItem(SECRET_UNLOCK_KEY, 'true');
+      localStorage.setItem(SECRET_THEME_KEY, 'forge');
+      localStorage.setItem('axebench_secret_unlocked', 'true');
+      localStorage.setItem('axebench_secret_theme', 'forge');
+      localStorage.setItem('axebench_theme', 'forge');
+      localStorage.setItem(BANNER_FLAG_KEY, 'satoshi_forge');
+      setTheme('forge');
+      setMatrixRainbow(true);
+      window.dispatchEvent(new CustomEvent('forge-celebrate'));
+      toast.success("Satoshi's Forge unlocked");
+      setTimeout(() => window.location.reload(), 300);
       return;
     }
 
     if (satoshiMode && next >= SATOSHI_LOCK_TAPS) {
       settingsTapCountRef.current = 0;
       setSatoshiMode(false);
-      toast.info('Satoshi mode locked');
+      setSecretUnlocked(false);
+      const fallbackTheme = previousThemeRef.current || 'matrix';
+      setTheme(fallbackTheme as any);
+      setMatrixRainbow(false);
+      localStorage.setItem(SECRET_UNLOCK_KEY, 'false');
+      localStorage.removeItem(SECRET_THEME_KEY);
+      localStorage.setItem(BANNER_FLAG_KEY, 'locked');
+      toast.info("Satoshi's Forge locked");
       return;
     }
 
