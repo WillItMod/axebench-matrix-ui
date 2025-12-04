@@ -337,6 +337,8 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
         <StatCard label="POWER" display={formatPower(stats.power)} color="var(--warning-yellow)" />
         <StatCard label="CHIP_TEMP" display={formatTemp(stats.chipTemp)} color={getTempColor(stats.chipTemp)} />
         <StatCard label="VR_TEMP" display={formatTemp(stats.vrTemp)} color={getTempColor(stats.vrTemp)} />
+        <StatCard label="ASIC_ERROR" display={`${stats.asicErrors.toFixed(2)} %`} color="var(--warning-amber)" />
+        <StatCard label="EFFICIENCY" display={`${stats.efficiency.toFixed(2)} J/TH`} color="var(--success-green)" />
       </div>
 
       {/* Real-time Charts */}
