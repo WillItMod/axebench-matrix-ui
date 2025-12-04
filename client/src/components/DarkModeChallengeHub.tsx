@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import CrackTheHashGame from './dark-mode-games/CrackTheHashGame';
-import BreachTheNodeGame from './dark-mode-games/BreachTheNodeGame';
-import PulseAlignmentGame from './dark-mode-games/PulseAlignmentGame';
-import AsicMazeRunnerGame from './dark-mode-games/AsicMazeRunnerGame';
-import VoltageRouletteGame from './dark-mode-games/VoltageRouletteGame';
-import FanCurveTunerGame from './dark-mode-games/FanCurveTunerGame';
-import PacketSnifferGame from './dark-mode-games/PacketSnifferGame';
-import PortScannerGame from './dark-mode-games/PortScannerGame';
-import EntropyShakerGame from './dark-mode-games/EntropyShakerGame';
-import UptimeKeeperGame from './dark-mode-games/UptimeKeeperGame';
+import CrackTheHashGame from './secret/games/CrackTheHashGame';
+import BreachTheNodeGame from './secret/games/BreachTheNodeGame';
+import PulseAlignmentGame from './secret/games/PulseAlignmentGame';
+import AsicMazeRunnerGame from './secret/games/AsicMazeRunnerGame';
+import VoltageRouletteGame from './secret/games/VoltageRouletteGame';
+import FanCurveTunerGame from './secret/games/FanCurveTunerGame';
+import PacketSnifferGame from './secret/games/PacketSnifferGame';
+import PortScannerGame from './secret/games/PortScannerGame';
+import EntropyShakerGame from './secret/games/EntropyShakerGame';
+import UptimeKeeperGame from './secret/games/UptimeKeeperGame';
 import { useTheme } from '@/contexts/ThemeContext';
 
 type GameEntry = {
@@ -30,8 +30,9 @@ const games: GameEntry[] = [
   { key: 'uptime', component: UptimeKeeperGame, title: 'Uptime Keeper' },
 ];
 
-const UNLOCK_KEY = 'axebench_dark_unlocked';
+const SECRET_UNLOCK_KEY = 'axebench_secret_unlocked';
 const SECRET_THEME_KEY = 'axebench_secret_theme';
+const THEME_KEY = 'axebench_theme';
 
 export default function DarkModeChallengeHub() {
   const { setTheme, secretUnlocked, setSecretUnlocked } = useTheme();

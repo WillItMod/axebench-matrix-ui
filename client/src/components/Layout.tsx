@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+﻿import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import MatrixBackground from './MatrixBackground';
 import BenchmarkStatusBanner from './BenchmarkStatusBanner';
@@ -221,26 +221,23 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center justify-between">
               {/* Logo */}
               <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                if (secretUnlocked) {
-                  setShowSecret(false);
-                  setCelebrate(true);
-                  return;
-                }
-                setShowSecret(true);
-              }}
-              className="flex items-center text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
-            >
-              <span className="text-foreground">AXE</span>
-
-              <span className="relative inline-flex items-center justify-center w-9 h-9 -mx-[3x] rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.75)] border-2 border-amber-200">
-                ₿
-              </span>
-
-              <span className="text-foreground">ENCH</span>
-            </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (secretUnlocked) {
+                      setCelebrate(true);
+                    } else {
+                      setShowSecret(true);
+                    }
+                  }}
+                  className="flex items-center gap-1 text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
+                >
+                  <span className="text-foreground">AXE</span>
+                  <span className="relative inline-flex items-center justify-center w-9 h-9 -mx-[3px] rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.75)] border-2 border-amber-200">
+                    ₿
+                  </span>
+                  <span className="text-foreground">ENCH</span>
+                </button>
                 <div className="text-sm text-muted-foreground">
                   UI v2.0 | AxeBench v3.0.0
                 </div>
@@ -255,7 +252,6 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </header>
 
-        {/* Navigation Tabs */}
         <nav className="border-b border-border bg-card/80 backdrop-blur-sm">
           <div className="container mx-auto px-4">
             <div className="flex gap-1">
