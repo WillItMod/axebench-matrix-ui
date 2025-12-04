@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { MINI_GAMES, type MiniGameKey, type MiniGameEntry } from './games/registry';
 
@@ -26,31 +26,45 @@ export default function EasterEggLaunchers() {
   const [openKey, setOpenKey] = useState<MiniGameKey | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pulseTick, setPulseTick] = useState(0);
+  const [glintKey, setGlintKey] = useState<MiniGameKey | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const Current = useMemo<MiniGameEntry | null>(() => {
     if (!openKey) return null;
     return MINI_GAMES.find((g) => g.key === openKey) ?? null;
   }, [openKey]);
 
-  // Gentle pulse every ~3 minutes
+  // Schedule a single glint every 3-15 minutes
   useEffect(() => {
-    const id = setInterval(() => setPulseTick((t) => t + 1), 180000);
-    return () => clearInterval(id);
+    const schedule = () => {
+      const delay = 180000 + Math.random() * (900000 - 180000); // 3 to 15 minutes
+      timerRef.current = setTimeout(() => {
+        const pick = baseSlots[Math.floor(Math.random() * baseSlots.length)];
+        setGlintKey(pick.key);
+        setPulseTick((t) => t + 1);
+        setTimeout(() => setGlintKey(null), 2200);
+        schedule();
+      }, delay);
+    };
+    schedule();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, []);
 
   const spots = useMemo(() => {
-    // jitter within +-12px each cycle
+    // jitter within +-8px on each pulse cycle
     return baseSlots.map((slot, idx) => {
-      const jitterX = (Math.random() - 0.5) * 24;
-      const jitterY = (Math.random() - 0.5) * 24;
+      const jitterX = (Math.random() - 0.5) * 16;
+      const jitterY = (Math.random() - 0.5) * 16;
       const pos: CSSProperties = { ...slot.position };
       if (pos.left) pos.left = `calc(${pos.left} + ${jitterX}px)`;
       if (pos.right) pos.right = `calc(${pos.right} + ${jitterX}px)`;
       if (pos.top) pos.top = (Number(pos.top) + jitterY) as number;
       if (pos.bottom) pos.bottom = (Number(pos.bottom) + jitterY) as number;
-      return { ...slot, position: pos, pulse: pulseTick % baseSlots.length === idx ? true : false };
+      return { ...slot, position: pos, pulse: glintKey === slot.key };
     });
-  }, [pulseTick]);
+  }, [pulseTick, glintKey]);
 
   const handleTrigger = (key: MiniGameKey) => {
     setOpenKey(key);
@@ -71,13 +85,17 @@ export default function EasterEggLaunchers() {
             type="button"
             aria-label={`Hidden trigger: ${label}`}
             onClick={() => handleTrigger(key)}
-            className={`pointer-events-auto absolute flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400/10 via-cyan-400/10 to-amber-400/10 text-[9px] uppercase tracking-[0.14em] text-emerald-50 border border-emerald-300/20 hover:scale-110 transition ${
-              pulse ? 'shadow-[0_0_24px_rgba(16,185,129,0.45)]' : 'shadow-none'
+            className={`pointer-events-auto absolute flex items-center justify-center w-4 h-4 rounded-full bg-transparent text-[0px] border border-transparent transition ${
+              pulse ? 'shadow-[0_0_30px_rgba(16,185,129,0.7)]' : 'shadow-none'
             }`}
             style={position}
             title="Hidden protocol"
           >
-            ●
+            <span
+              className={`block w-full h-full rounded-full ${
+                pulse ? 'bg-emerald-300/70' : 'bg-white/0'
+              }`}
+            />
           </button>
         ))}
       </div>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -151,13 +151,25 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [sessionQuestions, setSessionQuestions] = useState<Question[]>(() => shuffle(questionBank).slice(0, 20));
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [factsIndex, setFactsIndex] = useState(0);
+  const [factsPaused, setFactsPaused] = useState(false);
 
   if (!open) return null;
 
+  const normalize = (s: string) => s.trim().toLowerCase();
+  const fuzzyMatch = (input: string, target: string) => {
+    const a = normalize(input);
+    const b = normalize(target);
+    if (a === b) return true;
+    return b.includes(a) || a.includes(b);
+  };
+
   const correctCount = sessionQuestions.reduce((acc, q) => {
-    const val = (answers[q.id] || '').trim().toLowerCase();
-    const ok = q.answer.trim().toLowerCase();
-    return acc + (val === ok ? 1 : 0);
+    const val = answers[q.id] || '';
+    const ok = q.answer || '';
+    const isCorrect = fuzzyMatch(val, ok);
+    return acc + (isCorrect ? 1 : 0);
   }, 0);
 
   const passed = submitted && correctCount >= 20;
@@ -173,9 +185,18 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
 
   const resetQuiz = () => {
     setSessionQuestions(shuffle(questionBank).slice(0, 20));
+    setActiveIndex(0);
     setAnswers({});
     setSubmitted(false);
   };
+
+  useEffect(() => {
+    if (!open || factsPaused) return;
+    const id = setInterval(() => {
+      setFactsIndex((i) => (i + 1) % factList.length);
+    }, 10000);
+    return () => clearInterval(id);
+  }, [open, factsPaused]);
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 px-3">
@@ -208,21 +229,44 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
               <div>Score: {correctCount}/20 {submitted && !passed ? '(need 20/20)' : ''}</div>
               {passed && <div className="text-emerald-300 font-semibold">Unlocked!</div>}
             </div>
-            <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-1">
-              {sessionQuestions.map((q, idx) => (
-                <div key={q.id} className="rounded-lg border border-amber-300/20 bg-black/50 p-3 space-y-2">
-                  <div className="text-sm text-amber-50">
-                    {idx + 1}. {q.prompt}
-                  </div>
-                  {q.choices ? (
+
+            <div className="rounded-lg border border-amber-300/20 bg-black/50 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-amber-100/70">
+                  Question {activeIndex + 1} / {sessionQuestions.length}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
+                    disabled={activeIndex === 0}
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setActiveIndex((i) => Math.min(sessionQuestions.length - 1, i + 1))}
+                    disabled={activeIndex === sessionQuestions.length - 1}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+
+              {sessionQuestions[activeIndex] && (
+                <div className="space-y-2">
+                  <div className="text-sm text-amber-50">{sessionQuestions[activeIndex].prompt}</div>
+                  {sessionQuestions[activeIndex].choices ? (
                     <div className="grid grid-cols-2 gap-2">
-                      {q.choices.map((choice) => (
+                      {sessionQuestions[activeIndex].choices?.map((choice) => (
                         <button
                           key={choice}
                           type="button"
-                          onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: choice }))}
+                          onClick={() => setAnswers((prev) => ({ ...prev, [sessionQuestions[activeIndex].id]: choice }))}
                           className={`rounded-md border px-2 py-2 text-xs text-left transition ${
-                            answers[q.id] === choice
+                            answers[sessionQuestions[activeIndex].id] === choice
                               ? 'border-amber-300 bg-amber-300/10 text-amber-100'
                               : 'border-amber-200/30 bg-transparent text-amber-100/80 hover:border-amber-200/60'
                           }`}
@@ -235,18 +279,21 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
                     <input
                       className="w-full rounded-md border border-amber-200/30 bg-black/40 px-3 py-2 text-sm text-amber-50 outline-none focus:border-amber-300"
                       placeholder="Answer"
-                      value={answers[q.id] || ''}
-                      onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                      value={answers[sessionQuestions[activeIndex].id] || ''}
+                      onChange={(e) =>
+                        setAnswers((prev) => ({ ...prev, [sessionQuestions[activeIndex].id]: e.target.value }))
+                      }
                     />
                   )}
                   {submitted && (
                     <div className="text-xs text-amber-100/70">
-                      Correct: <span className="font-mono text-emerald-300">{q.answer}</span>
+                      Correct: <span className="font-mono text-emerald-300">{sessionQuestions[activeIndex].answer}</span>
                     </div>
                   )}
                 </div>
-              ))}
+              )}
             </div>
+
             <div className="flex items-center justify-between">
               <div className="text-xs text-amber-100/70">Answer all 20 correctly to unlock.</div>
               <Button onClick={handleSubmit} variant="accent" className="uppercase tracking-wide">
@@ -256,15 +303,36 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
           </TabsContent>
 
           <TabsContent value="facts" className="mt-3">
-            <div className="grid gap-2 max-h-[420px] overflow-y-auto pr-1">
-              {factList.map((fact, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-lg border border-amber-300/20 bg-black/50 px-3 py-2 text-sm text-amber-50"
-                >
-                  {fact}
+            <div className="rounded-lg border border-amber-300/20 bg-black/50 p-4 space-y-3">
+              <div className="flex items-center justify-between text-sm text-amber-100/80">
+                <div>Fact {factsIndex + 1} / {factList.length}</div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setFactsIndex((i) => (i - 1 + factList.length) % factList.length)}
+                  >
+                    Prev
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setFactsIndex((i) => (i + 1) % factList.length)}
+                  >
+                    Next
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={factsPaused ? 'secondary' : 'ghost'}
+                    onClick={() => setFactsPaused((p) => !p)}
+                  >
+                    {factsPaused ? 'Resume' : 'Pause'}
+                  </Button>
                 </div>
-              ))}
+              </div>
+              <div className="rounded-md border border-amber-300/20 bg-black/60 px-3 py-3 text-sm text-amber-50 min-h-[80px] flex items-center">
+                {factList[factsIndex]}
+              </div>
             </div>
           </TabsContent>
         </Tabs>
