@@ -10,6 +10,7 @@ Routes:
 - Frontend: built assets from dist/public with index fallback
 """
 import os
+import sys
 from pathlib import Path
 from flask import send_from_directory, Blueprint
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
@@ -47,10 +48,33 @@ def create_unified_app():
     },
   )
 
-  # Serve built frontend if present
+  # Resolve the built frontend directory (handles Nuitka onefile extraction paths).
   project_root = Path(__file__).resolve().parent.parent
-  dist_dir = project_root / "dist" / "public"
-  static_dir = dist_dir if dist_dir.exists() else project_root / "client" / "public"
+
+  def _find_static_dir():
+    candidates = []
+
+    # Onefile extraction root (where data files land)
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+      candidates.append(Path(meipass) / "dist" / "public")
+
+    # Directory alongside the executable
+    exe_dir = Path(sys.executable).resolve().parent
+    candidates.append(exe_dir / "dist" / "public")
+
+    # Source tree locations (when running from source)
+    candidates.append(project_root / "dist" / "public")
+    candidates.append(project_root / "client" / "public")
+
+    for cand in candidates:
+      if (cand / "index.html").exists():
+        return cand
+
+    # Fallback to last candidate even if missing (Flask will 404 explicitly)
+    return candidates[-1]
+
+  static_dir = _find_static_dir()
 
   # Serve React UI at root and catch-all (except API paths)
   @bench_app.route("/", defaults={"path": ""})

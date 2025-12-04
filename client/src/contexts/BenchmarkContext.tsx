@@ -57,20 +57,14 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Force clear any stuck benchmark state ONLY on initial app startup
+  // Initialize status on app startup without interrupting any running benchmark
   useEffect(() => {
-    const clearStuckState = async () => {
-      try {
-        // Call stop endpoint to clear any crashed/stuck benchmarks
-        await api.benchmark.stop();
-      } catch (error) {
-        // Ignore errors - benchmark might not be running
-      }
-      // Then refresh to get clean state
-      refreshStatus();
+    const initializeStatus = async () => {
+      // Only fetch current state on load; don't auto-stop running benchmarks
+      await refreshStatus();
     };
-    
-    clearStuckState();
+
+    initializeStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps = run ONCE on mount
 

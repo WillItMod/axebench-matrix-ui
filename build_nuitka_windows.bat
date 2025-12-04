@@ -19,7 +19,7 @@ pip install nuitka || goto :error
 
 python -m nuitka ^
   --onefile ^
-  --windows-console-mode=disable ^
+  --windows-console-mode=force ^
   --follow-imports ^
   --output-filename=%OUTPUT_NAME% ^
   --include-data-dir=dist\public=dist\public ^

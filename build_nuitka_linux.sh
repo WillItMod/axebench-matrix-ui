@@ -12,8 +12,8 @@ npm run build
 
 # Fresh build venv
 rm -rf .venv-build
-python3 -m venv .venv-build
-source .venv-build/bin/activate
+#python3 -m venv .venv-build
+source .venv/bin/activate
 
 pip install -r python/requirements.txt
 pip install nuitka
