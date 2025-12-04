@@ -12,13 +12,13 @@ npm run build
 
 # Fresh build venv
 rm -rf .venv-build
-python -m venv .venv-build
+python3 -m venv .venv-build
 source .venv-build/bin/activate
 
 pip install -r python/requirements.txt
 pip install nuitka
 
-python -m nuitka \
+python3 -m nuitka \
   --onefile \
   --follow-imports \
   --output-filename="$OUTPUT_NAME" \

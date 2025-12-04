@@ -12,7 +12,7 @@ call npm run build || goto :error
 REM Fresh build venv
 if exist .venv-build rd /s /q .venv-build
 python -m venv .venv-build || goto :error
-call .venv-build\Scripts\activate.bat
+call .venv-win\Scripts\activate.bat
 
 pip install -r python\requirements.txt || goto :error
 pip install nuitka || goto :error
