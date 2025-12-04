@@ -795,6 +795,7 @@ export default function Benchmark() {
                 </Tooltip>
               </div>
             ) : (
+              <>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -821,6 +822,7 @@ export default function Benchmark() {
                 }}
                 onCancel={() => setStopConfirmOpen(false)}
               />
+              </>
             )}
           </div>
 
