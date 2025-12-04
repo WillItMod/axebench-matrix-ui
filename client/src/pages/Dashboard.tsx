@@ -641,35 +641,33 @@ const loadPsus = async () => {
       </div>
 
         {(fleetStats.bestDiffDevice || fleetStats.bestSessionDiffDevice) && (
-          <div className="hud-panel">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {fleetStats.bestDiffDevice && (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="data-label">BEST DIFFICULTY</div>
-                    <div className="text-[var(--text-secondary)] text-sm mt-1">
-                      {fleetStats.bestDiffDevice.name}
-                    </div>
-                  </div>
-                  <div className="data-value text-[var(--matrix-green)]">
-                    {formatDifficulty(fleetStats.bestDiffDevice.status?.bestDiff || 0)}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {fleetStats.bestDiffDevice && (
+              <div className="matrix-card flex items-center justify-between">
+                <div>
+                  <div className="data-label">BEST DIFFICULTY</div>
+                  <div className="text-[var(--text-secondary)] text-sm mt-1">
+                    {fleetStats.bestDiffDevice.name}
                   </div>
                 </div>
-              )}
-              {fleetStats.bestSessionDiffDevice && (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="data-label">BEST SINCE BOOT</div>
-                    <div className="text-[var(--text-secondary)] text-sm mt-1">
-                      {fleetStats.bestSessionDiffDevice.name}
-                    </div>
-                  </div>
-                  <div className="data-value text-[var(--neon-cyan)]">
-                    {formatDifficulty(fleetStats.bestSessionDiffDevice.status?.bestSessionDiff || 0)}
+                <div className="data-value text-[var(--theme-primary)]">
+                  {formatDifficulty(fleetStats.bestDiffDevice.status?.bestDiff || 0)}
+                </div>
+              </div>
+            )}
+            {fleetStats.bestSessionDiffDevice && (
+              <div className="matrix-card flex items-center justify-between">
+                <div>
+                  <div className="data-label">BEST SINCE BOOT</div>
+                  <div className="text-[var(--text-secondary)] text-sm mt-1">
+                    {fleetStats.bestSessionDiffDevice.name}
                   </div>
                 </div>
-              )}
-            </div>
+                <div className="data-value text-[var(--neon-cyan)]">
+                  {formatDifficulty(fleetStats.bestSessionDiffDevice.status?.bestSessionDiff || 0)}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
