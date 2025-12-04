@@ -174,6 +174,7 @@ export default function Settings() {
   };
 
   return (
+    <>
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -817,6 +818,7 @@ export default function Settings() {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    </>
   );
 }
 
