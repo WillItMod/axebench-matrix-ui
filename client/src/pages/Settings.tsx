@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { useTheme, palettes, type PaletteName, fonts } from '@/contexts/ThemeContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import DarkModeChallengeHub from '@/components/DarkModeChallengeHub';
 
 interface LicenseStatus {
   tier?: string;
@@ -261,9 +260,6 @@ export default function Settings() {
           </div>
         </div>
       </Card>
-
-      {/* Dark mode challenges */}
-      <DarkModeChallengeHub />
 
       {/* Blackout fun switch */}
       <Card className="p-6 bg-black/90 border border-[var(--grid-gray)] space-y-3 relative overflow-hidden">

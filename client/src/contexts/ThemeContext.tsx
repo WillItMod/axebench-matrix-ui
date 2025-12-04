@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-export type ThemeName = 'matrix' | 'cyberpunk' | 'dark-blue' | 'neon-purple' | 'minimal';
+export type ThemeName = 'matrix' | 'cyberpunk' | 'dark-blue' | 'neon-purple' | 'minimal' | 'forge';
 
 export interface Theme {
   name: ThemeName;
@@ -21,6 +21,7 @@ export type PaletteName =
   | 'cyberpunk-core'
   | 'arcade-neon'
   | 'terminal-green'
+  | 'forge'
   | 'blackout'
   | 'vaporwave-dream'
   | 'tron-grid'
@@ -62,6 +63,7 @@ export const themes: Record<ThemeName, Theme> = {
   'dark-blue': { name: 'dark-blue', label: 'Dark Blue' },
   'neon-purple': { name: 'neon-purple', label: 'Neon Purple' },
   minimal: { name: 'minimal', label: 'Minimal Dark' },
+  forge: { name: 'forge', label: "Satoshi's Forge" },
 };
 
 const basePalettes: Record<PaletteName, Palette> = {
@@ -80,6 +82,23 @@ const basePalettes: Record<PaletteName, Palette> = {
       success: '#22c55e',
       warning: '#fbbf24',
       error: '#ef4444',
+    },
+  },
+  forge: {
+    name: 'forge',
+    label: "Satoshi's Forge",
+    colors: {
+      primary: '#f97316',
+      secondary: '#f59e0b',
+      accent: '#fbbf24',
+      background: '#0b0b0d',
+      surface: '#111111',
+      text: '#f5f5f4',
+      textSecondary: '#d6d3d1',
+      border: '#1f1f23',
+      success: '#f97316',
+      warning: '#f59e0b',
+      error: '#f87171',
     },
   },
   'contrast-cyan-red': {
@@ -479,6 +498,7 @@ const THEME_KEY = 'axebench-theme';
 const FONT_SCALE_KEY = 'axebench-font-scale';
 const MATRIX_CODE_COLOR_KEY = 'axebench-matrix-code-color';
 const MATRIX_BRIGHTNESS_KEY = 'axebench-matrix-brightness';
+const SECRET_THEME_KEY = 'axebench_secret_theme';
 
 function loadCustomPalette(): Partial<Palette['colors']> | null {
   try {
@@ -498,8 +518,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [paletteName, setPaletteName] = useState<PaletteName>(() => {
+    const secret = localStorage.getItem(SECRET_THEME_KEY);
     const saved = localStorage.getItem(PALETTE_KEY) as PaletteName | null;
-    return saved || 'matrix-green';
+    if (saved) return saved;
+    if (secret === 'forge') return 'forge';
+    return 'matrix-green';
   });
 
   const [customPalette, setCustomPalette] = useState<Partial<Palette['colors']> | null>(() => loadCustomPalette());
@@ -531,6 +554,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    root.setAttribute('data-theme', paletteName);
     Object.entries(palette.colors).forEach(([key, value]) => {
       root.style.setProperty(`--theme-${key}`, value);
     });
@@ -603,6 +627,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setPalette = (name: PaletteName, custom?: Partial<Palette['colors']>) => {
     setPaletteName(name);
     localStorage.setItem(PALETTE_KEY, name);
+    if (name === 'forge') {
+      localStorage.setItem(SECRET_THEME_KEY, 'forge');
+    }
     if (name === 'custom' && custom) {
       setCustomPalette(custom);
       localStorage.setItem(CUSTOM_PALETTE_KEY, JSON.stringify(custom));

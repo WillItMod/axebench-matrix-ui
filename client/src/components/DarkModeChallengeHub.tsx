@@ -31,9 +31,10 @@ const games: GameEntry[] = [
 ];
 
 const UNLOCK_KEY = 'axebench_dark_unlocked';
+const SECRET_THEME_KEY = 'axebench_secret_theme';
 
 export default function DarkModeChallengeHub() {
-  const { setPalette } = useTheme();
+  const { setPalette, paletteName } = useTheme();
   const [unlocked, setUnlocked] = useState(false);
   const [gameKey, setGameKey] = useState<string>(() => games[Math.floor(Math.random() * games.length)].key);
 
@@ -41,16 +42,17 @@ export default function DarkModeChallengeHub() {
     const saved = localStorage.getItem(UNLOCK_KEY) === 'true';
     if (saved) {
       setUnlocked(true);
-      setPalette('blackout');
     }
-  }, [setPalette]);
+  }, []);
 
   const Current = useMemo(() => games.find((g) => g.key === gameKey)?.component ?? games[0].component, [gameKey]);
 
   const complete = () => {
     setUnlocked(true);
     localStorage.setItem(UNLOCK_KEY, 'true');
-    setPalette('blackout');
+    localStorage.setItem(SECRET_THEME_KEY, 'forge');
+    setPalette('forge');
+    window.dispatchEvent(new CustomEvent('forge-celebrate'));
   };
 
   if (unlocked) {

@@ -7,6 +7,9 @@ import AutoTuneStatusBanner from './AutoTuneStatusBanner';
 import { api, formatUptime } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import BitcoinCelebrationOverlay from './BitcoinCelebrationOverlay';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import DarkModeChallengeHub from './DarkModeChallengeHub';
 
 interface LayoutProps {
   children: ReactNode;
@@ -110,6 +113,14 @@ export default function Layout({ children }: LayoutProps) {
 
   const overLimit = deviceCount > deviceLimit;
   const [patreonUrl, setPatreonUrl] = useState<string>(import.meta.env.VITE_PATREON_URL || 'https://www.patreon.com/axebench');
+  const [showSecret, setShowSecret] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+  const secretUnlocked = typeof window !== 'undefined' && localStorage.getItem('axebench_secret_theme') === 'forge';
+  useEffect(() => {
+    const handler = () => setCelebrate(true);
+    window.addEventListener('forge-celebrate', handler);
+    return () => window.removeEventListener('forge-celebrate', handler);
+  }, []);
 
   const renderLicenseBanner = () => {
     if (licenseTier === 'free') {
@@ -174,6 +185,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen relative bg-[var(--deep-black)] text-[var(--text-primary)]">
+      <BitcoinCelebrationOverlay active={celebrate} onFinished={() => setCelebrate(false)} />
       {/* Matrix Background */}
       <MatrixBackground />
 
@@ -191,9 +203,21 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center justify-between">
               {/* Logo */}
               <div className="flex items-center gap-4">
-                <div className="text-3xl font-bold text-glow-green flicker">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (secretUnlocked) {
+                      setCelebrate(true);
+                    } else {
+                      setShowSecret(true);
+                    }
+                  }}
+                  className="flex items-center gap-2 text-3xl font-bold text-glow-green flicker hover:text-[var(--theme-accent)] transition"
+                  title={secretUnlocked ? "Satoshi's Forge unlocked" : '???'}
+                >
+                  <span className="text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.7)]">₿</span>
                   AXEBENCH
-                </div>
+                </button>
                 <div className="text-sm text-[var(--theme-accent)] text-glow-cyan">
                   UI v2.0 | AxeBench v3.0.0
                 </div>
@@ -257,6 +281,12 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </footer>
+
+        <Dialog open={showSecret} onOpenChange={setShowSecret}>
+          <DialogContent className="bg-[var(--dark-gray)] border border-[var(--grid-gray)] shadow-[0_0_20px_rgba(0,255,65,0.25)] max-w-3xl">
+            <DarkModeChallengeHub />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
