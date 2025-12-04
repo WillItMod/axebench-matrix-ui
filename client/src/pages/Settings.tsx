@@ -348,7 +348,7 @@ export default function Settings() {
 
           <div className="space-y-2">
             <div className="text-sm text-muted-foreground">Runtime & display</div>
-            <div className="text-lg font-semibold text-glow-cyan">TELEMETRY & CONTROLS</div>
+            <div className="text-lg font-semibold text-glow-cyan">OPERATIONS & TELEMETRY</div>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="p-5 space-y-4">
@@ -500,7 +500,11 @@ export default function Settings() {
         </Card>
       </div>
 
-      {/* Patreon / licensing bar */}
+      {/* Access & licensing */}
+      <div className="space-y-2">
+        <div className="text-sm text-muted-foreground">Access & licensing</div>
+        <div className="text-lg font-semibold text-glow-cyan">ACCOUNT & LIMITS</div>
+      </div>
       <Card className="p-4 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-col">
