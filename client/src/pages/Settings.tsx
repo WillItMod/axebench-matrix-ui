@@ -8,6 +8,7 @@ import FontAppearanceSplash from '@/components/FontAppearanceSplash';
 import { useTheme, availableThemes, fonts as fontChoices, themePalettes } from '@/contexts/ThemeContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
 
 interface LicenseStatus {
   tier?: string;
@@ -27,6 +28,10 @@ export default function Settings() {
     matrixCodeColor,
     setMatrixCodeColor,
     fontOverride,
+    matrixBrightness,
+    setMatrixBrightness,
+    matrixRainbow,
+    setMatrixRainbow,
   } = useTheme();
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [tier, setTier] = useState<'free' | 'premium' | 'ultimate'>('free');
@@ -172,6 +177,31 @@ export default function Settings() {
                 className="w-full accent-[hsl(var(--primary))]"
               />
               <div className="text-[11px] text-muted-foreground">Scale: {fontScale.toFixed(2)}x</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">Matrix brightness</Label>
+              <input
+                type="range"
+                min="0.2"
+                max="1.2"
+                step="0.02"
+                value={matrixBrightness}
+                onChange={(e) => setMatrixBrightness(parseFloat(e.target.value))}
+                className="w-full accent-[hsl(var(--primary))]"
+              />
+              <div className="text-[11px] text-muted-foreground">
+                Intensity: {matrixBrightness.toFixed(2)} (affects background rain only)
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
+              <div className="flex flex-col">
+                <span className="text-sm text-foreground">Rainbow rain mode</span>
+                <span className="text-[11px] text-muted-foreground">Cycle the digital rain through full spectrum</span>
+              </div>
+              <Switch checked={matrixRainbow} onCheckedChange={setMatrixRainbow} />
             </div>
           </div>
         </Card>

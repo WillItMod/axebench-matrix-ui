@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { Zap } from 'lucide-react';
 import { usePersistentState } from '@/hooks/usePersistentState';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 const ACTIVE_PROFILE_KEY = 'axebench:activeProfiles';
 
@@ -46,6 +48,11 @@ export default function Profiles() {
   const [editFrequency, setEditFrequency] = useState('');
   const [activeProfiles, setActiveProfiles] = useState<Record<string, string>>(() => loadActiveProfiles());
   const [selectedDevices, setSelectedDevices] = usePersistentState<string[]>('profiles-selected-devices', []);
+  const [jsonPreview, setJsonPreview] = useState<{ open: boolean; title: string; body: string }>({
+    open: false,
+    title: '',
+    body: '',
+  });
 
   useEffect(() => {
     loadDevices();
@@ -197,25 +204,25 @@ export default function Profiles() {
 
   return (
     <div className="space-y-6">
-      <div className="hud-panel">
-        <h1 className="text-3xl font-bold text-glow-green mb-2">PROFILES</h1>
-        <p className="text-[var(--text-secondary)] text-sm">
-          Manage and apply voltage/frequency profiles
+      <Card className="p-6 chrome-card">
+        <h1 className="text-3xl font-bold mb-2">PROFILES</h1>
+        <p className="text-muted-foreground text-sm">
+          Manage and apply voltage/frequency profiles.
         </p>
-      </div>
+      </Card>
 
       {/* Quick Profile Apply - Multi-Device */}
-      <div className="matrix-card border-2 border-[var(--neon-cyan)]">
-        <div className="flex items-center gap-2 mb-4">
-          <Zap className="w-6 h-6 text-[var(--neon-cyan)]" />
-          <h2 className="text-2xl font-bold text-glow-cyan">QUICK_PROFILE_APPLY</h2>
+      <Card className="p-6 space-y-4 chrome-card">
+        <div className="flex items-center gap-2">
+          <Zap className="w-6 h-6 text-[hsl(var(--primary))]" />
+          <h2 className="text-2xl font-bold text-foreground">QUICK_PROFILE_APPLY</h2>
         </div>
 
         {/* Device Selection Grid */}
-        <div className="mb-4">
-          <Label className="text-[var(--text-secondary)] mb-2 block">SELECT_DEVICES</Label>
+        <div className="space-y-2">
+          <Label className="text-muted-foreground">SELECT_DEVICES</Label>
           {devices.length === 0 ? (
-            <div className="text-center py-4 text-[var(--text-muted)]">
+            <div className="text-center py-4 text-muted-foreground">
               NO_DEVICES_AVAILABLE
             </div>
           ) : (
@@ -225,17 +232,17 @@ export default function Profiles() {
                   key={device.name}
                   onClick={() => toggleDevice(device.name)}
                   className={`
-                    relative p-3 rounded border-2 transition-all text-left
+                    relative p-3 rounded-lg border transition-all text-left
                     ${selectedDevices.includes(device.name)
-                      ? 'border-[var(--matrix-green)] bg-[var(--matrix-green)]/20 shadow-[0_0_0_1px_var(--matrix-green)]'
-                      : 'border-[var(--grid-gray)] bg-[var(--dark-gray)] hover:border-[var(--text-muted)]'
+                      ? 'border-[hsl(var(--primary))] bg-[hsl(var(--primary))]/10 shadow-[0_0_12px_hsla(var(--primary),0.4)]'
+                      : 'border-border bg-card/70 hover:border-[hsl(var(--primary))]/60'
                     }
                   `}
                 >
-                  <div className="font-bold text-[var(--text-primary)] text-sm">
+                  <div className="font-bold text-foreground text-sm">
                     {device.name}
                   </div>
-                  <div className="text-xs text-[var(--text-secondary)]">
+                  <div className="text-xs text-muted-foreground">
                     {device.model}
                   </div>
                 </button>
@@ -251,19 +258,19 @@ export default function Profiles() {
               key={name}
               onClick={() => applyPresetProfile(name)}
               disabled={selectedDevices.length === 0}
-              className="w-full btn-matrix text-sm py-4 uppercase"
+              className="w-full text-sm py-3 uppercase shadow-[0_0_16px_hsla(var(--primary),0.25)]"
             >
               {name}
             </Button>
           ))}
         </div>
-      </div>
+      </Card>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-xl font-bold text-glow-cyan">DEVICE_PROFILES</h3>
-            <p className="text-[var(--text-secondary)] text-sm">
+            <h3 className="text-xl font-bold text-foreground">DEVICE_PROFILES</h3>
+            <p className="text-muted-foreground text-sm">
               Selected devices render below. Use quick apply above or apply per-device.
             </p>
           </div>
@@ -271,16 +278,16 @@ export default function Profiles() {
             variant="outline"
             onClick={() => loadProfilesForDevices(selectedDevices)}
             disabled={selectedDevices.length === 0}
-            className="btn-cyan"
+            className="shadow-[0_0_12px_hsla(var(--secondary),0.25)]"
           >
             REFRESH_SELECTED
           </Button>
         </div>
 
         {selectedDevices.length === 0 ? (
-          <div className="matrix-card text-center py-10 text-[var(--text-secondary)]">
+          <Card className="p-8 text-center chrome-card text-muted-foreground">
             Select one or more devices above to view their profiles.
-          </div>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {selectedDevices.map((deviceName) => {
@@ -292,18 +299,18 @@ export default function Profiles() {
               const isLoading = loadingDevices[deviceName];
 
               return (
-                <div key={deviceName} className="matrix-card space-y-3">
+                <Card key={deviceName} className="space-y-3 p-5 chrome-card">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-lg font-bold text-[var(--text-primary)]">{deviceName}</div>
-                      <div className="text-xs text-[var(--text-secondary)]">{meta?.model || 'Unknown model'}</div>
+                      <div className="text-lg font-bold text-foreground">{deviceName}</div>
+                      <div className="text-xs text-muted-foreground">{meta?.model || 'Unknown model'}</div>
                     </div>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => handleSaveCurrent(deviceName)}
-                        className="btn-matrix"
+                        className="shadow-[0_0_12px_hsla(var(--primary),0.25)]"
                       >
                         SAVE_CURRENT
                       </Button>
@@ -311,7 +318,7 @@ export default function Profiles() {
                         size="sm"
                         variant="outline"
                         onClick={() => loadProfilesForDevice(deviceName)}
-                        className="btn-cyan"
+                        className="shadow-[0_0_12px_hsla(var(--secondary),0.2)]"
                       >
                         REFRESH
                       </Button>
@@ -319,9 +326,9 @@ export default function Profiles() {
                   </div>
 
                   {isLoading ? (
-                    <div className="text-center py-8 text-[var(--text-muted)]">LOADING_PROFILES...</div>
+                    <div className="text-center py-8 text-muted-foreground">LOADING_PROFILES...</div>
                   ) : profileList.length === 0 ? (
-                    <div className="text-center py-6 text-[var(--text-secondary)] text-sm">
+                    <div className="text-center py-6 text-muted-foreground text-sm">
                       No profiles found. Run a benchmark to generate profiles.
                     </div>
                   ) : (
@@ -329,25 +336,25 @@ export default function Profiles() {
                       {profileList.map(([name, profile]) => (
                         <div
                           key={`${deviceName}-${name}`}
-                          className={`border rounded p-3 bg-black/60 ${
+                          className={`border rounded-lg p-3 bg-card/60 ${
                             activeProfiles[deviceName]?.toLowerCase() === name.toLowerCase()
-                              ? 'border-[var(--matrix-green)] shadow-[0_0_0_1px_var(--matrix-green)]'
-                              : 'border-[var(--grid-gray)]'
+                              ? 'border-[hsl(var(--primary))] shadow-[0_0_12px_hsla(var(--primary),0.25)]'
+                              : 'border-border'
                           }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
-                                <h3 className="text-lg font-bold text-[var(--text-primary)] text-glow-green">
+                                <h3 className="text-lg font-bold text-foreground">
                                   {name.toUpperCase()}
                                 </h3>
                                 {profile?.is_best && (
-                                  <span className="px-2 py-0.5 bg-[var(--success-green)] text-black text-xs font-bold rounded">
+                                  <span className="px-2 py-0.5 bg-[hsl(var(--success))] text-black text-xs font-bold rounded">
                                     BEST
                                   </span>
                                 )}
                                 {activeProfiles[deviceName]?.toLowerCase() === name.toLowerCase() && (
-                                  <span className="px-2 py-0.5 bg-[var(--matrix-green)]/20 text-[var(--matrix-green)] text-xs font-bold rounded border border-[var(--matrix-green)]">
+                                  <span className="px-2 py-0.5 bg-[hsl(var(--primary))]/15 text-[hsl(var(--primary))] text-xs font-bold rounded border border-[hsl(var(--primary))]">
                                     ACTIVE
                                   </span>
                                 )}
@@ -355,33 +362,33 @@ export default function Profiles() {
                               
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                 <div>
-                                  <div className="text-[var(--text-secondary)]">Voltage</div>
-                                  <div className="font-bold text-[var(--text-primary)]">
+                                  <div className="text-muted-foreground">Voltage</div>
+                                  <div className="font-bold text-foreground">
                                     {profile.voltage} mV
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="text-[var(--text-secondary)]">Frequency</div>
-                                  <div className="font-bold text-[var(--text-primary)]">
+                                  <div className="text-muted-foreground">Frequency</div>
+                                  <div className="font-bold text-foreground">
                                     {profile.frequency} MHz
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="text-[var(--text-secondary)]">Hashrate</div>
-                                  <div className="font-bold text-[var(--success-green)]">
+                                  <div className="text-muted-foreground">Hashrate</div>
+                                  <div className="font-bold text-[hsl(var(--success))]">
                                     {profile.hashrate?.toFixed(1)} GH/s
                                   </div>
                                 </div>
                                 <div>
-                                  <div className="text-[var(--text-secondary)]">Efficiency</div>
-                                  <div className="font-bold text-[var(--neon-cyan)]">
+                                  <div className="text-muted-foreground">Efficiency</div>
+                                  <div className="font-bold text-[hsl(var(--secondary))]">
                                     {profile.efficiency?.toFixed(2)} J/TH
                                   </div>
                                 </div>
                               </div>
 
                               {profile.description && (
-                                <div className="mt-2 text-xs text-[var(--text-muted)]">
+                                <div className="mt-2 text-xs text-muted-foreground">
                                   {profile.description}
                                 </div>
                               )}
@@ -391,7 +398,7 @@ export default function Profiles() {
                               <Button
                                 size="sm"
                                 onClick={() => handleApply(name, deviceName)}
-                                className="btn-matrix text-xs min-w-[90px]"
+                                className="text-xs min-w-[90px] shadow-[0_0_12px_hsla(var(--primary),0.25)]"
                               >
                                 APPLY
                               </Button>
@@ -402,7 +409,8 @@ export default function Profiles() {
                                   setActiveNanoDevice(deviceName);
                                   setShowNanoTune(true);
                                 }}
-                                className="btn-cyan text-xs min-w-[90px]"
+                                variant="secondary"
+                                className="text-xs min-w-[90px]"
                               >
                                 NANO
                               </Button>
@@ -415,7 +423,7 @@ export default function Profiles() {
                                   setEditFrequency(profile.frequency?.toString() || '');
                                   setShowEditDialog(true);
                                 }}
-                                className="bg-[var(--warning-amber)] hover:bg-[var(--warning-amber)]/80 text-black text-xs min-w-[90px]"
+                                className="text-xs min-w-[90px] bg-[hsl(var(--warning))] hover:bg-[hsl(var(--warning))]/85 text-black shadow-[0_0_12px_hsla(var(--warning),0.4)]"
                               >
                                 EDIT
                               </Button>
@@ -423,16 +431,14 @@ export default function Profiles() {
                                 size="sm"
                                 onClick={() => {
                                   const json = JSON.stringify(profile, null, 2);
-                                  const blob = new Blob([json], { type: 'application/json' });
-                                  const url = URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = `${deviceName}_${name}_profile.json`;
-                                  a.click();
-                                  URL.revokeObjectURL(url);
-                                  toast.success('Profile exported');
+                                  setJsonPreview({
+                                    open: true,
+                                    title: `${deviceName} • ${name}`,
+                                    body: json,
+                                  });
                                 }}
-                                className="bg-purple-600 hover:bg-purple-700 text-white text-xs min-w-[90px]"
+                                variant="secondary"
+                                className="text-xs min-w-[90px] bg-[hsl(var(--secondary))]/20 border border-[hsl(var(--secondary))] text-[hsl(var(--secondary-foreground))] shadow-[0_0_12px_hsla(var(--secondary),0.25)]"
                               >
                                 JSON
                               </Button>
@@ -440,7 +446,8 @@ export default function Profiles() {
                                 <Button
                                   size="sm"
                                   onClick={() => handleDelete(name, deviceName)}
-                                  className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white text-xs min-w-[90px]"
+                                  variant="destructive"
+                                  className="text-xs min-w-[90px]"
                                 >
                                   DELETE
                                 </Button>
@@ -451,50 +458,49 @@ export default function Profiles() {
                       ))}
                     </div>
                   )}
-                </div>
+                </Card>
               );
             })}
           </div>
         )}
       </div>
 
-      <div className="matrix-card">
-        <h3 className="text-lg font-bold text-glow-cyan mb-2">INFO</h3>
-        <div className="text-xs text-[var(--text-secondary)] space-y-2">
+      <Card className="p-5 chrome-card">
+        <h3 className="text-lg font-bold mb-2">INFO</h3>
+        <div className="text-xs text-muted-foreground space-y-2">
           <p>
-            <strong className="text-[var(--text-primary)]">QUICK_APPLY:</strong> Apply profile to multiple devices
+            <strong className="text-foreground">QUICK_APPLY:</strong> Apply profile to multiple devices
           </p>
           <p>
-            <strong className="text-[var(--text-primary)]">APPLY:</strong> Set device to profile settings
+            <strong className="text-foreground">APPLY:</strong> Set device to profile settings
           </p>
           <p>
-            <strong className="text-[var(--text-primary)]">NANO:</strong> Fine-tune with Nano Tune
+            <strong className="text-foreground">NANO:</strong> Fine-tune with Nano Tune
           </p>
           <p>
-            <strong className="text-[var(--text-primary)]">SAVE_CURRENT:</strong> Save current device settings
+            <strong className="text-foreground">SAVE_CURRENT:</strong> Save current device settings
           </p>
         </div>
-      </div>
+      </Card>
 
       {/* Save Profile Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="matrix-card">
+        <DialogContent className="chrome-card">
           <DialogHeader>
-            <DialogTitle className="text-glow-cyan">SAVE_CURRENT_PROFILE</DialogTitle>
+            <DialogTitle className="text-foreground">SAVE_CURRENT_PROFILE</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-[var(--text-secondary)] text-sm mb-2 block">Profile Name</label>
-              <input
+              <label className="text-muted-foreground text-sm mb-2 block">Profile Name</label>
+              <Input
                 type="text"
                 value={newProfileName}
                 onChange={(e) => setNewProfileName(e.target.value)}
-                className="w-full px-3 py-2 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded text-[var(--text-primary)] focus:border-[var(--matrix-green)] focus:outline-none"
                 placeholder="Enter profile name..."
                 autoFocus
               />
             </div>
-            <p className="text-xs text-[var(--text-muted)]">
+            <p className="text-xs text-muted-foreground">
               This will save the device's current voltage, frequency, and other settings.
             </p>
           </div>
@@ -511,28 +517,26 @@ export default function Profiles() {
 
       {/* Edit Profile Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="matrix-card">
+        <DialogContent className="chrome-card">
           <DialogHeader>
-            <DialogTitle className="text-glow-cyan">EDIT_PROFILE: {editingProfile.toUpperCase()}</DialogTitle>
+            <DialogTitle className="text-foreground">EDIT_PROFILE: {editingProfile.toUpperCase()}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-[var(--text-secondary)] text-sm mb-2 block">Voltage (mV)</label>
-              <input
+              <label className="text-muted-foreground text-sm mb-2 block">Voltage (mV)</label>
+              <Input
                 type="number"
                 value={editVoltage}
                 onChange={(e) => setEditVoltage(e.target.value)}
-                className="w-full px-3 py-2 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded text-[var(--text-primary)] focus:border-[var(--matrix-green)] focus:outline-none"
                 placeholder="e.g., 1200"
               />
             </div>
             <div>
-              <label className="text-[var(--text-secondary)] text-sm mb-2 block">Frequency (MHz)</label>
-              <input
+              <label className="text-muted-foreground text-sm mb-2 block">Frequency (MHz)</label>
+              <Input
                 type="number"
                 value={editFrequency}
                 onChange={(e) => setEditFrequency(e.target.value)}
-                className="w-full px-3 py-2 bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded text-[var(--text-primary)] focus:border-[var(--matrix-green)] focus:outline-none"
                 placeholder="e.g., 500"
               />
             </div>
@@ -558,6 +562,23 @@ export default function Profiles() {
               }
             }}>
               SAVE_CHANGES
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* JSON Preview Dialog */}
+      <Dialog open={jsonPreview.open} onOpenChange={(open) => setJsonPreview((prev) => ({ ...prev, open }))}>
+        <DialogContent className="chrome-card max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Profile JSON - {jsonPreview.title}</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-lg border border-border bg-card/70 p-3 max-h-[60vh] overflow-auto font-mono text-sm text-foreground">
+            <pre className="whitespace-pre-wrap">{jsonPreview.body}</pre>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setJsonPreview((prev) => ({ ...prev, open: false }))}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

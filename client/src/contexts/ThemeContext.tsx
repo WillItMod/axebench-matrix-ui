@@ -22,6 +22,8 @@ const SECRET_UNLOCK_KEY = 'axebench_secret_unlocked';
 const SECRET_THEME_KEY = 'axebench_secret_theme';
 const MATRIX_BRIGHTNESS_KEY = 'axebench-matrix-brightness';
 const MATRIX_CODE_COLOR_KEY = 'axebench-matrix-code-color';
+const MATRIX_COLOR_OVERRIDE_KEY = 'axebench-matrix-code-override';
+const MATRIX_RAINBOW_KEY = 'axebench-matrix-rainbow';
 
 const defaultFontForTheme = (theme: ThemeName) => palettes[theme]?.defaults.font || 'share-tech';
 
@@ -377,6 +379,8 @@ interface ThemeContextType {
   setMatrixBrightness: (val: number) => void;
   matrixCodeColor: string;
   setMatrixCodeColor: (val: string) => void;
+  matrixRainbow: boolean;
+  setMatrixRainbow: (val: boolean) => void;
   secretUnlocked: boolean;
   setSecretUnlocked: (val: boolean) => void;
 }
@@ -420,8 +424,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return Number.isFinite(parsed) ? parsed : 1;
   });
 
+  const [matrixCodeColorOverride, setMatrixCodeColorOverride] = useState<boolean>(() => {
+    return localStorage.getItem(MATRIX_COLOR_OVERRIDE_KEY) === 'true';
+  });
+
   const [matrixCodeColor, setMatrixCodeColor] = useState<string>(() => {
     return localStorage.getItem(MATRIX_CODE_COLOR_KEY) || palettes.matrix.colors.primary;
+  });
+
+  const [matrixRainbow, setMatrixRainbow] = useState<boolean>(() => {
+    return localStorage.getItem(MATRIX_RAINBOW_KEY) === 'true';
   });
 
   const palette = useMemo(() => palettes[theme] || palettes.matrix, [theme]);
@@ -563,8 +575,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (matrixCodeColor) {
       document.documentElement.style.setProperty('--matrix-green', matrixCodeColor);
       localStorage.setItem(MATRIX_CODE_COLOR_KEY, matrixCodeColor);
+      if (!matrixCodeColorOverride) {
+        setMatrixCodeColorOverride(true);
+        localStorage.setItem(MATRIX_COLOR_OVERRIDE_KEY, 'true');
+      }
     }
   }, [matrixCodeColor]);
+
+  useEffect(() => {
+    if (!matrixCodeColorOverride) {
+      const next = palette.colors.primary;
+      document.documentElement.style.setProperty('--matrix-green', next);
+      localStorage.setItem(MATRIX_CODE_COLOR_KEY, next);
+    }
+  }, [palette, matrixCodeColorOverride]);
+
+  useEffect(() => {
+    localStorage.setItem(MATRIX_COLOR_OVERRIDE_KEY, matrixCodeColorOverride ? 'true' : 'false');
+  }, [matrixCodeColorOverride]);
+
+  useEffect(() => {
+    localStorage.setItem(MATRIX_RAINBOW_KEY, matrixRainbow ? 'true' : 'false');
+  }, [matrixRainbow]);
 
   const setTheme = (name: ThemeName) => {
     setThemeState(name);
@@ -596,7 +628,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         matrixBrightness,
         setMatrixBrightness,
         matrixCodeColor,
-        setMatrixCodeColor,
+        setMatrixCodeColor: (val) => {
+          setMatrixCodeColorOverride(true);
+          localStorage.setItem(MATRIX_COLOR_OVERRIDE_KEY, 'true');
+          setMatrixCodeColor(val);
+        },
+        matrixRainbow,
+        setMatrixRainbow,
         secretUnlocked,
         setSecretUnlocked: (val) => {
           setSecretUnlocked(val);

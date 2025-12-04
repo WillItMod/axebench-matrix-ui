@@ -9,7 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
  * --matrix-brightness variable.
  */
 export default function MatrixBackground() {
-  const { theme } = useTheme();
+  const { theme, matrixRainbow } = useTheme();
   const baseRef = useRef<HTMLCanvasElement>(null);
   const forgeRef = useRef<HTMLCanvasElement>(null);
 
@@ -36,13 +36,13 @@ export default function MatrixBackground() {
       '‹«с‹«э‹«ь‹«п‹«ж‹«ф‹«ъ‹«ч‹«ы‹«§‹«Ї‹«¬‹««‹«у‹«Ё‹у?‹у?‹у\'‹уџ‹у"‹у.‹уЕ‹уО‹у^‹у%‹уS‹у<‹уO‹у?‹уZ‹у?‹у?‹у\'‹у\'‹у"‹у"‹у‹у-‹у-‹у~‹уT‹уs‹у>‹уo‹«Э‹у?0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     const draw = () => {
+      const now = performance.now();
       ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const styles = getComputedStyle(document.documentElement);
       const codeColor = styles.getPropertyValue('--matrix-green').trim() || '#00ff41';
       const alpha = Math.min(Math.max(parseFloat(styles.getPropertyValue('--matrix-brightness')) || 1, 0.2), 1.2);
-      ctx.fillStyle = codeColor;
       ctx.globalAlpha = alpha;
       ctx.font = `${fontSize}px monospace`;
 
@@ -51,6 +51,12 @@ export default function MatrixBackground() {
         const x = i * fontSize;
         const y = drops[i] * fontSize;
 
+        if (matrixRainbow) {
+          const hue = (now * 0.05 + i * 12) % 360;
+          ctx.fillStyle = `hsl(${hue}, 90%, 60%)`;
+        } else {
+          ctx.fillStyle = codeColor;
+        }
         ctx.fillText(char, x, y);
 
         if (y > canvas.height && Math.random() > 0.975) {
@@ -65,7 +71,7 @@ export default function MatrixBackground() {
       clearInterval(interval);
       window.removeEventListener('resize', resize);
     };
-  }, []);
+  }, [matrixRainbow]);
 
   // Forge overlay (hash/BTC rain + block columns)
   useEffect(() => {

@@ -91,7 +91,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl appearance-modal space-y-6">
+      <DialogContent className="max-w-5xl appearance-modal space-y-5 p-6 sm:p-7">
         <div className="flex items-start justify-between gap-3">
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-xl">Fonts & Appearance</DialogTitle>
@@ -104,13 +104,13 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
           </Badge>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+        <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">Themes</div>
               <div className="text-xs text-muted-foreground">Pick a shell; fonts follow unless overridden</div>
             </div>
-            <ScrollArea className="h-[320px] rounded-2xl border border-border/80 bg-card/70 backdrop-blur-sm shadow-chrome">
+            <ScrollArea className="h-[360px] rounded-2xl border border-border/80 bg-card/70 backdrop-blur-sm shadow-chrome appearance-scroll">
               <div className="grid gap-3 p-4 sm:grid-cols-2">
                 {availableThemes.map((t) => {
                   const locked = t.name === 'forge' && !secretUnlocked;
@@ -123,7 +123,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                       disabled={locked}
                       onClick={() => setPendingTheme(t.name as ThemeName)}
                       className={cn(
-                        'relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all bg-card/80 backdrop-blur-sm shadow-soft',
+                        'relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all bg-card/80 backdrop-blur-sm shadow-soft min-h-[130px]',
                         'before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-[hsl(var(--primary))/10] before:via-transparent before:to-[hsl(var(--secondary))/10]',
                         locked && 'opacity-50 cursor-not-allowed',
                         active
@@ -171,7 +171,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                 Use theme default
               </Button>
             </div>
-            <ScrollArea className="h-[320px] rounded-2xl border border-border/80 bg-card/70 backdrop-blur-sm shadow-chrome">
+            <ScrollArea className="h-[360px] rounded-2xl border border-border/80 bg-card/70 backdrop-blur-sm shadow-chrome appearance-scroll">
               <div className="grid gap-2 p-3">
                 {fontChoices.map((font) => {
                   const active = pendingFont === font.key;
@@ -225,8 +225,8 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
           </div>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[1.6fr_1fr]">
-          <div className="rounded-2xl border border-border/80 bg-card/80 p-4 shadow-chrome">
+        <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
+          <div className="rounded-2xl border border-border/80 bg-card/80 p-4 shadow-chrome min-h-[260px]">
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">Live preview</div>
               <Badge variant="outline" className="text-xs">
@@ -236,24 +236,35 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
             <div
               className="mt-3 rounded-xl border border-border p-4 shadow-[0_0_35px_rgba(0,0,0,0.25)] backdrop-blur-sm live-preview-panel"
               style={{
-                background: 'linear-gradient(135deg, hsla(var(--primary),0.12), hsla(var(--secondary),0.08))',
+                background:
+                  'linear-gradient(135deg, hsla(var(--primary),0.16), hsla(var(--secondary),0.12))',
                 color: palette?.colors.text,
                 fontFamily: fontStack,
               }}
             >
-              <div className="text-lg font-semibold">{PREVIEW_TEXT}</div>
-              <div className="mt-2 text-sm opacity-90">
+              <div className="text-lg font-semibold leading-tight">{PREVIEW_TEXT}</div>
+              <div className="mt-2 text-sm opacity-90 leading-snug">
                 Theme defaults: {defaultFontLabel} | Override: {pendingOverride ? 'On' : 'Off'}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-md border border-border bg-background/70 p-2">
-                  <div className="text-muted-foreground">Primary</div>
-                  <div style={{ color: palette?.colors.primary }}>{palette?.colors.primary}</div>
-                </div>
-                <div className="rounded-md border border-border bg-background/70 p-2">
-                  <div className="text-muted-foreground">Secondary</div>
-                  <div style={{ color: palette?.colors.secondary }}>{palette?.colors.secondary}</div>
-                </div>
+                {['primary', 'secondary'].map((slot) => {
+                  const val = slot === 'primary' ? palette?.colors.primary : palette?.colors.secondary;
+                  return (
+                    <div
+                      key={slot}
+                      className="rounded-md border border-border bg-background/70 p-2 flex items-center gap-2"
+                    >
+                      <span
+                        className="inline-flex h-6 w-6 rounded-md border border-border"
+                        style={{ background: val }}
+                      />
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-muted-foreground capitalize">{slot}</span>
+                        <span className="text-foreground">{val}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

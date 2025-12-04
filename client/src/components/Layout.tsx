@@ -218,7 +218,7 @@ export default function Layout({ children }: LayoutProps) {
       <MatrixBackground />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <div className="relative z-10 space-y-2">
+      <div className="relative z-10 space-y-2 px-2 pt-2">
         <div className="min-h-[36px]">
           <BenchmarkStatusBanner />
         </div>
