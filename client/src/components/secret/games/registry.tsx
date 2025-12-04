@@ -58,7 +58,7 @@ const HtmlGameCard = ({
           src={safeSrc}
           title={title}
           onLoad={() => setLoaded(true)}
-          className="w-full h-[440px]"
+          className="w-full h-[640px]"
           sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-forms"
           allow="autoplay; fullscreen"
         />

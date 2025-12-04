@@ -109,7 +109,7 @@ export default function EasterEggLaunchers() {
           }
         }}
       >
-        <DialogContent className="max-w-3xl shadow-chrome">
+        <DialogContent className="max-w-5xl w-[92vw] shadow-chrome">
           {Current ? (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">Hidden protocol: {Current.title}</div>
