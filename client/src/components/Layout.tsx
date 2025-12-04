@@ -256,17 +256,11 @@ export default function Layout({ children }: LayoutProps) {
       <EasterEggLaunchers />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <div className="relative z-30 space-y-2 px-3 pt-2">
-        <div className="min-h-[36px]">
-          <BenchmarkStatusBanner />
-        </div>
-        <div className="min-h-[36px]">
-          <NanoTuneStatusBanner />
-        </div>
-        <div className="min-h-[36px]">
-          <AutoTuneStatusBanner />
-        </div>
-        <div className="min-h-[56px] flex items-stretch transition-all duration-200">{licenseBanner}</div>
+      <div className="relative z-30 space-y-2 px-3">
+        <BenchmarkStatusBanner />
+        <NanoTuneStatusBanner />
+        <AutoTuneStatusBanner />
+        {licenseBanner}
       </div>
 
       {/* Main Content */}

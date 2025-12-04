@@ -205,7 +205,7 @@ export default function Profiles() {
   return (
     <div className="space-y-6">
       <Card className="p-6 chrome-card">
-        <h1 className="text-3xl font-bold mb-2">PROFILES</h1>
+        <h1 className="text-3xl font-bold text-glow-cyan mb-2">PROFILES</h1>
         <p className="text-muted-foreground text-sm">
           Manage and apply voltage/frequency profiles.
         </p>
@@ -215,7 +215,7 @@ export default function Profiles() {
       <Card className="p-6 space-y-4 chrome-card">
         <div className="flex items-center gap-2">
           <Zap className="w-6 h-6 text-[hsl(var(--primary))]" />
-          <h2 className="text-2xl font-bold text-foreground">QUICK_PROFILE_APPLY</h2>
+          <h2 className="text-2xl font-bold text-glow-cyan">QUICK_PROFILE_APPLY</h2>
         </div>
 
         {/* Device Selection Grid */}
@@ -263,7 +263,7 @@ export default function Profiles() {
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-xl font-bold text-foreground">DEVICE_PROFILES</h3>
+            <h3 className="text-xl font-bold text-glow-cyan">DEVICE_PROFILES</h3>
             <p className="text-muted-foreground text-sm">
               Selected devices render below. Use quick apply above or apply per-device.
             </p>

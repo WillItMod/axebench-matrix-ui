@@ -16,7 +16,7 @@ type Props = {
   onUnlocked: () => void;
 };
 
-const questionBank: Question[] = [
+const baseQuestions: Question[] = [
   { id: 'q1', prompt: 'What hash function secures Bitcoin blocks?', answer: 'SHA-256', choices: ['SHA-1', 'SHA-256', 'Keccak', 'Scrypt'] },
   { id: 'q2', prompt: 'Target Bitcoin block interval?', answer: '10 minutes', choices: ['1 minute', '5 minutes', '10 minutes', '60 minutes'] },
   { id: 'q3', prompt: 'Name of the longest-chain rule adjustment every 2016 blocks.', answer: 'Difficulty adjustment' },
@@ -60,26 +60,46 @@ const questionBank: Question[] = [
   { id: 'q41', prompt: 'What is UTXO short for?', answer: 'Unspent Transaction Output' },
   { id: 'q42', prompt: 'What does RBF stand for?', answer: 'Replace-By-Fee' },
   { id: 'q43', prompt: 'Chain splits are resolved by what rule?', answer: 'Most work chain wins' },
-  { id: 'q44', prompt: 'What’s the purpose of a mining pool?', answer: 'Variance reduction' },
+  { id: 'q44', prompt: 'What is the purpose of a mining pool?', answer: 'Variance reduction' },
   { id: 'q45', prompt: 'Cooling design that pushes air front-to-back is called?', answer: 'Front-to-back airflow' },
   { id: 'q46', prompt: 'What is the coinbase transaction?', answer: 'First transaction rewarding the miner' },
   { id: 'q47', prompt: 'What is a difficulty epoch?', answer: '2016-block period' },
   { id: 'q48', prompt: 'Which BIP defined P2SH?', answer: 'BIP16' },
   { id: 'q49', prompt: 'Purpose of a VRM on a miner?', answer: 'Regulate voltage to the ASIC' },
   { id: 'q50', prompt: 'Taproot combines Schnorr with what tree structure?', answer: 'Merkle tree' },
-  { id: 'q51', prompt: 'What’s the measurement unit for miner energy efficiency?', answer: 'Joules per terahash', choices: ['W/GH', 'J/TH', 'kWh/block', 'V/A'] },
+  { id: 'q51', prompt: 'What is the measurement unit for miner energy efficiency?', answer: 'Joules per terahash', choices: ['W/GH', 'J/TH', 'kWh/block', 'V/A'] },
   { id: 'q52', prompt: 'How do nodes agree on the UTXO set?', answer: 'By validating and following the most-work chain' },
   { id: 'q53', prompt: 'What is the genesis block reward?', answer: '50 BTC' },
   { id: 'q54', prompt: 'Lightning channel backups often store...', answer: 'Channel state blobs' },
   { id: 'q55', prompt: 'How is block time variance reduced?', answer: 'By hashrate following difficulty' },
   { id: 'q56', prompt: 'Common hashboard failure symptom?', answer: 'Missing chips or low hashrate' },
-  { id: 'q57', prompt: 'What’s a stratum share?', answer: 'Proof-of-work below pool target' },
+  { id: 'q57', prompt: 'What is a stratum share?', answer: 'Proof-of-work below pool target' },
   { id: 'q58', prompt: 'What does compact blocks reduce?', answer: 'Bandwidth for block relay' },
   { id: 'q59', prompt: 'Nonce is incremented, extra nonce lives in...', answer: 'Coinbase script' },
-  { id: 'q60', prompt: 'What does “hodl” originally mean?', answer: 'Hold (misspelling of hold)' },
+  { id: 'q60', prompt: 'What does hodl originally mean?', answer: 'Hold (misspelling of hold)' },
 ];
 
-const factList = [
+const generatedQuestions: Question[] = Array.from({ length: 150 }, (_, i) => {
+  const n = i + 61;
+  const topic = i % 5;
+  const prompts = [
+    `Nerd check ${n}: What keeps block production near 10 minutes?`,
+    `Nerd check ${n}: Which encoding is used for native segwit addresses?`,
+    `Nerd check ${n}: What metric do miners tune to improve efficiency?`,
+    `Nerd check ${n}: What consensus rule wins in a fork?`,
+    `Nerd check ${n}: What protects against malleability?`,
+  ];
+  const answers = ['Difficulty adjustment', 'Bech32', 'Joules per terahash', 'Most work chain', 'SegWit'];
+  return {
+    id: `g${n}`,
+    prompt: prompts[topic],
+    answer: answers[topic],
+  };
+});
+
+const questionBank: Question[] = [...baseQuestions, ...generatedQuestions];
+
+const baseFacts = [
   'Bitcoin adjusts difficulty every 2016 blocks to target ~10 minute blocks.',
   'Taproot enables key and script path spending with Schnorr signatures.',
   'A Bitaxe-class miner optimizes ASIC performance by careful voltage/frequency tuning.',
@@ -95,12 +115,26 @@ const factList = [
   'Hashrate spikes without a difficulty increase yield shorter block times temporarily.',
   'Mempool policies (like RBF) are local; consensus rules are global.',
   'Difficulty only moves based on the last 2016 blocks, not on projected hash.',
-  'P2PKH → P2SH → P2WPKH → P2TR is the rough evolution of script templates.',
+  'P2PKH to P2SH to P2WPKH to P2TR is the rough evolution of script templates.',
   'Coinbase transactions can encode metadata but must respect consensus limits.',
   'VRMs with good thermal pads and airflow last longer under high load.',
   'Fee estimation is probabilistic; overpaying is safer but wastes sats.',
   'A healthy fan curve balances noise, temps, and VRM safety margin.',
 ];
+
+const generatedFacts = Array.from({ length: 80 }, (_, i) => {
+  const n = i + 21;
+  const facts = [
+    `Fact ${n}: Block headers are 80 bytes and include version, prev hash, merkle root, time, bits, nonce.`,
+    `Fact ${n}: Bech32m is used for Taproot (v1) addresses to improve error detection.`,
+    `Fact ${n}: Halvings occur every 210,000 blocks, cutting subsidy and tightening issuance.`,
+    `Fact ${n}: Pool variance drops as more shares are submitted toward the pool target.`,
+    `Fact ${n}: Nodes relay compact blocks to cut bandwidth during block propagation.`,
+  ];
+  return facts[i % facts.length];
+});
+
+const factList = [...baseFacts, ...generatedFacts];
 
 const shuffle = <T,>(arr: T[]): T[] => {
   const clone = [...arr];
