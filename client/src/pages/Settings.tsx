@@ -638,6 +638,8 @@ export default function Settings() {
       </div>
     </div>
 
+    </div>
+
     {/* Model benchmark defaults dialog */}
     <Dialog open={!!showModelDefaults} onOpenChange={(open) => { if (!open) setShowModelDefaults(null); }}>
       <DialogContent className="max-w-3xl">
