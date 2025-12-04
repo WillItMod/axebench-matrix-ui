@@ -35,7 +35,7 @@ export default function BenchmarkConsole() {
   };
 
   return (
-    <div className="bg-black/80 border-2 border-[var(--matrix-green)] rounded-lg overflow-hidden">
+    <div className="gridrunner-surface border border-[var(--matrix-green)]/70 shadow-chrome overflow-hidden">
       {/* Console Header */}
       <div className="bg-[var(--matrix-green)]/20 border-b border-[var(--matrix-green)] px-4 py-2">
         <div className="flex items-center justify-between">

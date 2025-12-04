@@ -580,12 +580,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [matrixCodeColor]);
 
   useEffect(() => {
-    if (!matrixCodeColorOverride) {
-      const next = palette.colors.primary;
-      document.documentElement.style.setProperty('--matrix-green', next);
-      localStorage.setItem(MATRIX_CODE_COLOR_KEY, next);
-    }
-  }, [palette, matrixCodeColorOverride]);
+    if (matrixCodeColorOverride) return;
+    const next = palette.colors.primary;
+    setMatrixCodeColor((current) => (current === next ? current : next));
+  }, [palette, matrixCodeColorOverride, setMatrixCodeColor]);
 
   useEffect(() => {
     localStorage.setItem(MATRIX_COLOR_OVERRIDE_KEY, matrixCodeColorOverride ? 'true' : 'false');
@@ -598,6 +596,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = (name: ThemeName) => {
     setThemeState(name);
     localStorage.setItem(THEME_KEY, name);
+    const paletteForTheme = palettes[name] || palettes.matrix;
+    const nextMatrixColor = paletteForTheme.colors.primary;
+    setMatrixCodeColorOverride(false);
+    localStorage.setItem(MATRIX_COLOR_OVERRIDE_KEY, 'false');
+    setMatrixCodeColor(nextMatrixColor);
+    localStorage.setItem(MATRIX_CODE_COLOR_KEY, nextMatrixColor);
     if (name === 'solarSynth' && !matrixRainbow) {
       setMatrixRainbow(true);
     }

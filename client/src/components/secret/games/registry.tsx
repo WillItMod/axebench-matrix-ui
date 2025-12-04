@@ -47,7 +47,7 @@ const HtmlGameCard = ({
         <div className="text-sm text-muted-foreground">{description}</div>
       </div>
 
-      <div className="relative overflow-hidden rounded-xl border border-border/40 bg-black/60">
+      <div className="relative overflow-hidden rounded-xl border border-border/40 bg-[hsla(var(--card),var(--surface-strong))] backdrop-blur-sm">
         {!loaded && (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
             Loading game…
@@ -63,7 +63,7 @@ const HtmlGameCard = ({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-background/60 px-3 py-2">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-[hsla(var(--card),var(--surface-soft))] backdrop-blur-sm px-3 py-2">
         <div className="text-xs text-muted-foreground">{hint}</div>
         <Button type="button" variant="accent" size="sm" className="uppercase tracking-wide" onClick={onMarkComplete}>
           Mark Complete

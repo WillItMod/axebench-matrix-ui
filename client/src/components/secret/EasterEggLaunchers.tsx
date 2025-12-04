@@ -34,21 +34,18 @@ export default function EasterEggLaunchers() {
     return MINI_GAMES.find((g) => g.key === openKey) ?? null;
   }, [openKey]);
 
-  // Schedule a single glint every 3-15 minutes
+  // Schedule a single glint every ~30s in different places
   useEffect(() => {
-    const schedule = () => {
-      const delay = 180000 + Math.random() * (900000 - 180000); // 3 to 15 minutes
-      timerRef.current = setTimeout(() => {
-        const pick = baseSlots[Math.floor(Math.random() * baseSlots.length)];
-        setGlintKey(pick.key);
-        setPulseTick((t) => t + 1);
-        setTimeout(() => setGlintKey(null), 2200);
-        schedule();
-      }, delay);
+    const run = () => {
+      const pick = baseSlots[Math.floor(Math.random() * baseSlots.length)];
+      setGlintKey(pick.key);
+      setPulseTick((t) => t + 1);
+      setTimeout(() => setGlintKey(null), 2200);
     };
-    schedule();
+    run();
+    timerRef.current = setInterval(run, 30000);
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
