@@ -222,12 +222,7 @@ export default function Benchmark() {
       toast.error('Select a device first');
       return;
     }
-
-    if (autoTuneDontRemind && autoTuneAck) {
-      startAutoTune({ runNano: autoTuneNano, silent: true });
-      return;
-    }
-
+    // Always show the dialog; preferences only prefill choices.
     setShowCelebration(true);
     setAutoTuneDialogOpen(true);
   };
