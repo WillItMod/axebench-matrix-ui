@@ -300,13 +300,16 @@ export default function Sessions() {
     return Array.from(set).sort();
   }, [sessions]);
 
+  const isAutoSession = (s: any) => {
+    const tune = (s?.tune_type || s?.mode || '').toLowerCase();
+    return tune.includes('auto') || tune.includes('auto_tune') || s?.auto_mode === true;
+  };
+
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
       const deviceMatch = deviceFilter ? s.device === deviceFilter : true;
-      const tune = (s.tune_type || s.mode || '').toLowerCase();
-      const isAuto = tune.includes('auto') || tune.includes('auto_tune') || s.auto_mode === true;
-      const modeMatch =
-        modeFilter === 'all' ? true : modeFilter === 'auto' ? isAuto : !isAuto;
+      const auto = isAutoSession(s);
+      const modeMatch = modeFilter === 'all' ? true : modeFilter === 'auto' ? auto : !auto;
       return deviceMatch && modeMatch;
     });
   }, [sessions, deviceFilter, modeFilter]);
@@ -315,9 +318,7 @@ export default function Sessions() {
     const groups: Record<string, { auto: any[]; manual: any[] }> = {};
     filteredSessions.forEach((session) => {
       const deviceName = session.device || 'UNKNOWN_DEVICE';
-      const tune = (session.tune_type || session.mode || '').toLowerCase();
-      const bucket =
-        tune.includes('auto') || tune.includes('auto_tune') || session.auto_mode === true ? 'auto' : 'manual';
+      const bucket = isAutoSession(session) ? 'auto' : 'manual';
       if (!groups[deviceName]) {
         groups[deviceName] = { auto: [], manual: [] };
       }
