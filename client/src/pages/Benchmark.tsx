@@ -52,6 +52,11 @@ export default function Benchmark() {
   const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
   const [preset, setPreset] = useState('standard'); // For EASY mode
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
+  const [engineDetail, setEngineDetail] = useState<{ open: boolean; title: string; lines: string[] }>({
+    open: false,
+    title: '',
+    lines: [],
+  });
   const presetOptions = [
     { key: 'quick', label: 'QUICK', detail: 'Fast scan' },
     { key: 'standard', label: 'STANDARD', detail: 'Balanced pass' },
@@ -95,6 +100,7 @@ export default function Benchmark() {
     warmup_time: 10,
     cooldown_time: 5,
     cycles_per_test: 1,
+    target_error: 0.25,
     
     // Optimization goal
     goal: 'balanced',
@@ -118,6 +124,10 @@ export default function Benchmark() {
   });
   const [graphsLoading, setGraphsLoading] = useState(false);
   const settingsLocked = benchmarkStatus.running;
+
+  // Utility helpers for derived gauges
+  const clamp01 = (v: number) => Math.min(1, Math.max(0, v || 0));
+  const safeDiv = (a: number, b: number) => (b ? a / b : 0);
 
   // Load devices
   useEffect(() => {
@@ -262,6 +272,139 @@ export default function Benchmark() {
     }
   };
 
+  // Derived engine metrics for visual "stress" panel
+  const liveData = status?.live_data || {};
+  const progressVal = status?.progress ?? benchmarkStatus.progress ?? 0;
+  const testsCompleted = status?.tests_completed ?? status?.tests_complete ?? benchmarkStatus.tests_completed ?? 0;
+  const testsTotal = status?.tests_total ?? benchmarkStatus.tests_total ?? 0;
+  const maxChip = config.max_chip_temp || status?.safety_limits?.max_chip_temp || 70;
+  const maxPower = config.max_power || status?.safety_limits?.max_power || 25;
+  const maxVoltage = (config as any).max_voltage || 1400;
+  const targetError = config.target_error || status?.config?.target_error || 0.25;
+  const temp = Number(liveData.temp ?? liveData.temperature ?? 0);
+  const power = Number(liveData.power ?? 0);
+  const voltage = Number(liveData.voltage ?? config.voltage_start ?? 0);
+  const frequency = Number(liveData.frequency ?? config.frequency_start ?? 0);
+  const fanSpeed = Number(liveData.fan_speed ?? 0);
+  const errorPct = Number(
+    liveData.error_percentage ??
+      liveData.errorPercent ??
+      liveData.error_percent ??
+      0
+  );
+  const hashrateGh = Number(liveData.hashrate ?? 0);
+  const tempRatio = clamp01(temp / maxChip);
+  const powerRatio = clamp01(power / maxPower);
+  const voltageRatio = clamp01(voltage / maxVoltage);
+  const tempHeadroom = maxChip - temp;
+  const powerHeadroom = maxPower - power;
+  const errorMargin = targetError - errorPct;
+  const thermalStress = Math.min(
+    100,
+    tempRatio * 70 +
+      (tempRatio > 0.85 ? 15 : 0) +
+      (fanSpeed > 85 ? 10 : 0)
+  );
+  const powerStress = Math.min(
+    100,
+    Math.max(powerRatio, voltageRatio) * 80 + (powerRatio > 0.95 ? 10 : 0)
+  );
+  const errRatio = targetError ? clamp01(errorPct / targetError) : 0;
+  const stabilityStress = Math.min(
+    100,
+    errRatio * 80 +
+      ((status?.failed_combos?.length || 0) * 2) +
+      ((status?.recovery_attempts || 0) * 5)
+  );
+  const vNorm = clamp01(
+    safeDiv(
+      voltage - config.voltage_start,
+      Math.max(1, config.voltage_stop - config.voltage_start)
+    )
+  );
+  const fNorm = clamp01(
+    safeDiv(
+      frequency - config.frequency_start,
+      Math.max(1, config.frequency_stop - config.frequency_start)
+    )
+  );
+  const push = (vNorm + fNorm + Math.max(powerRatio, voltageRatio)) / 3;
+  const instability = clamp01(errRatio + (stabilityStress / 100) * 0.3);
+  const balanceDelta = Math.max(-1, Math.min(1, push - instability));
+  const efficiencyJth = hashrateGh > 0 ? power / (hashrateGh / 1000) : 0;
+
+  const StressBar = ({
+    label,
+    value,
+    color,
+    tooltip,
+    onClick,
+  }: {
+    label: string;
+    value: number;
+    color: string;
+    tooltip: string;
+    onClick?: () => void;
+  }) => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className="space-y-1 cursor-help"
+          onClick={onClick}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onClick?.();
+            }
+          }}
+        >
+          <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+            <span>{label}</span>
+            <span className="text-[var(--text-primary)] font-semibold">{value.toFixed(0)}%</span>
+          </div>
+          <div className="w-full h-2 rounded bg-[var(--grid-gray)] overflow-hidden">
+            <div
+              className={`h-full transition-all`}
+              style={{
+                width: `${Math.min(100, Math.max(0, value))}%`,
+                background: color,
+                boxShadow: `0 0 8px ${color}`,
+              }}
+            />
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        <div className="max-w-xs text-xs space-y-1">{tooltip}</div>
+      </TooltipContent>
+    </Tooltip>
+  );
+
+  const MiniSlider = ({
+    label,
+    ratio,
+    display,
+  }: {
+    label: string;
+    ratio: number;
+    display: string;
+  }) => (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+        <span>{label}</span>
+        <span className="text-[var(--text-primary)] font-semibold">{display}</span>
+      </div>
+      <div className="w-full h-1.5 rounded bg-[var(--grid-gray)] overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-[#22c55e] via-[#eab308] to-[#ef4444]"
+          style={{ width: `${clamp01(ratio) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+
   const handleAutoTune = () => {
     if (settingsLocked) {
       toast.error('Stop the running benchmark before adjusting Autopilot');
@@ -301,6 +444,7 @@ export default function Benchmark() {
         warmup: config.warmup_time,
         cooldown: config.cooldown_time,
         cycles_per_test: config.cycles_per_test,
+        target_error: config.target_error,
         strategy: 'adaptive_progression',
         mode: 'auto_tune',
         nano_after_profiles: nanoPass,
@@ -826,6 +970,194 @@ export default function Benchmark() {
             )}
           </div>
 
+          {/* Engine Panel */}
+          <div className="matrix-card">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-lg font-bold text-glow-cyan">ENGINE_PANEL</h3>
+                <p className="text-[var(--text-muted)] text-xs">
+                  Visual snapshot of tuning load: thermal, power, stability, balance, and V/F position.
+                </p>
+              </div>
+              <div className="text-xs text-[var(--text-secondary)]">
+                {benchmarkStatus.running ? 'RUNNING' : 'IDLE'}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Progress & Sweep */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                  <span>SWEEP_PROGRESS</span>
+                  <span className="text-[var(--text-primary)] font-semibold">
+                    {testsCompleted} / {testsTotal || '?'} ({progressVal || 0}%)
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded bg-[var(--grid-gray)] overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#22c55e] via-[#eab308] to-[#ef4444] transition-all"
+                    style={{ width: `${Math.min(100, Math.max(0, progressVal || 0))}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
+                  <div>Current: {voltage} mV / {frequency} MHz</div>
+                  <div>Goal: {config.goal?.toString().toUpperCase()}</div>
+                </div>
+              </div>
+
+              {/* Stress trio */}
+              <div className="space-y-2">
+                <StressBar
+                  label="THERMAL STRESS"
+                  value={thermalStress}
+                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
+                  tooltip={`Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C). Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}. Higher when near cap or climbing fast.`}
+                  onClick={() =>
+                    setEngineDetail({
+                      open: true,
+                      title: 'Thermal Stress',
+                      lines: [
+                        `Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C)`,
+                        `Temp ratio ${(tempRatio * 100).toFixed(1)}%`,
+                        `Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}`,
+                        'Score = temp_ratio*70 + proximity/fan boosts',
+                      ],
+                    })
+                  }
+                />
+                <StressBar
+                  label="POWER STRESS"
+                  value={powerStress}
+                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
+                  tooltip={`Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W), Voltage ${voltage} / ${maxVoltage}mV. Higher when near power/volt limits.`}
+                  onClick={() =>
+                    setEngineDetail({
+                      open: true,
+                      title: 'Power Stress',
+                      lines: [
+                        `Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W)`,
+                        `Voltage ${voltage} / ${maxVoltage}mV`,
+                        `Ratios: power ${(powerRatio * 100).toFixed(1)}%, voltage ${(voltageRatio * 100).toFixed(1)}%`,
+                        'Score = max(power, voltage) ratio * 80 (+limit boosts)',
+                      ],
+                    })
+                  }
+                />
+                <StressBar
+                  label="STABILITY STRESS"
+                  value={stabilityStress}
+                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
+                  tooltip={`ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%). Recovery and failed combos add stress.`}
+                  onClick={() =>
+                    setEngineDetail({
+                      open: true,
+                      title: 'Stability Stress',
+                      lines: [
+                        `ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%)`,
+                        `Error ratio ${(errRatio * 100).toFixed(1)}%`,
+                        `Recoveries ${status?.recovery_attempts || 0}, failed combos ${(status?.failed_combos || []).length}`,
+                        'Score = err_ratio*80 + recovery/failed boosts',
+                      ],
+                    })
+                  }
+                />
+
+                <div className="grid grid-cols-3 gap-2 text-[11px] text-[var(--text-secondary)]">
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
+                    Headroom: {tempHeadroom.toFixed(1)}°C
+                  </div>
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
+                    Power: {powerHeadroom.toFixed(1)} W
+                  </div>
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
+                    Error margin: {errorMargin.toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+
+              {/* Balance & V/F sliders */}
+              <div className="space-y-3">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="space-y-1 cursor-help"
+                      onClick={() =>
+                        setEngineDetail({
+                          open: true,
+                          title: 'Balance',
+                          lines: [
+                            `Push (avg V/F/power ratios): ${push.toFixed(2)}`,
+                            `Instability (error/recovery): ${instability.toFixed(2)}`,
+                            'Right = more headroom, Left = instability/overdrive.',
+                          ],
+                        })
+                      }
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setEngineDetail({
+                            open: true,
+                            title: 'Balance',
+                            lines: [
+                              `Push (avg V/F/power ratios): ${push.toFixed(2)}`,
+                              `Instability (error/recovery): ${instability.toFixed(2)}`,
+                              'Right = more headroom, Left = instability/overdrive.',
+                            ],
+                          });
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                        <span>BALANCE</span>
+                        <span className="text-[var(--text-primary)] font-semibold">
+                          {balanceDelta >= 0 ? 'PUSH' : 'RISK'}
+                        </span>
+                      </div>
+                      <div className="w-full h-3 rounded bg-[var(--grid-gray)] relative overflow-hidden">
+                        <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[var(--text-muted)]" />
+                        <div
+                          className="absolute top-0 bottom-0 w-1.5 rounded bg-gradient-to-r from-[#ef4444] via-[#eab308] to-[#22c55e] transition-transform"
+                          style={{ transform: `translateX(${balanceDelta * 50}%)` }}
+                        />
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <div className="max-w-xs text-xs space-y-1">
+                      <div>Push: avg(V/F/power ratios) = {push.toFixed(2)}</div>
+                      <div>Instability: error/recovery weighting = {instability.toFixed(2)}</div>
+                      <div>Right = headroom, Left = instability/overdrive.</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+
+                <MiniSlider
+                  label="VOLTAGE POSITION"
+                  ratio={vNorm}
+                  display={`${voltage} mV`}
+                />
+                <MiniSlider
+                  label="FREQUENCY POSITION"
+                  ratio={fNorm}
+                  display={`${frequency} MHz`}
+                />
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
+                    <div className="text-[var(--text-secondary)]">EFFICIENCY</div>
+                    <div className="text-[var(--success-green)] font-semibold">{efficiencyJth > 0 ? `${efficiencyJth.toFixed(2)} J/TH` : '—'}</div>
+                  </div>
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
+                    <div className="text-[var(--text-secondary)]">HASHRATE</div>
+                    <div className="text-[var(--neon-cyan)] font-semibold">{hashrateGh ? `${hashrateGh.toFixed(1)} GH/s` : '—'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Live Monitoring Panel */}
           {(() => {
             const deviceName = benchmarkStatus.device || selectedDevice;
@@ -1050,6 +1382,30 @@ export default function Benchmark() {
                 {autoTuneStarting ? 'Starting...' : 'ENGAGE 🚀'}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Engine detail modal */}
+      <Dialog
+        open={engineDetail.open}
+        onOpenChange={(open) => setEngineDetail((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{engineDetail.title || 'Detail'}</DialogTitle>
+            <DialogDescription>How this indicator is calculated.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm text-[var(--text-primary)]">
+            {engineDetail.lines.map((line, idx) => (
+              <div key={idx} className="leading-relaxed">
+                • {line}
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEngineDetail((prev) => ({ ...prev, open: false }))}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
