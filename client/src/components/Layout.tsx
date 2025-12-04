@@ -173,7 +173,7 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative bg-[var(--deep-black)] text-[var(--text-primary)]">
       {/* Matrix Background */}
       <MatrixBackground />
 
