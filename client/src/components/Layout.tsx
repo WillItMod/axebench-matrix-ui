@@ -10,12 +10,14 @@ import { toast } from 'sonner';
 import BitcoinCelebrationOverlay from './BitcoinCelebrationOverlay';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import DarkModeChallengeHub from './DarkModeChallengeHub';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const { secretUnlocked } = useTheme();
   const [location] = useLocation();
   const [uptime, setUptime] = useState<string>('N/A');
   const [uptimeAvailable, setUptimeAvailable] = useState(true);
@@ -115,7 +117,6 @@ export default function Layout({ children }: LayoutProps) {
   const [patreonUrl, setPatreonUrl] = useState<string>(import.meta.env.VITE_PATREON_URL || 'https://www.patreon.com/axebench');
   const [showSecret, setShowSecret] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
-  const secretUnlocked = typeof window !== 'undefined' && localStorage.getItem('axebench_secret_theme') === 'forge';
   useEffect(() => {
     const handler = () => setCelebrate(true);
     window.addEventListener('forge-celebrate', handler);
@@ -304,4 +305,3 @@ export default function Layout({ children }: LayoutProps) {
     </div>
   );
 }
-
