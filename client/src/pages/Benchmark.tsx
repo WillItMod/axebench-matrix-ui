@@ -400,6 +400,218 @@ export default function Benchmark() {
     </Tooltip>
   );
 
+  const DialGauge = ({
+    label,
+    value,
+    subtitle,
+    tooltip,
+    accent,
+  }: {
+    label: string;
+    value: number;
+    subtitle?: string;
+    tooltip?: string;
+    accent?: string;
+  }) => {
+    const clamped = Math.min(100, Math.max(0, value || 0));
+    const size = 96;
+    const stroke = 8;
+    const r = (size - stroke) / 2;
+    const c = 2 * Math.PI * r;
+    const dash = (clamped / 100) * c;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex flex-col items-center justify-center gap-1 cursor-help">
+            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+              <defs>
+                <linearGradient id={`${label}-dial-grad`} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#22c55e" />
+                  <stop offset="50%" stopColor="#eab308" />
+                  <stop offset="100%" stopColor="#ef4444" />
+                </linearGradient>
+              </defs>
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth={stroke}
+                fill="none"
+              />
+              <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
+                stroke={accent || `url(#${label}-dial-grad)`}
+                strokeWidth={stroke}
+                fill="none"
+                strokeDasharray={`${dash} ${c}`}
+                strokeDashoffset={c * 0.25}
+                strokeLinecap="round"
+                style={{ transition: 'stroke-dasharray 0.4s ease' }}
+              />
+              <text
+                x="50%"
+                y="50%"
+                dominantBaseline="middle"
+                textAnchor="middle"
+                fill="white"
+                fontSize="13"
+                fontWeight="700"
+              >
+                {clamped.toFixed(0)}%
+              </text>
+            </svg>
+            <div className="text-[11px] text-[var(--text-secondary)] text-center leading-tight">
+              <div className="font-semibold text-[var(--text-primary)]">{label}</div>
+              {subtitle && <div>{subtitle}</div>}
+            </div>
+          </div>
+        </TooltipTrigger>
+        {tooltip && (
+          <TooltipContent side="top">
+            <div className="max-w-xs text-xs space-y-1">{tooltip}</div>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    );
+  };
+
+  const ArcGauge = ({
+    label,
+    value,
+    text,
+    footer,
+  }: {
+    label: string;
+    value: number;
+    text: string;
+    footer?: string;
+  }) => {
+    const clamped = Math.min(100, Math.max(0, value || 0));
+    const size = 120;
+    const stroke = 10;
+    const r = (size - stroke) / 2;
+    const c = 2 * Math.PI * r;
+    const dash = (clamped / 100) * c;
+    return (
+      <div className="flex flex-col items-center justify-center gap-2">
+        <div className="text-[11px] text-[var(--text-secondary)]">{label}</div>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+          <defs>
+            <linearGradient id={`${label}-arc-grad`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#22c55e" />
+              <stop offset="50%" stopColor="#eab308" />
+              <stop offset="100%" stopColor="#ef4444" />
+            </linearGradient>
+          </defs>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth={stroke}
+            fill="none"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={`url(#${label}-arc-grad)`}
+            strokeWidth={stroke}
+            fill="none"
+            strokeDasharray={`${dash} ${c}`}
+            strokeDashoffset={c * 0.25}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dasharray 0.4s ease' }}
+          />
+          <text
+            x="50%"
+            y="50%"
+            dominantBaseline="middle"
+            textAnchor="middle"
+            fill="white"
+            fontSize="14"
+            fontWeight="700"
+          >
+            {clamped.toFixed(0)}%
+          </text>
+        </svg>
+        <div className="text-[11px] text-[var(--text-primary)] font-semibold">{text}</div>
+        {footer && <div className="text-[10px] text-[var(--text-muted)]">{footer}</div>}
+      </div>
+    );
+  };
+
+  const BalanceGauge = ({
+    value,
+    tooltip,
+  }: {
+    value: number; // -1..1
+    tooltip?: string;
+  }) => {
+    const clamped = Math.max(-1, Math.min(1, value));
+    const angle = 180 * ((clamped + 1) / 2) - 90; // -90 to 90
+    const needleLength = 70;
+    const centerX = 90;
+    const centerY = 80;
+    const rad = (angle * Math.PI) / 180;
+    const x2 = centerX + needleLength * Math.cos(rad);
+    const y2 = centerY + needleLength * Math.sin(rad);
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="space-y-1 cursor-help">
+            <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+              <span>BALANCE</span>
+              <span className="text-[var(--text-primary)] font-semibold">
+                {clamped >= 0 ? 'PUSH' : 'RISK'}
+              </span>
+            </div>
+            <svg width="180" height="90" viewBox="0 0 180 90">
+              <defs>
+                <linearGradient id="balanceGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#ef4444" />
+                  <stop offset="50%" stopColor="#eab308" />
+                  <stop offset="100%" stopColor="#22c55e" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M10 80 A80 80 0 0 1 170 80"
+                stroke="rgba(255,255,255,0.08)"
+                strokeWidth="10"
+                fill="none"
+                strokeLinecap="round"
+              />
+              <path
+                d="M10 80 A80 80 0 0 1 170 80"
+                stroke="url(#balanceGradient)"
+                strokeWidth="10"
+                fill="none"
+                strokeLinecap="round"
+              />
+              <line
+                x1={centerX}
+                y1={centerY}
+                x2={x2}
+                y2={y2}
+                stroke="white"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+              <circle cx={centerX} cy={centerY} r="4" fill="white" />
+            </svg>
+          </div>
+        </TooltipTrigger>
+        {tooltip && (
+          <TooltipContent side="top">
+            <div className="max-w-xs text-xs space-y-1">{tooltip}</div>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    );
+  };
   const MiniSlider = ({
     label,
     ratio,
