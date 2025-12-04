@@ -792,5 +792,6 @@ export default function Benchmark() {
         </div>
       </ConfirmDialog>
     </div>
+    </>
   );
 }
