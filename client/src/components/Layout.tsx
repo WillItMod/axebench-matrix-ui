@@ -224,12 +224,12 @@ export default function Layout({ children }: LayoutProps) {
                 if (secretUnlocked) setCelebrate(true);
                 setShowSecret(true);
               }}
-              className="flex items-center gap-1 text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
+              className="flex items-center text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
             >
               <span className="text-foreground">AXE</span>
 
-              <span className="relative inline-flex items-center justify-center w-9 h-9 -mx-[3px] rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.75)] border-2 border-amber-200">
-                `u20BF
+              <span className="relative inline-flex items-center justify-center w-9 h-9 -mx-[4px] rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.75)] border-2 border-amber-200">
+                {"\u20BF"}
               </span>
 
               <span className="text-foreground">ENCH</span>
