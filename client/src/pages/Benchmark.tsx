@@ -884,15 +884,15 @@ export default function Benchmark() {
                     <div className="flex justify-between">
                       <span className="text-[var(--text-secondary)]">ASIC Error</span>
                       <span className="text-[var(--warning-amber)]">
-                        {(status.live_data.error_percentage ?? 0).toFixed(2)}%
+                        {Number(status.live_data.error_percentage ?? 0).toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[var(--text-secondary)]">Efficiency</span>
                       <span className="text-[var(--success-green)]">
                         {(() => {
-                          const hr = status.live_data.hashrate || 0;
-                          const pw = status.live_data.power || 0;
+                          const hr = Number(status.live_data.hashrate) || 0;
+                          const pw = Number(status.live_data.power) || 0;
                           const eff = hr > 0 ? pw / (hr / 1000) : 0;
                           return `${eff.toFixed(2)} J/TH`;
                         })()}
