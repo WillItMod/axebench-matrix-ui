@@ -475,27 +475,23 @@ export default function Settings() {
             {modelCards.map((m) => {
               const hasCustom = !!modelBenchmarkDefaults[m.key];
               return (
-                <Button
-                  key={m.key}
-                  variant="secondary"
-                  className="justify-between w-full text-left text-sm"
-                  onClick={() => handleOpenModelDefaults(m.key)}
-                >
-                  <span>{m.label}</span>
-                  <Badge variant={hasCustom ? 'secondary' : 'outline'} className="text-[10px]">
-                    {hasCustom ? 'Custom' : 'Global'}
-                  </Badge>
-                </Button>
+                <div key={m.key} className="flex flex-col gap-2 p-2 border border-border/60 rounded-lg bg-card/60">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-[var(--text-primary)]">{m.label}</div>
+                    <Badge variant={hasCustom ? 'secondary' : 'outline'} className="text-[10px]">
+                      {hasCustom ? 'Custom' : 'Global'}
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-center text-sm"
+                    onClick={() => handleOpenModelDefaults(m.key)}
+                  >
+                    Global defaults
+                  </Button>
+                </div>
               );
             })}
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-center"
-              onClick={() => { setDraftGlobalDefaults(globalBenchmarkDefaults); setShowGlobalDefaults(true); }}
-            >
-              Global test defaults
-            </Button>
           </div>
         </Card>
       </div>
