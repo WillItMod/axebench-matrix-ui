@@ -183,7 +183,12 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-4 items-start">
+      <div className="space-y-3">
+        <div>
+          <div className="text-sm text-muted-foreground">Interface & display</div>
+          <div className="text-xl font-semibold text-glow-cyan">LOOK & FEEL</div>
+        </div>
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-4 items-start">
         <div className="space-y-4">
           <Card className="p-5 space-y-5">
             <div className="flex items-center justify-between">
@@ -341,6 +346,10 @@ export default function Settings() {
             </div>
           </Card>
 
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground">Runtime & display</div>
+            <div className="text-lg font-semibold text-glow-cyan">TELEMETRY & CONTROLS</div>
+          </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="p-5 space-y-4">
               <div className="flex items-center justify-between">
@@ -479,15 +488,15 @@ export default function Settings() {
                 </Button>
               );
             })}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full justify-center"
+              onClick={() => { setDraftGlobalDefaults(globalBenchmarkDefaults); setShowGlobalDefaults(true); }}
+            >
+              Global test defaults
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-center"
-            onClick={() => { setDraftGlobalDefaults(globalBenchmarkDefaults); setShowGlobalDefaults(true); }}
-          >
-            Global test defaults
-          </Button>
         </Card>
       </div>
 
@@ -519,119 +528,10 @@ export default function Settings() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Monitoring & refresh</div>
-              <div className="text-lg font-semibold text-glow-cyan">Poll cadence</div>
-            </div>
-            <Badge variant="outline" className="text-xs">Per-device</Badge>
-          </div>
-          <div className="space-y-3">
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Dashboard auto-refresh (seconds)</Label>
-              <Input
-                type="number"
-                min={1}
-                max={60}
-                step={0.5}
-                value={dashboardRefreshSec}
-                onChange={(e) => {
-                  const sec = Math.max(1, Math.min(60, parseFloat(e.target.value) || 0));
-                  updateSettings({ dashboardRefreshMs: sec * 1000 });
-                }}
-              />
-              <div className="text-[11px] text-muted-foreground">Controls the interval used by the fleet grid.</div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Live monitoring polling (seconds)</Label>
-              <Input
-                type="number"
-                min={0.5}
-                max={30}
-                step={0.5}
-                value={monitoringRefreshSec}
-                onChange={(e) => {
-                  const sec = Math.max(0.5, Math.min(30, parseFloat(e.target.value) || 0));
-                  updateSettings({ monitoringRefreshMs: sec * 1000 });
-                }}
-              />
-              <div className="text-[11px] text-muted-foreground">Lower intervals = smoother charts, higher = lighter backend load.</div>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-5 space-y-4">
-          <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Units & display</div>
-            <div className="text-lg font-semibold text-glow-cyan">How values render</div>
-          </div>
-          <div className="space-y-3">
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Temperature unit</Label>
-              <Select value={temperatureUnit} onValueChange={(val) => updateSettings({ temperatureUnit: val as any })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select unit" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="C">Celsius</SelectItem>
-                  <SelectItem value="F">Fahrenheit</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Hashrate display</Label>
-              <Select value={hashrateDisplay} onValueChange={(val) => updateSettings({ hashrateDisplay: val as any })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select scale" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Auto (GH/TH)</SelectItem>
-                  <SelectItem value="gh">Force GH/s</SelectItem>
-                  <SelectItem value="th">Force TH/s</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Time format</Label>
-              <Select value={timeFormat} onValueChange={(val) => updateSettings({ timeFormat: val as any })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select format" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="24h">24-hour</SelectItem>
-                  <SelectItem value="12h">12-hour</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-5 space-y-4">
-          <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">Performance & visuals</div>
-            <div className="text-lg font-semibold text-glow-cyan">Animation comfort</div>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
-              <div className="flex flex-col">
-                <span className="text-sm text-foreground">Reduce motion</span>
-                <span className="text-[11px] text-muted-foreground">Slows background animations to keep CPUs cool.</span>
-              </div>
-              <Switch checked={reduceMotion} onCheckedChange={(val) => updateSettings({ reduceMotion: val })} />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
-              <div className="flex flex-col">
-                <span className="text-sm text-foreground">Pause Matrix background</span>
-                <span className="text-[11px] text-muted-foreground">Hide the digital rain entirely for shared screens.</span>
-              </div>
-              <Switch checked={pauseMatrix} onCheckedChange={(val) => updateSettings({ pauseMatrix: val })} />
-            </div>
-          </div>
-        </Card>
+      <div className="space-y-2">
+        <div className="text-sm text-muted-foreground">Safety & alerts</div>
+        <div className="text-lg font-semibold text-glow-cyan">SAFEGUARDS</div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5 space-y-4">
           <div className="flex items-center justify-between">
