@@ -32,6 +32,7 @@ export default function Pool() {
   const [loading, setLoading] = useState(true);
   const [selectedDevices, setSelectedDevices] = usePersistentState<string[]>('pool-selected-devices', []);
   const [selectedPoolId, setSelectedPoolId] = usePersistentState<string>('pool-selected-pool', '');
+  const [editingPools, setEditingPools] = useState<Record<string, Pool>>({});
   
   // New pool form
   const [newPool, setNewPool] = useState({
@@ -65,11 +66,13 @@ export default function Pool() {
       setPools(poolsArray);
       setPresets(presetsData || []);
       setDevices(devicesData || []);
-      setSelectedPoolId((prev) => (poolsArray.some((p) => p.id === prev) ? prev : poolsArray[0]?.id || ''));
-      if (!selectedDevices.length && devicesData?.length) {
-        setSelectedDevices([devicesData[0].name]);
+      setSelectedPoolId((prev) => (poolsArray.some((p) => p.id === prev) ? prev : ''));
+      // default to no devices selected; respect persisted selection
+    } catch (error: any) {
+      // If legacy HTML is being served, hint to unset EXPOSE_LEGACY_HTML
+      if (typeof error?.message === 'string' && error.message.includes('<html')) {
+        console.error('Legacy AxePool UI detected. Ensure EXPOSE_LEGACY_HTML is not set.');
       }
-    } catch (error) {
       console.error('Failed to load pool data:', error);
       toast.error('Failed to load pool data');
     } finally {
@@ -93,39 +96,30 @@ export default function Pool() {
     }
 
     try {
-      // Parse URL to extract host and port
       let url = newPool.url;
       let port = 3333; // default stratum port
-      
-      // Handle full URL format (http://host:port or stratum+tcp://host:port)
       const urlMatch = url.match(/^(?:https?:\/\/|stratum\+tcp:\/\/)?([^:\/]+)(?::(\d+))?/);
       if (urlMatch) {
-        url = urlMatch[1]; // host only
+        url = urlMatch[1];
         if (urlMatch[2]) {
-          port = parseInt(urlMatch[2]); // extracted port
+          port = parseInt(urlMatch[2]);
         }
       }
-      
-      // Create pool with separated URL and port
+
       const result = await api.pool.create({
         ...newPool,
         url,
-        port
+        port,
       });
-      
-      console.log('[Pool] Created pool:', result);
+
       toast.success(`Pool "${newPool.name}" created`);
       setNewPool({ name: '', url: '', user: '', password: '' });
+      setEditingPools({});
       if (result?.id) {
         setPools((prev) => [...prev, { ...result }]);
         setSelectedPoolId(result.id);
       }
-      
-      // Reload pools after short delay to ensure backend has persisted
-      setTimeout(() => {
-        console.log('[Pool] Reloading pools after creation');
-        loadData();
-      }, 500);
+      setTimeout(loadData, 500);
     } catch (error) {
       console.error('Failed to create pool:', error);
       toast.error('Failed to create pool');

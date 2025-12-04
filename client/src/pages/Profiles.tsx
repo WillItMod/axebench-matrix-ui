@@ -205,7 +205,7 @@ export default function Profiles() {
   return (
     <div className="space-y-6">
       <div className="hud-panel">
-        <h1 className="text-3xl font-bold text-glow-green mb-2">PROFILE_MATRIX</h1>
+        <h1 className="text-3xl font-bold text-glow-green mb-2">PROFILES</h1>
         <p className="text-[var(--text-secondary)] text-sm">
           Manage and apply voltage/frequency profiles
         </p>

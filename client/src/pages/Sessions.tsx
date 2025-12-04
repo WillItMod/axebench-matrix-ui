@@ -498,7 +498,7 @@ export default function Sessions() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-[var(--matrix-green)] text-2xl text-glow-green flicker">
-          LOADING_SESSION_MATRIX...
+          LOADING SESSIONS...
         </div>
       </div>
     );
@@ -509,7 +509,7 @@ export default function Sessions() {
       <div className="hud-panel">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-glow-green mb-2">SESSION_MATRIX</h1>
+            <h1 className="text-3xl font-bold text-glow-green mb-2">SESSIONS</h1>
             <p className="text-[var(--text-secondary)] text-sm">
               Benchmark session history and results
             </p>
@@ -525,33 +525,18 @@ export default function Sessions() {
         <div className="matrix-card p-4 space-y-3">
           <div className="flex flex-wrap gap-3 items-center justify-between">
             <div className="flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                className={`text-xs ${modeFilter === 'all' ? 'btn-matrix shadow-[0_0_0_1px_var(--matrix-green)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
-                aria-pressed={modeFilter === 'all'}
-                onClick={() => setModeFilter('all')}
-              >
-                ALL_MODES
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className={`text-xs ${modeFilter === 'auto' ? 'btn-matrix shadow-[0_0_0_1px_var(--matrix-green)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
-                aria-pressed={modeFilter === 'auto'}
-                onClick={() => setModeFilter('auto')}
-              >
-                AUTO_TUNE
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className={`text-xs ${modeFilter === 'manual' ? 'btn-matrix shadow-[0_0_0_1px_var(--matrix-green)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
-                aria-pressed={modeFilter === 'manual'}
-                onClick={() => setModeFilter('manual')}
-              >
-                MANUAL
-              </Button>
+              {(['all','auto','manual'] as const).map((mode) => (
+                <Button
+                  key={mode}
+                  size="sm"
+                  variant="outline"
+                  className={`text-xs ${modeFilter === mode ? 'btn-matrix shadow-[0_0_0_1px_var(--theme-primary)]' : 'border-[var(--grid-gray)] text-[var(--text-secondary)]'}`}
+                  aria-pressed={modeFilter === mode}
+                  onClick={() => setModeFilter(mode)}
+                >
+                  {mode === 'all' ? 'ALL_MODES' : mode === 'auto' ? 'AUTO_TUNE' : 'MANUAL'}
+                </Button>
+              ))}
             </div>
             <div className="flex flex-wrap gap-2">
               {deviceOptions.map((dev) => (

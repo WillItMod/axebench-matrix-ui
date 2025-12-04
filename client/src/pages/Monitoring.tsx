@@ -22,29 +22,11 @@ export default function Monitoring() {
     loadDevices();
   }, []);
 
-  // Apply preselected device from query ?device=Name
-  useEffect(() => {
-    const params = new URLSearchParams(location.split('?')[1] || '');
-    const preselect = params.get('device');
-    if (preselect) {
-      setSelectedDevices([preselect]);
-    }
-  }, [location]);
-
   const loadDevices = async () => {
     try {
       setLoading(true);
       const deviceList = await api.devices.list();
       setDevices(deviceList || []);
-
-      // Auto-select first device if none selected and no query override
-      const params = new URLSearchParams(location.split('?')[1] || '');
-      const preselect = params.get('device');
-      if (preselect) {
-        setSelectedDevices([preselect]);
-      } else if (deviceList && deviceList.length > 0 && selectedDevices.length === 0) {
-        setSelectedDevices([deviceList[0].name]);
-      }
     } catch (error) {
       console.error('Failed to load devices:', error);
       setDevices([]);
@@ -69,27 +51,24 @@ export default function Monitoring() {
     setSelectedDevices([]);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-matrix-green text-xl animate-pulse">LOADING_MONITORING_MATRIX...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {loading && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="text-[var(--theme-primary)] text-lg animate-pulse">LOADING MONITORING...</div>
+        </div>
+      )}
       {/* Header */}
       <div className="hud-panel">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-glow-green mb-2">📊 LIVE_MONITORING</h1>
+            <h1 className="text-3xl font-bold text-glow-green mb-2">MONITORING</h1>
             <p className="text-[var(--text-secondary)]">
               Real-time fleet monitoring with multi-device support
             </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={loadDevices} variant="outline" className="gap-2">
+            <Button onClick={loadDevices} variant="outline" className="gap-2 text-[var(--text-primary)] hover:text-[var(--theme-accent)] border-[var(--theme-primary)]">
               <RefreshCw className="w-4 h-4" />
               REFRESH
             </Button>
@@ -102,10 +81,10 @@ export default function Monitoring() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-glow-cyan">SELECT_DEVICES</h2>
           <div className="flex gap-2">
-            <Button onClick={selectAll} size="sm" className="btn-matrix text-xs">
+            <Button onClick={selectAll} size="sm" className="text-xs bg-[var(--theme-primary)] text-black hover:bg-[var(--theme-primary)]/80 border-[var(--theme-primary)]">
               SELECT_ALL
             </Button>
-            <Button onClick={clearAll} size="sm" variant="outline" className="text-xs">
+            <Button onClick={clearAll} size="sm" variant="outline" className="text-xs text-[var(--text-secondary)] border-[var(--grid-gray)] hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)]">
               CLEAR
             </Button>
           </div>
@@ -120,8 +99,8 @@ export default function Monitoring() {
                 onClick={() => toggleDevice(device.name)}
                 variant={selectedDevices.includes(device.name) ? 'default' : 'outline'}
                 className={selectedDevices.includes(device.name)
-                  ? 'bg-[var(--neon-cyan)] text-black hover:bg-[var(--neon-cyan)]/80 border-[var(--neon-cyan)] flex items-center gap-2'
-                  : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--neon-cyan)] hover:text-[var(--neon-cyan)] flex items-center gap-2'
+                  ? 'bg-[var(--theme-primary)] text-black hover:bg-[var(--theme-primary)]/80 border-[var(--theme-primary)] flex items-center gap-2'
+                  : 'border-[var(--grid-gray)] text-[var(--text-secondary)] hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] flex items-center gap-2'
                 }
               >
                 {device.name}

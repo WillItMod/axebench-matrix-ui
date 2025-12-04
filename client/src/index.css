@@ -425,14 +425,23 @@
 /* Blackout mode overrides */
 body.blackout-mode {
   background-color: #000;
-  color: #8a8a8a;
-  filter: saturate(0) brightness(0.35);
+  color: #5a5a5a;
+  filter: saturate(0) brightness(0.18);
 }
 body.blackout-mode * {
   --theme-background: #000;
   --theme-surface: #050505;
-  --theme-text: #8a8a8a;
-  --theme-textSecondary: #555555;
+  --theme-text: #6a6a6a;
+  --theme-textSecondary: #3a3a3a;
   --theme-border: #0a0a0a;
   color: var(--theme-text);
+}
+
+body.blackout-mode .glow-pulse {
+  animation: blackoutGlow 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes blackoutGlow {
+  0% { text-shadow: 0 0 6px rgba(0,255,180,0.12), 0 0 12px rgba(0,180,255,0.08); }
+  100% { text-shadow: 0 0 12px rgba(0,255,180,0.18), 0 0 20px rgba(0,180,255,0.12); }
 }

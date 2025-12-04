@@ -210,7 +210,7 @@ export default function Benchmark() {
   return (
     <div className="space-y-6">
       <div className="hud-panel">
-        <h1 className="text-3xl font-bold text-glow-green mb-2">BENCHMARK_MATRIX</h1>
+        <h1 className="text-3xl font-bold text-glow-green mb-2">BENCHMARK</h1>
         <p className="text-[var(--text-secondary)] text-sm">
           Configure and execute voltage/frequency optimization benchmarks
         </p>
