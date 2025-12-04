@@ -124,16 +124,18 @@ export default function Layout({ children }: LayoutProps) {
   }, []);
 
   const renderLicenseBanner = () => {
+    const bannerBase = 'bg-card border border-border text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg shadow-sm';
+
     if (licenseTier === 'free') {
       return (
-        <div className="bg-[var(--dark-gray)] border border-[var(--warning-amber)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="text-sm">
+        <div className={bannerBase}>
+          <div className="text-sm text-muted-foreground">
             Free tier: up to {deviceLimit} devices. You have {deviceCount}. {overLimit ? 'Some features may be limited.' : 'Support to unlock more.'}
           </div>
           <div className="flex gap-2">
             <Button
               size="sm"
-              className="btn-matrix"
+              variant="secondary"
               onClick={() => window.open(patreonUrl, '_blank')}
             >
               Support on Patreon
@@ -145,8 +147,8 @@ export default function Layout({ children }: LayoutProps) {
 
     if (licenseTier === 'premium') {
       return (
-        <div className="bg-card border border-border text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="text-sm">
+        <div className={bannerBase}>
+          <div className="text-sm text-muted-foreground">
             Premium: up to {deviceLimit} devices. Thanks for supporting! Devices: {deviceCount}.
           </div>
           <Button
@@ -162,8 +164,8 @@ export default function Layout({ children }: LayoutProps) {
 
     if (licenseTier === 'ultimate') {
       return (
-        <div className="bg-card border border-border text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="text-sm">
+        <div className={bannerBase}>
+          <div className="text-sm text-muted-foreground">
             Ultimate supporter! Limit {deviceLimit} devices. Thanks for keeping AxeBench running strong.
           </div>
         </div>
@@ -227,7 +229,7 @@ export default function Layout({ children }: LayoutProps) {
               <span className="text-foreground">AXE</span>
 
               <span className="relative inline-flex items-center justify-center w-9 h-9 -mx-[3px] rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.75)] border-2 border-amber-200">
-                ₿
+                `u20BF
               </span>
 
               <span className="text-foreground">ENCH</span>
@@ -259,14 +261,14 @@ export default function Layout({ children }: LayoutProps) {
                         px-6 py-3 font-bold uppercase tracking-wide transition-all relative rounded-md border
                         ${
                           isActive
-                            ? 'text-primary-foreground bg-primary border-primary shadow-[0_0_16px_rgba(34,197,94,0.45)]'
-                            : 'text-foreground/90 hover:text-primary hover:border-primary hover:shadow-[0_0_10px_rgba(34,211,238,0.3)] hover:bg-muted border-border bg-card/60'
+                            ? 'text-[hsl(var(--primary-foreground))] bg-[hsl(var(--primary))] border-[hsl(var(--primary))] shadow-[0_0_16px_rgba(34,197,94,0.35)]'
+                            : 'text-[hsl(var(--foreground))] hover:text-[hsl(var(--primary))] hover:border-[hsl(var(--primary))] hover:shadow-[0_0_10px_rgba(34,211,238,0.25)] hover:bg-[hsl(var(--muted))]/60 border-border bg-card/60'
                         }
                       `}
                     >
                       {tab.label}
                       {isActive && (
-                        <div className="absolute inset-0 rounded-md pointer-events-none shadow-[0_0_22px_rgba(0,255,65,0.55)]" />
+                        <div className="absolute inset-0 rounded-md pointer-events-none shadow-[0_0_18px_rgba(34,197,94,0.35)]" />
                       )}
                     </button>
                   </Link>
