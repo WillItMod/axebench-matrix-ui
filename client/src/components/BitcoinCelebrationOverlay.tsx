@@ -72,7 +72,7 @@ export default function BitcoinCelebrationOverlay({ active, onFinished, onCoinTa
             fontSize: `${c.size}px`,
             animation: `coin-fall ${c.duration}s ease-in ${c.delay}s forwards`,
             top: '-12%',
-            color: 'hsl(var(--secondary))',
+            color: '#fbbf24',
           }}
         >
           ₿
@@ -94,3 +94,5 @@ export default function BitcoinCelebrationOverlay({ active, onFinished, onCoinTa
     </div>
   );
 }
+
+

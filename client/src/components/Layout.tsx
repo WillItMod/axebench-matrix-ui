@@ -1,4 +1,4 @@
-import { MouseEvent, ReactNode, useEffect, useState } from 'react';
+import { MouseEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { Bitcoin } from 'lucide-react';
 import { useLocation } from 'wouter';
 import MatrixBackground from './MatrixBackground';
@@ -24,8 +24,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { secretUnlocked } = useTheme();
   const [location, setLocation] = useLocation();
-  const [uptime, setUptime] = useState<string>('N/A');
-  const [uptimeAvailable, setUptimeAvailable] = useState(true);
+  const [uptimeSeconds, setUptimeSeconds] = useState<number | null>(null);
   const [licenseTier, setLicenseTier] = useState<'free' | 'premium' | 'ultimate'>('free');
   const [deviceCount, setDeviceCount] = useState<number>(0);
   const [deviceLimit, setDeviceLimit] = useState<number>(5);
@@ -34,26 +33,36 @@ export default function Layout({ children }: LayoutProps) {
   const REMINDER_KEY = 'axebench_egg_reminder_at';
   const RANDOM_GAME_KEY = 'axebench_random_game_last';
   const RANDOM_GAME_COOLDOWN_MS = 15 * 60 * 1000;
+  const SECRET_GAME_TAPS_REQUIRED = 5;
+  const SECRET_TAP_RESET_MS = 4000;
 
-  // Fetch uptime from backend
+  // Fetch uptime from backend and keep it ticking between polls
   useEffect(() => {
+    let cancelled = false;
+
     const fetchUptime = async () => {
       try {
         const data = await api.system.uptime();
         if ((data as any)?.skipped) {
-          setUptimeAvailable(false);
-          setUptime('N/A');
+          if (!cancelled) {
+            setUptimeSeconds(null);
+          }
           return;
         }
-        const seconds = Number(data?.uptime_seconds);
+        const seconds = Number((data as any)?.uptime_seconds);
         if (!Number.isFinite(seconds) || seconds <= 0) {
-          setUptime('N/A');
-        } else {
-          setUptime(formatUptime(seconds));
+          if (!cancelled) {
+            setUptimeSeconds(null);
+          }
+          return;
+        }
+        if (!cancelled) {
+          setUptimeSeconds(seconds);
         }
       } catch (error) {
-        setUptimeAvailable(false);
-        setUptime('N/A');
+        if (!cancelled) {
+          setUptimeSeconds(null);
+        }
         console.warn('Failed to fetch uptime:', error);
       }
     };
@@ -62,13 +71,22 @@ export default function Layout({ children }: LayoutProps) {
     fetchUptime();
 
     // Update every 30 seconds
-    const interval = setInterval(() => {
-      if (uptimeAvailable) {
-        fetchUptime();
-      }
-    }, 30000);
+    const interval = setInterval(fetchUptime, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Increment uptime every second so the clock keeps moving between backend polls
+  useEffect(() => {
+    const hasBaseline = uptimeSeconds !== null;
+    if (!hasBaseline) return;
+    const interval = window.setInterval(() => {
+      setUptimeSeconds((prev) => (prev === null ? prev : prev + 1));
+    }, 1000);
     return () => clearInterval(interval);
-  }, [uptimeAvailable]);
+  }, [uptimeSeconds !== null]);
 
   // License tier + device count (for limits and messaging)
   useEffect(() => {
@@ -150,6 +168,9 @@ export default function Layout({ children }: LayoutProps) {
     const stored = Number(localStorage.getItem(RANDOM_GAME_KEY) || 0);
     return Number.isFinite(stored) ? stored : 0;
   });
+  const hiddenGameClicksRef = useRef(0);
+  const secretTapResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const uptimeDisplay = uptimeSeconds !== null ? formatUptime(uptimeSeconds) : 'N/A';
 
   useEffect(() => {
     const handler = () => {
@@ -197,6 +218,34 @@ export default function Layout({ children }: LayoutProps) {
       localStorage.setItem(RANDOM_GAME_KEY, String(now));
     }
   };
+
+  const handleHiddenGameZoneClick = () => {
+    const next = hiddenGameClicksRef.current + 1;
+    hiddenGameClicksRef.current = next;
+    if (secretTapResetRef.current) {
+      clearTimeout(secretTapResetRef.current);
+    }
+    secretTapResetRef.current = window.setTimeout(() => {
+      hiddenGameClicksRef.current = 0;
+    }, SECRET_TAP_RESET_MS);
+
+    if (next >= SECRET_GAME_TAPS_REQUIRED) {
+      hiddenGameClicksRef.current = 0;
+      if (secretTapResetRef.current) {
+        clearTimeout(secretTapResetRef.current);
+        secretTapResetRef.current = null;
+      }
+      handleUptimeClick();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (secretTapResetRef.current) {
+        clearTimeout(secretTapResetRef.current);
+      }
+    };
+  }, []);
 
   const renderLicenseBanner = () => {
     const bannerBase =
@@ -266,9 +315,11 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   const baseTabClass =
-    'px-6 py-2 rounded-xl border border-cyan-400/40 text-xs md:text-sm tracking-[0.25em] uppercase transition-colors duration-150';
-  const inactiveTabClass = 'bg-black/40 text-cyan-200/70 hover:bg-cyan-500/10';
-  const activeTabClass = 'bg-cyan-500 text-black shadow-[0_0_25px_rgba(34,211,238,0.7)] border-cyan-400';
+    'px-5 py-2 rounded-xl border text-xs md:text-sm tracking-[0.25em] uppercase transition-all duration-150 shadow-[0_0_0_rgba(0,0,0,0)]';
+  const inactiveTabClass =
+    'bg-[hsla(var(--card),0.7)] border-[var(--grid-gray)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[hsla(var(--accent),0.45)] hover:shadow-[0_0_12px_hsla(var(--accent),0.28)]';
+  const activeTabClass =
+    'bg-[hsl(var(--accent))] border-[hsla(var(--accent),0.85)] text-[hsl(var(--accent-foreground))] shadow-[0_0_20px_hsla(var(--accent),0.55),0_0_30px_hsla(var(--primary),0.35)]';
 
   const licenseBanner = renderLicenseBanner();
 
@@ -370,16 +421,14 @@ export default function Layout({ children }: LayoutProps) {
                 <span>
                   STATUS: <span className="text-[hsl(var(--primary))]">OPERATIONAL</span>
                 </span>
-                <span>
+                <span className="relative inline-block select-none">
                   UPTIME:{' '}
-                  <button
-                    type="button"
-                    onClick={handleUptimeClick}
-                    className="text-[hsl(var(--secondary))] underline decoration-dotted underline-offset-4 hover:text-foreground transition-colors"
-                    title="Click to open a random mini-game (15 min cooldown)"
-                  >
-                    {uptime}
-                  </button>
+                  <span className="text-[hsl(var(--secondary))]">{uptimeDisplay}</span>
+                  <span
+                    role="presentation"
+                    className="absolute inset-0 cursor-default"
+                    onClick={handleHiddenGameZoneClick}
+                  />
                 </span>
               </div>
             </div>
@@ -409,7 +458,13 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
                 {(() => {
                   const Game = randomGame.component;
-                  return <Game onComplete={handleRandomGameDone} onMarkComplete={handleRandomGameDone} />;
+                  return (
+                    <Game
+                      onComplete={handleRandomGameDone}
+                      onMarkComplete={handleRandomGameDone}
+                      showCompletionCta={false}
+                    />
+                  );
                 })()}
               </div>
             ) : (

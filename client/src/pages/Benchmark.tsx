@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import BenchmarkConsole from '@/components/BenchmarkConsole';
@@ -12,7 +12,16 @@ import { toast } from 'sonner';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSettings } from '@/contexts/SettingsContext';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
+import BitcoinCelebrationOverlay from '@/components/BitcoinCelebrationOverlay';
+import FireworksOverlay from '@/components/FireworksOverlay';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function Benchmark() {
   const { status: benchmarkStatus, refreshStatus } = useBenchmark();
@@ -27,10 +36,18 @@ export default function Benchmark() {
     if (deviceParam) {
       setSelectedDevice(decodeURIComponent(deviceParam));
     }
+    if (params.get('autotune') === '1') {
+      autoTuneIntentRef.current = true;
+    }
   }, []);
   const [status, setStatus] = useState<any>(null);
   const [autoTuneDialogOpen, setAutoTuneDialogOpen] = useState(false);
   const [autoTuneStarting, setAutoTuneStarting] = useState(false);
+  const [autoTuneAck, setAutoTuneAck] = usePersistentState<boolean>('autotune:acknowledged', false);
+  const [autoTuneDontRemind, setAutoTuneDontRemind] = usePersistentState<boolean>('autotune:dont_remind', false);
+  const [autoTuneNano, setAutoTuneNano] = usePersistentState<boolean>('autotune:nano_enabled', true);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const autoTuneIntentRef = useRef(false);
   const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
   const [preset, setPreset] = useState('standard'); // For EASY mode
   const presetOptions = [
@@ -113,6 +130,13 @@ export default function Benchmark() {
       }
     }
   }, [selectedDevice, devices]);
+
+  useEffect(() => {
+    if (autoTuneIntentRef.current && selectedDevice) {
+      autoTuneIntentRef.current = false;
+      handleAutoTune();
+    }
+  }, [selectedDevice]);
 
    // Poll benchmark status
   useEffect(() => {
@@ -199,14 +223,26 @@ export default function Benchmark() {
       return;
     }
 
+    if (autoTuneDontRemind && autoTuneAck) {
+      startAutoTune({ runNano: autoTuneNano, silent: true });
+      return;
+    }
+
+    setShowCelebration(true);
     setAutoTuneDialogOpen(true);
   };
 
-  const startAutoTune = async () => {
+  const startAutoTune = async ({ runNano, silent }: { runNano?: boolean; silent?: boolean } = {}) => {
     if (!selectedDevice || autoTuneStarting) return;
+    const nanoPass = runNano ?? autoTuneNano;
     try {
       setAutoTuneStarting(true);
-      // Start precision benchmark with auto_mode enabled
+      setAutoTuneAck(true);
+      setAutoTuneNano(nanoPass);
+      if (autoTuneDontRemind) {
+        setAutoTuneDontRemind(true);
+      }
+
       const autoTuneConfig = {
         device: selectedDevice,
         ...config,
@@ -220,16 +256,28 @@ export default function Benchmark() {
         frequency_step: 25,
         benchmark_duration: 60,
         strategy: 'adaptive_progression',
+        mode: 'auto_tune',
+        nano_after_profiles: nanoPass,
+        run_nano: nanoPass,
+        profile_set: ['AUTO_QUIET', 'AUTO_EFFICIENT', 'AUTO_BALANCED', 'AUTO_MAX'],
+        banner_hint: nanoPass ? 'Full sweep + Nano finish' : 'Full sweep',
       };
 
       const { config: safeConfig, changed, capped } = applySafetyCaps(autoTuneConfig);
+      localStorage.setItem('axebench:autoTune_stage_hint', 'Full sweep running');
+      localStorage.setItem('axebench:autoTune_nano', nanoPass ? 'true' : 'false');
       await api.benchmark.start(safeConfig);
       await refreshStatus(); // Update global benchmark state
-      toast.success('Auto Tune started - Phase 1: Precision Benchmark');
-      if (changed) {
-        toast.info(`Safety caps enforced (${capped.join(', ')})`);
+      if (!silent) {
+        toast.success(
+          `Full Sweep Optimizer engaged${nanoPass ? ' with Nano finish' : ''} - Stage 1: Full sweep`
+        );
+        if (changed) {
+          toast.info(`Safety caps enforced (${capped.join(', ')})`);
+        }
       }
       setAutoTuneDialogOpen(false);
+      setShowCelebration(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to start Auto Tune');
     } finally {
@@ -659,11 +707,11 @@ export default function Benchmark() {
                       variant="autoTune"
                       className="w-full text-lg py-6 shadow-[0_0_28px_rgba(168,85,247,0.4),0_0_36px_rgba(109,40,217,0.28)]"
                     >
-                      🪄 AUTO_TUNE (FULL)
+                      🪄 FULL_SWEEP_OPTIMIZER
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
-                    Launches full auto tune: benchmark, generate Quiet/Efficient/Balanced/Max, fine-tune, then apply Efficient.
+                    Launches a full sweep, builds Quiet/Efficient/Balanced/Max profiles, optionally Nano tunes them, then applies Efficient.
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -767,31 +815,152 @@ export default function Benchmark() {
         <BenchmarkConsole />
       </div>
 
-      <ConfirmDialog
+      <FireworksOverlay active={autoTuneDialogOpen && showCelebration} />
+      <BitcoinCelebrationOverlay
+        active={autoTuneDialogOpen && showCelebration}
+        onDismiss={() => setShowCelebration(false)}
+        onFinished={() => setShowCelebration(false)}
+      />
+
+      <Dialog
         open={autoTuneDialogOpen}
-        title="Start Full Auto Tune?"
-        description="Auto Tune will run a precision benchmark, generate Quiet/Efficient/Balanced/Max profiles, fine-tune them, and apply Efficient."
-        tone="warning"
-        confirmLabel={autoTuneStarting ? 'Starting...' : 'Start Auto Tune'}
-        cancelLabel="Cancel"
-        onConfirm={startAutoTune}
-        onCancel={() => {
-          if (autoTuneStarting) return;
-          setAutoTuneDialogOpen(false);
+        onOpenChange={(open) => {
+          if (!open && !autoTuneStarting) {
+            setAutoTuneDialogOpen(false);
+            setShowCelebration(false);
+          }
         }}
       >
-        <div className="space-y-3 text-sm text-[var(--text-secondary)]">
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Uses current limits (default 1100-1200 mV, 400-700 MHz) and your safety caps.</li>
-            <li>Runs multiple passes to learn stable voltage/frequency pairs per profile.</li>
-            <li>Can take 20-30 minutes; device will cycle benchmarks automatically.</li>
-          </ul>
-          <div className="rounded border border-[var(--warning-amber)] bg-[var(--warning-amber)]/10 p-3 text-[var(--text-primary)]">
-            Keep airflow clear and respect PSU/thermal limits. If temps climb, stop the run from the banner.
+        <DialogContent className="max-w-4xl bg-[var(--bg-primary)] border-[rgba(168,85,247,0.5)] shadow-[0_0_36px_rgba(168,85,247,0.35)]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-glow-green">FULL SWEEP OPTIMIZER</DialogTitle>
+            <DialogDescription className="text-[var(--text-secondary)] text-sm space-y-1">
+              <p>
+                We are about to run a full sweep to squeeze performance. This can be a 5 minute jog or an hours long marathon—bring snacks.
+              </p>
+              <p>
+                We will run the sweep, log everything, and auto build four ready to go profiles: QUIET, EFFICIENT, BALANCED, MAX. Optional victory lap: Nano tune each profile for that last 1–2% of bragging rights.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid lg:grid-cols-2 gap-4 mt-2">
+            <div className="space-y-3 text-sm text-[var(--text-secondary)]">
+              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
+                <div className="font-bold text-[var(--text-primary)] mb-1">What happens</div>
+                <ol className="list-decimal pl-5 space-y-1">
+                  <li>Full sweep with current settings (Easy ⇒ optimized defaults).</li>
+                  <li>Analyze session data; auto generate QUIET / EFFICIENT / BALANCED / MAX.</li>
+                  <li>Optional Nano tune each profile. Coffee break recommended.</li>
+                  <li>Set device to EFFICIENT when done. Celebrate responsibly.</li>
+                </ol>
+              </div>
+
+              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--warning-amber)]/10 p-3 text-[var(--text-primary)]">
+                <div className="font-bold text-[var(--warning-amber)] mb-1">Heads up</div>
+                <p className="text-sm">
+                  Run time depends on your ranges. Could be 5 minutes, could be a couple of hours in the absolute worst case.
+                  Keep airflow clear and respect PSU/thermal limits. If temps climb, stop the run from the banner.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-start gap-2 text-sm text-[var(--text-primary)]">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={autoTuneAck}
+                    onChange={(e) => setAutoTuneAck(e.target.checked)}
+                  />
+                  <span>I understand overclocking can damage or brick hardware. I will be nice to my silicon.</span>
+                </label>
+                <label className="flex items-start gap-2 text-sm text-[var(--text-primary)]">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={autoTuneDontRemind}
+                    onChange={(e) => setAutoTuneDontRemind(e.target.checked)}
+                  />
+                  <span>Do not remind me again, I am living dangerously.</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-bold text-[var(--text-primary)]">Nano tune after profiles?</div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={autoTuneNano ? 'autoTune' : 'secondary'}
+                      onClick={() => setAutoTuneNano(true)}
+                    >
+                      Yes, polish every profile
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={!autoTuneNano ? 'accent' : 'secondary'}
+                      onClick={() => setAutoTuneNano(false)}
+                    >
+                      Skip the polish
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  Toggle Nano tuning for all four profiles after the sweep. Turning it off ends right after profiles are created.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
+                <div className="font-bold text-[var(--text-primary)] mb-2">Incoming profiles</div>
+                <div className="grid grid-cols-2 gap-2 text-xs text-[var(--text-primary)]">
+                  {['AUTO_QUIET', 'AUTO_EFFICIENT', 'AUTO_BALANCED', 'AUTO_MAX'].map((name) => (
+                    <div
+                      key={name}
+                      className="rounded border border-[var(--grid-gray)] bg-[var(--bg-secondary)]/60 p-2"
+                    >
+                      <div className="font-bold">{name.replace('AUTO_', '')}</div>
+                      <div className="text-[var(--text-secondary)]">
+                        {name === 'AUTO_QUIET' && 'Low noise first.'}
+                        {name === 'AUTO_EFFICIENT' && 'Best J/TH target.'}
+                        {name === 'AUTO_BALANCED' && 'Safe middle ground.'}
+                        {name === 'AUTO_MAX' && 'Push for max hashrate.'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3 text-sm text-[var(--text-secondary)]">
+                <div className="font-bold text-[var(--text-primary)] mb-1">Vibe check</div>
+                <p>Optional victory lap: Nano tune each profile for that last 1–2% of bragging rights.</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </ConfirmDialog>
+
+          <DialogFooter className="flex items-center justify-between gap-3 mt-4">
+            <div className="text-xs text-[var(--text-secondary)]">
+              Stage flow: Full sweep → Analyze → Generate profiles → {autoTuneNano ? 'Nano tune all' : 'Apply Efficient'} → Done.
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => { setAutoTuneDialogOpen(false); setShowCelebration(false); }}>
+                Cancel (I got cold feet)
+              </Button>
+              <Button
+                variant="autoTune"
+                disabled={!autoTuneAck || autoTuneStarting}
+                onClick={() => startAutoTune({ runNano: autoTuneNano })}
+                className="min-w-[140px] text-lg"
+              >
+                {autoTuneStarting ? 'Starting...' : 'ENGAGE 🚀'}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </>
   );
 }
+

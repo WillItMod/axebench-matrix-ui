@@ -8,61 +8,107 @@ export default function AutoTuneStatusBanner() {
 
   const progress = status.progress || 0;
   const device = status.device || 'Unknown';
-  const phase = status.phase || 'Initializing';
   const currentTest = status.currentTest || '';
+  const storedStage =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('axebench:autoTune_stage_hint') || undefined
+      : undefined;
+  const nanoAfter =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('axebench:autoTune_nano') === 'true'
+      : false;
+  const phase = status.phase || storedStage || 'Full sweep';
+
+  const stages = [
+    { key: 'sweep', label: 'Full sweep', match: ['sweep', 'benchmark', 'precision'] },
+    { key: 'analyze', label: 'Analyzing data', match: ['analyze', 'session', 'analyzing'] },
+    { key: 'profiles', label: 'Generating profiles', match: ['profile', 'generate'] },
+    { key: 'nano', label: 'Nano tuning profiles', match: ['nano', 'fine', 'tune'] },
+    { key: 'apply', label: 'Finalizing', match: ['apply', 'final', 'apply profile'] },
+  ];
+
+  const activeStage =
+    stages.find((s) =>
+      s.match.some((m) => phase.toLowerCase().includes(m))
+    ) || stages[0];
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-purple-600/95 to-pink-600/95 backdrop-blur-sm border-b-2 border-pink-400 shadow-lg shadow-pink-500/50">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#6d28d9]/95 via-[#a855f7]/90 to-[#6d28d9]/95 backdrop-blur-sm border-b-2 border-[#a855f7] shadow-lg shadow-[#a855f7]/40">
+      <div className="container mx-auto px-4 py-3 space-y-2">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="relative">
-                <div className="w-3 h-3 bg-pink-300 rounded-full animate-pulse" />
-                <div className="absolute inset-0 w-3 h-3 bg-pink-300 rounded-full animate-ping" />
+                <div className="w-3 h-3 bg-amber-300 rounded-full animate-pulse" />
+                <div className="absolute inset-0 w-3 h-3 bg-amber-300 rounded-full animate-ping" />
               </div>
-              <span className="text-white font-bold text-sm">🪄 AUTO_TUNE_ACTIVE</span>
+              <span className="text-white font-bold text-sm">FULL SWEEP OPTIMIZER ACTIVE</span>
             </div>
             
-            <div className="text-white text-sm">
+            <div className="text-white text-sm flex items-center gap-1">
               <span className="text-pink-200">Device:</span> <span className="font-mono">{device}</span>
             </div>
 
-            <div className="text-white text-sm">
+            <div className="text-white text-sm flex items-center gap-1">
               <span className="text-pink-200">Phase:</span> <span className="font-mono">{phase}</span>
             </div>
 
             {currentTest && (
-              <div className="text-white text-sm">
+              <div className="text-white text-sm flex items-center gap-1">
                 <span className="text-pink-200">Test:</span> <span className="font-mono text-xs">{currentTest}</span>
               </div>
             )}
+
+            <div className="text-white text-sm flex items-center gap-1">
+              <span className="text-pink-200">Nano:</span>{' '}
+              <span className="font-mono">{nanoAfter ? 'ON (all profiles)' : 'OFF'}</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="text-white text-sm">
               <span className="text-pink-200">Progress:</span> <span className="font-mono font-bold">{progress}%</span>
             </div>
             
-            {/* Progress Bar */}
-            <div className="w-40 h-2.5 bg-purple-950 rounded-full overflow-hidden border border-pink-400/30">
+            <div className="w-44 h-2.5 bg-purple-950 rounded-full overflow-hidden border border-[#a855f7]/40">
               <div 
-                className="h-full bg-gradient-to-r from-purple-400 via-pink-400 to-pink-500 transition-all duration-300 shadow-lg shadow-pink-500/50"
+                className="h-full bg-gradient-to-r from-[#a855f7] via-[#c084fc] to-[#22d3ee] transition-all duration-300 shadow-[0_0_14px_rgba(168,85,247,0.7)]"
                 style={{ width: `${progress}%` }}
               />
             </div>
 
-            {/* Sparkle effect */}
             <div className="text-xl animate-pulse">✨</div>
           </div>
         </div>
 
-        {/* Phase description */}
-        <div className="mt-2 text-xs text-pink-100 opacity-80">
-          {phase === 'Precision Benchmark' && '📊 Running comprehensive benchmark to find optimal settings...'}
-          {phase === 'Profile Generation' && '⚙️ Generating 4 profiles: Quiet, Efficient, Optimal, Max...'}
-          {phase === 'Fine Tuning' && '🔧 Fine-tuning each profile for maximum performance...'}
-          {phase === 'Applying Profile' && '✅ Applying Efficient profile to device...'}
+        <div className="flex flex-wrap gap-2">
+          {stages.map((s, idx) => {
+            const active = s.key === activeStage.key;
+            const complete =
+              stages.findIndex((st) => st.key === activeStage.key) > idx;
+            return (
+              <div
+                key={s.key}
+                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                  active
+                    ? 'bg-white/15 border-white text-white shadow-[0_0_14px_rgba(255,255,255,0.4)]'
+                    : complete
+                    ? 'bg-white/10 border-white/30 text-white/80'
+                    : 'bg-black/20 border-white/10 text-white/60'
+                }`}
+              >
+                {idx + 1}. {s.label}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="text-xs text-pink-100 opacity-90">
+          {activeStage.key === 'sweep' && 'Stage 1: Full sweep in progress (silicon leg day).'}
+          {activeStage.key === 'analyze' && 'Stage 2: Crunching session data (charts and vibes).'}
+          {activeStage.key === 'profiles' && 'Stage 3: Minting profiles (collect them all).'}
+          {activeStage.key === 'nano' && 'Stage 4: Nano tuning QUIET/EFFICIENT/BALANCED/MAX (one by one).'}
+          {activeStage.key === 'apply' && 'Stage 5: Wrapping up (do not pull the plug).'}
         </div>
       </div>
     </div>

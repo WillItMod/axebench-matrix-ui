@@ -1060,6 +1060,10 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
     setLocation('/benchmark?device=' + encodeURIComponent(device.name));
   };
 
+  const handleAutoTune = () => {
+    setLocation('/benchmark?device=' + encodeURIComponent(device.name) + '&autotune=1');
+  };
+
   const handleMonitor = () => {
     setLocation('/monitoring?device=' + encodeURIComponent(device.name));
   };
@@ -1195,13 +1199,13 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
       )}
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 
               size="sm" 
               variant="default"
-              className="flex-1 text-xs uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.25)]"
+              className="w-full text-xs uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.25)]"
               onClick={(e) => { e.stopPropagation(); handleBenchmark(); }}
               disabled={!device.online}
             >
@@ -1216,8 +1220,24 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
           <TooltipTrigger asChild>
             <Button 
               size="sm" 
+              variant="autoTune"
+              className="w-full text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(168,85,247,0.45)]"
+              onClick={(e) => { e.stopPropagation(); handleAutoTune(); }}
+              disabled={!device.online}
+            >
+              FULL SWEEP
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            Launch Full Sweep Optimizer for this device (opens Benchmark with this device selected).
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              size="sm" 
               variant="secondary"
-              className="flex-1 text-xs uppercase tracking-wide"
+              className="w-full text-xs uppercase tracking-wide"
               onClick={(e) => { e.stopPropagation(); onConfig(device); }}
               disabled={!device.online}
             >
@@ -1233,7 +1253,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
             <Button
               size="sm"
               variant="destructive"
-              className="flex-1 text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
+              className="w-full text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
               onClick={(e) => { e.stopPropagation(); onDelete(device); }}
             >
               DELETE

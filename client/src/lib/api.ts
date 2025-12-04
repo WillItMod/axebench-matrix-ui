@@ -63,24 +63,34 @@ export const api = {
   // ============================================================================
   // SYSTEM STATUS
   // ============================================================================
-  // Cache whether uptime is unavailable to avoid spamming 404s
+  // Cooldown uptime fetches when unavailable to avoid spamming 404s, but retry periodically
   system: {
     // Some deployments do not expose /api/uptime; fall back silently.
     uptime: (() => {
-      let unavailable = false;
+      let cooldownUntil = 0;
+      const COOLDOWN_MS = 60_000;
       return async () => {
-        if (unavailable) return { uptime_seconds: 0, skipped: true };
+        const now = Date.now();
+        if (now < cooldownUntil) {
+          return { uptime_seconds: 0, skipped: true };
+        }
         const url = `${API_BASE_URL}/api/uptime`;
         try {
           const res = await fetch(url);
           if (!res.ok) {
-            unavailable = true;
+            cooldownUntil = Date.now() + COOLDOWN_MS;
             return { uptime_seconds: 0, skipped: true };
           }
           const data = await res.json().catch(() => ({ uptime_seconds: 0 }));
+          const seconds = Number((data as any)?.uptime_seconds);
+          if (!Number.isFinite(seconds)) {
+            cooldownUntil = Date.now() + COOLDOWN_MS;
+            return { uptime_seconds: 0, skipped: true };
+          }
+          cooldownUntil = 0;
           return data as { uptime_seconds: number };
         } catch {
-          unavailable = true;
+          cooldownUntil = Date.now() + COOLDOWN_MS;
           return { uptime_seconds: 0, skipped: true };
         }
       };

@@ -20,7 +20,7 @@ export type MiniGameEntry = {
   description: string;
   src: string;
   hint: string;
-  component: (props: DarkMiniGameProps & { onMarkComplete: () => void }) => JSX.Element;
+  component: (props: DarkMiniGameProps & { onMarkComplete: () => void; showCompletionCta?: boolean }) => JSX.Element;
 };
 
 const HtmlGameCard = ({
@@ -29,12 +29,14 @@ const HtmlGameCard = ({
   src,
   hint,
   onMarkComplete,
+  showCompletionCta = true,
 }: {
   title: string;
   description: string;
   src: string;
   hint: string;
   onMarkComplete: () => void;
+  showCompletionCta?: boolean;
 }) => {
   const [loaded, setLoaded] = useState(false);
   const safeSrc = useMemo(() => src, [src]);
@@ -63,24 +65,33 @@ const HtmlGameCard = ({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-[hsla(var(--card),var(--surface-soft))] backdrop-blur-sm px-3 py-2">
-        <div className="text-xs text-muted-foreground">{hint}</div>
-        <Button type="button" variant="accent" size="sm" className="uppercase tracking-wide" onClick={onMarkComplete}>
-          Mark Complete
-        </Button>
-      </div>
+      {hint && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-[hsla(var(--card),var(--surface-soft))] backdrop-blur-sm px-3 py-2">
+          <div className="text-xs text-muted-foreground">{hint}</div>
+          {showCompletionCta && (
+            <Button type="button" variant="accent" size="sm" className="uppercase tracking-wide" onClick={onMarkComplete}>
+              Mark Complete
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
 const makeEntry = (config: Omit<MiniGameEntry, 'component'>): MiniGameEntry => ({
   ...config,
-  component: ({ onComplete, onMarkComplete }: DarkMiniGameProps & { onMarkComplete: () => void }) => (
+  component: ({
+    onComplete,
+    onMarkComplete,
+    showCompletionCta,
+  }: DarkMiniGameProps & { onMarkComplete: () => void; showCompletionCta?: boolean }) => (
     <HtmlGameCard
       title={config.title}
       description={config.description}
       src={config.src}
       hint={config.hint}
+      showCompletionCta={showCompletionCta}
       onMarkComplete={() => {
         onMarkComplete();
         onComplete();
