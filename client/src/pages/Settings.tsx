@@ -183,194 +183,338 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
-        <Card className="p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Licensing / Patreon</div>
-              <div className="text-lg font-semibold text-glow-cyan">
-                Tier: {tier.toUpperCase()}
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_300px] gap-4 items-start">
+        <div className="space-y-4">
+          <Card className="p-5 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">Appearance & Typography</div>
+                <div className="text-xl font-semibold text-glow-cyan">THEME & FONT LAB</div>
               </div>
             </div>
-            <Badge variant="outline" className="text-xs">
-              Devices {deviceCount}/{deviceLimit}
-            </Badge>
+
+            <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Themes</div>
+                  <div className="text-xs text-muted-foreground">Current: {currentThemeLabel}</div>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {availableThemes.map((t) => {
+                    const locked = t.name === 'forge' && !secretUnlocked;
+                    const active = theme === t.name;
+                    const paletteColors = themePalettes[t.name]?.colors;
+                    return (
+                      <button
+                        key={t.name}
+                        type="button"
+                        disabled={locked}
+                        onClick={() => setTheme(t.name)}
+                        className={[
+                          'relative overflow-hidden rounded-lg border px-3 py-3 text-left transition-all',
+                          active
+                            ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.3),0_0_18px_hsla(var(--primary),0.18)]'
+                            : 'border-border hover:border-[hsl(var(--primary))]/60 hover:shadow-[0_0_16px_hsla(var(--primary),0.12)]',
+                          locked ? 'opacity-50 cursor-not-allowed' : '',
+                        ].join(' ')}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-semibold text-sm">{t.label}</div>
+                          {locked ? (
+                            <Badge variant="outline" className="text-amber-400 border-amber-400/60">
+                              Locked
+                            </Badge>
+                          ) : active ? (
+                            <Badge variant="secondary" className="text-xs">Active</Badge>
+                          ) : null}
+                        </div>
+                        {paletteColors && (
+                          <div className="mt-2 flex gap-1">
+                            {[paletteColors.primary, paletteColors.secondary, paletteColors.surface, paletteColors.hover].map((color, idx) => (
+                              <span key={`${color}-${idx}`} className="h-4 w-4 rounded border border-border" style={{ background: color }} />
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                          Default font: {fontChoices.find((f) => f.key === themePalettes[t.name]?.defaults.font)?.label ?? themePalettes[t.name]?.defaults.font}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Fonts</div>
+                  <Button variant="outline" size="sm" onClick={() => { setFontKey(themePalettes[theme]?.defaults.font || 'share-tech'); resetFontOverride(); }}>
+                    Use theme default
+                  </Button>
+                </div>
+                <div className="grid gap-2">
+                  {fontChoices.map((font) => {
+                    const active = fontKey === font.key;
+                    const isDefault = font.key === (themePalettes[theme]?.defaults.font || 'share-tech');
+                    return (
+                      <button
+                        key={font.key}
+                        type="button"
+                        onClick={() => setFontKey(font.key)}
+                        className={[
+                          'rounded-lg border px-3 py-2 text-left transition-all',
+                          active
+                            ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.28),0_0_14px_hsla(var(--primary),0.2)]'
+                            : 'border-border hover:border-[hsl(var(--primary))]/60 hover:shadow-[0_0_12px_hsla(var(--primary),0.12)]',
+                        ].join(' ')}
+                        style={{ fontFamily: font.stack }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-medium text-sm">{font.label}</div>
+                          <div className="flex gap-2 items-center">
+                            {isDefault && <Badge variant="outline">Theme default</Badge>}
+                            {active && <Badge variant="secondary">Selected</Badge>}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">The quick brown fox jumps over the lazy miner.</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Font scale</Label>
+                <input
+                  type="range"
+                  min="0.9"
+                  max="1.2"
+                  step="0.02"
+                  value={fontScale}
+                  onChange={(e) => setFontScale(parseFloat(e.target.value))}
+                  className="w-full accent-[hsl(var(--primary))]"
+                />
+                <div className="text-[11px] text-muted-foreground">Scale: {fontScale.toFixed(2)}x</div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Matrix Code Color</Label>
+                <Input
+                  type="color"
+                  value={matrixCodeColor}
+                  onChange={(e) => setMatrixCodeColor(e.target.value)}
+                  className="h-9 w-20 rounded-md border border-border/70 bg-card px-1 shadow-sm cursor-pointer"
+                />
+                <div className="text-[11px] text-muted-foreground">
+                  Adjust digital rain hue. Animation & brightness stay untouched.
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Matrix brightness</Label>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="1.2"
+                  step="0.02"
+                  value={matrixBrightness}
+                  onChange={(e) => setMatrixBrightness(parseFloat(e.target.value))}
+                  className="w-full accent-[hsl(var(--primary))]"
+                />
+                <div className="text-[11px] text-muted-foreground">
+                  Intensity: {matrixBrightness.toFixed(2)} (background rain only)
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
+              <div className="flex flex-col">
+                <span className="text-sm text-foreground">Rainbow rain mode</span>
+                <span className="text-[11px] text-muted-foreground">Cycle the digital rain through full spectrum</span>
+              </div>
+              <Switch checked={matrixRainbow} onCheckedChange={setMatrixRainbow} />
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button size="sm" variant="ghost" onClick={resetMatrixVisuals}>
+                Reset to Matrix Dark
+              </Button>
+            </div>
+          </Card>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-muted-foreground">Monitoring & refresh</div>
+                  <div className="text-lg font-semibold text-glow-cyan">Poll cadence</div>
+                </div>
+                <Badge variant="outline" className="text-xs">Per-device</Badge>
+              </div>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Dashboard auto-refresh (seconds)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    step={0.5}
+                    value={dashboardRefreshSec}
+                    onChange={(e) => {
+                      const sec = Math.max(1, Math.min(60, parseFloat(e.target.value) || 0));
+                      updateSettings({ dashboardRefreshMs: sec * 1000 });
+                    }}
+                  />
+                  <div className="text-[11px] text-muted-foreground">Controls the interval used by the fleet grid.</div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Live monitoring polling (seconds)</Label>
+                  <Input
+                    type="number"
+                    min={0.5}
+                    max={30}
+                    step={0.5}
+                    value={monitoringRefreshSec}
+                    onChange={(e) => {
+                      const sec = Math.max(0.5, Math.min(30, parseFloat(e.target.value) || 0));
+                      updateSettings({ monitoringRefreshMs: sec * 1000 });
+                    }}
+                  />
+                  <div className="text-[11px] text-muted-foreground">Lower intervals = smoother charts, higher = lighter backend load.</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 space-y-4">
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Units & display</div>
+                <div className="text-lg font-semibold text-glow-cyan">How values render</div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Temperature unit</Label>
+                  <Select value={temperatureUnit} onValueChange={(val) => updateSettings({ temperatureUnit: val as any })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="C">Celsius</SelectItem>
+                      <SelectItem value="F">Fahrenheit</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Hashrate display</Label>
+                  <Select value={hashrateDisplay} onValueChange={(val) => updateSettings({ hashrateDisplay: val as any })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select scale" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto (GH/TH)</SelectItem>
+                      <SelectItem value="gh">Force GH/s</SelectItem>
+                      <SelectItem value="th">Force TH/s</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Time format</Label>
+                  <Select value={timeFormat} onValueChange={(val) => updateSettings({ timeFormat: val as any })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="24h">24-hour</SelectItem>
+                      <SelectItem value="12h">12-hour</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 space-y-4">
+              <div className="space-y-1">
+                <div className="text-sm text-muted-foreground">Performance & visuals</div>
+                <div className="text-lg font-semibold text-glow-cyan">Animation comfort</div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
+                  <div className="flex flex-col">
+                    <span className="text-sm text-foreground">Reduce motion</span>
+                    <span className="text-[11px] text-muted-foreground">Slows background animations to keep CPUs cool.</span>
+                  </div>
+                  <Switch checked={reduceMotion} onCheckedChange={(val) => updateSettings({ reduceMotion: val })} />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
+                  <div className="flex flex-col">
+                    <span className="text-sm text-foreground">Pause Matrix background</span>
+                    <span className="text-[11px] text-muted-foreground">Hide the digital rain entirely for shared screens.</span>
+                  </div>
+                  <Switch checked={pauseMatrix} onCheckedChange={(val) => updateSettings({ pauseMatrix: val })} />
+                </div>
+              </div>
+            </Card>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {tier === 'free'
-              ? 'Free tier is limited. Upgrade to unlock higher device counts and patron perks.'
-              : 'Thanks for supporting AxeBench. Your subscription keeps the rigs humming.'}
+        </div>
+
+        {/* Sidebar benchmark defaults */}
+        <Card className="p-4 space-y-3">
+          <div>
+            <div className="text-sm text-muted-foreground">Bench tuning</div>
+            <div className="text-lg font-semibold text-glow-cyan">DEFAULT BENCHMARK PROFILES</div>
+            <p className="text-xs text-muted-foreground">Set per-model defaults for benchmarking and Autopilot.</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            {modelCards.map((m) => {
+              const hasCustom = !!modelBenchmarkDefaults[m.key];
+              return (
+                <Button
+                  key={m.key}
+                  variant="secondary"
+                  className="justify-between w-full text-left text-sm"
+                  onClick={() => handleOpenModelDefaults(m.key)}
+                >
+                  <span>{m.label}</span>
+                  <Badge variant={hasCustom ? 'secondary' : 'outline'} className="text-[10px]">
+                    {hasCustom ? 'Custom' : 'Global'}
+                  </Badge>
+                </Button>
+              );
+            })}
+          </div>
+          <Button variant="outline" size="sm" onClick={() => { setDraftGlobalDefaults(globalBenchmarkDefaults); setShowGlobalDefaults(true); }}>
+            Global test defaults
+          </Button>
+        </Card>
+      </div>
+
+      {/* Patreon / licensing bar */}
+      <Card className="p-4 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-col">
+            <div className="text-sm text-muted-foreground">Licensing / Patreon</div>
+            <div className="text-lg font-semibold text-glow-cyan">Tier: {tier.toUpperCase()}</div>
+            <div className="text-xs text-muted-foreground">
+              Devices {deviceCount}/{deviceLimit}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {patreonUrl && (
               <Button size="sm" onClick={() => window.open(patreonUrl!, '_blank')}>
-                Open Patreon Login
+                Patreon Login
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={handleLogout}>
               Logout
             </Button>
           </div>
-        </Card>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {tier === 'free'
+            ? 'Free tier is limited. Upgrade to unlock higher device counts and patron perks.'
+            : 'Thanks for supporting AxeBench. Your subscription keeps the rigs humming.'}
+        </div>
+      </Card>
 
-        <Card className="p-5 space-y-5 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm text-muted-foreground">Appearance & Typography</div>
-              <div className="text-xl font-semibold text-glow-cyan">THEME & FONT LAB</div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">Themes</div>
-                <div className="text-xs text-muted-foreground">Current: {currentThemeLabel}</div>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {availableThemes.map((t) => {
-                  const locked = t.name === 'forge' && !secretUnlocked;
-                  const active = theme === t.name;
-                  const paletteColors = themePalettes[t.name]?.colors;
-                  return (
-                    <button
-                      key={t.name}
-                      type="button"
-                      disabled={locked}
-                      onClick={() => setTheme(t.name)}
-                      className={[
-                        'relative overflow-hidden rounded-lg border px-3 py-3 text-left transition-all',
-                        active
-                          ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.3),0_0_18px_hsla(var(--primary),0.18)]'
-                          : 'border-border hover:border-[hsl(var(--primary))]/60 hover:shadow-[0_0_16px_hsla(var(--primary),0.12)]',
-                        locked ? 'opacity-50 cursor-not-allowed' : '',
-                      ].join(' ')}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-semibold text-sm">{t.label}</div>
-                        {locked ? (
-                          <Badge variant="outline" className="text-amber-400 border-amber-400/60">
-                            Locked
-                          </Badge>
-                        ) : active ? (
-                          <Badge variant="secondary" className="text-xs">Active</Badge>
-                        ) : null}
-                      </div>
-                      {paletteColors && (
-                        <div className="mt-2 flex gap-1">
-                          {[paletteColors.primary, paletteColors.secondary, paletteColors.surface, paletteColors.hover].map((color, idx) => (
-                            <span key={`${color}-${idx}`} className="h-4 w-4 rounded border border-border" style={{ background: color }} />
-                          ))}
-                        </div>
-                      )}
-                      <div className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-                        Default font: {fontChoices.find((f) => f.key === themePalettes[t.name]?.defaults.font)?.label ?? themePalettes[t.name]?.defaults.font}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">Fonts</div>
-                <Button variant="outline" size="sm" onClick={() => { setFontKey(themePalettes[theme]?.defaults.font || 'share-tech'); resetFontOverride(); }}>
-                  Use theme default
-                </Button>
-              </div>
-              <div className="grid gap-2">
-                {fontChoices.map((font) => {
-                  const active = fontKey === font.key;
-                  const isDefault = font.key === (themePalettes[theme]?.defaults.font || 'share-tech');
-                  return (
-                    <button
-                      key={font.key}
-                      type="button"
-                      onClick={() => setFontKey(font.key)}
-                      className={[
-                        'rounded-lg border px-3 py-2 text-left transition-all',
-                        active
-                          ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.28),0_0_14px_hsla(var(--primary),0.2)]'
-                          : 'border-border hover:border-[hsl(var(--primary))]/60 hover:shadow-[0_0_12px_hsla(var(--primary),0.12)]',
-                      ].join(' ')}
-                      style={{ fontFamily: font.stack }}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-medium text-sm">{font.label}</div>
-                        <div className="flex gap-2 items-center">
-                          {isDefault && <Badge variant="outline">Theme default</Badge>}
-                          {active && <Badge variant="secondary">Selected</Badge>}
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">The quick brown fox jumps over the lazy miner.</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Font scale</Label>
-              <input
-                type="range"
-                min="0.9"
-                max="1.2"
-                step="0.02"
-                value={fontScale}
-                onChange={(e) => setFontScale(parseFloat(e.target.value))}
-                className="w-full accent-[hsl(var(--primary))]"
-              />
-              <div className="text-[11px] text-muted-foreground">Scale: {fontScale.toFixed(2)}x</div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Matrix Code Color</Label>
-              <Input
-                type="color"
-                value={matrixCodeColor}
-                onChange={(e) => setMatrixCodeColor(e.target.value)}
-                className="h-9 w-20 rounded-md border border-border/70 bg-card px-1 shadow-sm cursor-pointer"
-              />
-              <div className="text-[11px] text-muted-foreground">
-                Adjust digital rain hue. Animation & brightness stay untouched.
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Matrix brightness</Label>
-              <input
-                type="range"
-                min="0.2"
-                max="1.2"
-                step="0.02"
-                value={matrixBrightness}
-                onChange={(e) => setMatrixBrightness(parseFloat(e.target.value))}
-                className="w-full accent-[hsl(var(--primary))]"
-              />
-              <div className="text-[11px] text-muted-foreground">
-                Intensity: {matrixBrightness.toFixed(2)} (background rain only)
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
-            <div className="flex flex-col">
-              <span className="text-sm text-foreground">Rainbow rain mode</span>
-              <span className="text-[11px] text-muted-foreground">Cycle the digital rain through full spectrum</span>
-            </div>
-            <Switch checked={matrixRainbow} onCheckedChange={setMatrixRainbow} />
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Button size="sm" variant="ghost" onClick={resetMatrixVisuals}>
-              Reset to Matrix Dark
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
