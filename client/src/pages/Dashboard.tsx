@@ -220,6 +220,7 @@ export default function Dashboard() {
   const [activeWarning, setActiveWarning] = useState<WarningItem | null>(null);
   const [dontRemind, setDontRemind] = useState(false);
   const [confirmPsu, setConfirmPsu] = useState<{ id: string; name: string } | null>(null);
+  const [confirmDevice, setConfirmDevice] = useState<Device | null>(null);
 
   // Load dismissed warning ids from localStorage once
   useEffect(() => {
@@ -347,14 +348,20 @@ export default function Dashboard() {
     setShowConfigModal(true);
   };
 
-  const handleDeleteDevice = async (device: Device) => {
-    if (!confirm(`Delete device "${device.name}"?`)) return;
+  const handleDeleteDevice = (device: Device) => {
+    setConfirmDevice(device);
+  };
+
+  const confirmDeleteDevice = async () => {
+    if (!confirmDevice) return;
     try {
-      await api.devices.delete(device.name);
-      toast.success(`Deleted ${device.name}`);
+      await api.devices.delete(confirmDevice.name);
+      toast.success(`Deleted ${confirmDevice.name}`);
       loadDevices();
     } catch (error: any) {
       toast.error(error?.message || 'Failed to delete device');
+    } finally {
+      setConfirmDevice(null);
     }
   };
   
@@ -967,6 +974,17 @@ const loadPsus = async () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!confirmDevice}
+        title={confirmDevice ? `Delete device "${confirmDevice.name}"?` : 'Delete device?'}
+        description="This removes the device from AxeBench. It does not send any stop or reset command to the miner."
+        confirmLabel="Delete device"
+        cancelLabel="Cancel"
+        tone="danger"
+        onCancel={() => setConfirmDevice(null)}
+        onConfirm={confirmDeleteDevice}
+      />
 
       {/* PSU delete confirmation */}
       <ConfirmDialog

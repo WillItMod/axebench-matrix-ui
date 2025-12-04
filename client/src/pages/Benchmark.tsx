@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSettings } from '@/contexts/SettingsContext';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 export default function Benchmark() {
   const { status: benchmarkStatus, refreshStatus } = useBenchmark();
@@ -28,6 +29,8 @@ export default function Benchmark() {
     }
   }, []);
   const [status, setStatus] = useState<any>(null);
+  const [autoTuneDialogOpen, setAutoTuneDialogOpen] = useState(false);
+  const [autoTuneStarting, setAutoTuneStarting] = useState(false);
   const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
   const [preset, setPreset] = useState('standard'); // For EASY mode
   const presetOptions = [
@@ -60,12 +63,12 @@ export default function Benchmark() {
     
     // Voltage settings
     voltage_start: 1100,
-    voltage_stop: 1300,
+    voltage_stop: 1200,
     voltage_step: 20,
     
     // Frequency settings
     frequency_start: 400,
-    frequency_stop: 600,
+    frequency_stop: 700,
     frequency_step: 25,
     
     // Test parameters
@@ -190,25 +193,19 @@ export default function Benchmark() {
     }
   };
 
-  const handleAutoTune = async () => {
+  const handleAutoTune = () => {
     if (!selectedDevice) {
       toast.error('Select a device first');
       return;
     }
 
-    const confirmed = window.confirm(
-      'Start Full Auto Tune?\n\n' +
-      'This will:\n' +
-      '1. Run precision benchmark\n' +
-      '2. Generate 4 profiles (Quiet, Efficient, Optimal, Max)\n' +
-      '3. Fine-tune each profile\n' +
-      '4. Apply Efficient profile\n\n' +
-      'This may take 20-30 minutes.'
-    );
+    setAutoTuneDialogOpen(true);
+  };
 
-    if (!confirmed) return;
-
+  const startAutoTune = async () => {
+    if (!selectedDevice || autoTuneStarting) return;
     try {
+      setAutoTuneStarting(true);
       // Start precision benchmark with auto_mode enabled
       const autoTuneConfig = {
         device: selectedDevice,
@@ -216,10 +213,10 @@ export default function Benchmark() {
         auto_mode: true,
         goal: 'balanced',
         voltage_start: 1100,
-        voltage_stop: 1350,
+        voltage_stop: 1200,
         voltage_step: 25,
         frequency_start: 400,
-        frequency_stop: 650,
+        frequency_stop: 700,
         frequency_step: 25,
         benchmark_duration: 60,
         strategy: 'adaptive_progression',
@@ -232,12 +229,16 @@ export default function Benchmark() {
       if (changed) {
         toast.info(`Safety caps enforced (${capped.join(', ')})`);
       }
+      setAutoTuneDialogOpen(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to start Auto Tune');
+    } finally {
+      setAutoTuneStarting(false);
     }
   };
 
   return (
+    <>
     <div className="space-y-6">
       <div className="hud-panel">
         <h1 className="text-3xl font-bold text-glow-green mb-2">BENCHMARK</h1>
@@ -654,7 +655,7 @@ export default function Benchmark() {
                   <TooltipTrigger asChild>
                     <Button
                       onClick={handleAutoTune}
-                      disabled={!selectedDevice}
+                      disabled={!selectedDevice || autoTuneStarting}
                       variant="autoTune"
                       className="w-full text-lg py-6 shadow-[0_0_28px_rgba(168,85,247,0.4),0_0_36px_rgba(109,40,217,0.28)]"
                     >
@@ -765,6 +766,31 @@ export default function Benchmark() {
       <div className="mt-6">
         <BenchmarkConsole />
       </div>
+
+      <ConfirmDialog
+        open={autoTuneDialogOpen}
+        title="Start Full Auto Tune?"
+        description="Auto Tune will run a precision benchmark, generate Quiet/Efficient/Balanced/Max profiles, fine-tune them, and apply Efficient."
+        tone="warning"
+        confirmLabel={autoTuneStarting ? 'Starting...' : 'Start Auto Tune'}
+        cancelLabel="Cancel"
+        onConfirm={startAutoTune}
+        onCancel={() => {
+          if (autoTuneStarting) return;
+          setAutoTuneDialogOpen(false);
+        }}
+      >
+        <div className="space-y-3 text-sm text-[var(--text-secondary)]">
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Uses current limits (default 1100-1200 mV, 400-700 MHz) and your safety caps.</li>
+            <li>Runs multiple passes to learn stable voltage/frequency pairs per profile.</li>
+            <li>Can take 20-30 minutes; device will cycle benchmarks automatically.</li>
+          </ul>
+          <div className="rounded border border-[var(--warning-amber)] bg-[var(--warning-amber)]/10 p-3 text-[var(--text-primary)]">
+            Keep airflow clear and respect PSU/thermal limits. If temps climb, stop the run from the banner.
+          </div>
+        </div>
+      </ConfirmDialog>
     </div>
   );
 }

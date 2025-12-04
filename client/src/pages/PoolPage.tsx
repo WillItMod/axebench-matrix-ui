@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Layers, Plus, Save, Trash2, Globe, User, Key } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export default function PoolPage() {
   const [pools, setPools] = useState<any[]>([]);
   const [newPool, setNewPool] = useState({ name: "", url: "", user: "", pass: "" });
+  const [pendingDelete, setPendingDelete] = useState<number | null>(null);
 
   const PRESETS = [
     { name: "Ocean Pool", url: "stratum+tcp://ocean.pk:3333" },
@@ -62,14 +64,20 @@ export default function PoolPage() {
     }
   };
 
-  const handleDeletePool = async (id: number) => {
-    if (!confirm("Delete this pool?")) return;
+  const handleDeletePool = (id: number) => {
+    setPendingDelete(id);
+  };
+
+  const confirmDeletePool = async () => {
+    if (pendingDelete === null) return;
     try {
-      await fetch(`/pool/api/pools/${id}`, { method: 'DELETE' });
+      await fetch(`/pool/api/pools/${pendingDelete}`, { method: 'DELETE' });
       toast.success("Pool configuration removed");
       fetchPools();
     } catch (err) {
       toast.error("Error removing pool");
+    } finally {
+      setPendingDelete(null);
     }
   };
 
@@ -207,6 +215,17 @@ export default function PoolPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Delete this pool?"
+        description="This will remove the pool from the list. Devices already pointed to it will keep their current pool until changed."
+        tone="danger"
+        confirmLabel="Delete pool"
+        cancelLabel="Cancel"
+        onConfirm={confirmDeletePool}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

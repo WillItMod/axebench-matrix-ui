@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 type ProfileKey = 'quiet' | 'efficient' | 'balanced' | 'max';
 
@@ -292,6 +293,8 @@ export default function Sessions() {
   const [profileSuffix, setProfileSuffix] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   useEffect(() => {
     loadSessions();
@@ -353,29 +356,41 @@ export default function Sessions() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this session?')) return;
+  const handleDelete = (id: string) => {
+    setPendingDeleteId(id);
+  };
 
+  const confirmDeleteSession = async () => {
+    if (!pendingDeleteId) return;
     try {
-      await api.sessions.delete(id);
+      await api.sessions.delete(pendingDeleteId);
       toast.success('Session deleted');
       loadSessions();
       setSelectedIds((prev) => {
         const next = new Set(prev);
-        next.delete(id);
+        next.delete(pendingDeleteId);
         return next;
       });
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete session');
+    } finally {
+      setPendingDeleteId(null);
     }
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (!selectedIds.size) {
       toast.error('Select at least one session');
       return;
     }
-    if (!confirm(`Delete ${selectedIds.size} selected session(s)?`)) return;
+    setBulkDeleteOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (!selectedIds.size) {
+      setBulkDeleteOpen(false);
+      return;
+    }
     try {
       setBulkDeleting(true);
       for (const id of selectedIds) {
@@ -390,6 +405,7 @@ export default function Sessions() {
       toast.error(error.message || 'Failed to delete selected sessions');
     } finally {
       setBulkDeleting(false);
+      setBulkDeleteOpen(false);
     }
   };
 
@@ -725,6 +741,31 @@ export default function Sessions() {
         onToggleOverwrite={setOverwriteExisting}
         onToggleSuffix={setAppendSuffix}
         onSuffixChange={setProfileSuffix}
+      />
+
+      <ConfirmDialog
+        open={!!pendingDeleteId}
+        title="Delete this session?"
+        description="This will remove the session results and logs from AxeBench. The device will not be affected."
+        tone="danger"
+        confirmLabel="Delete session"
+        cancelLabel="Cancel"
+        onConfirm={confirmDeleteSession}
+        onCancel={() => setPendingDeleteId(null)}
+      />
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        title={`Delete ${selectedIds.size} session${selectedIds.size === 1 ? '' : 's'}?`}
+        description="All selected sessions will be removed. Devices are not affected."
+        tone="danger"
+        confirmLabel={bulkDeleting ? 'Deleting...' : 'Delete sessions'}
+        cancelLabel="Cancel"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => {
+          if (bulkDeleting) return;
+          setBulkDeleteOpen(false);
+        }}
       />
     </div>
   );

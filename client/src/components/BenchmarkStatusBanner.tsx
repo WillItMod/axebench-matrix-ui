@@ -1,18 +1,20 @@
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { useBenchmark } from '@/contexts/BenchmarkContext';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { api } from '@/lib/api';
-import { toast } from 'sonner';
-import { useState } from 'react';
 
 export default function BenchmarkStatusBanner() {
   const { status, refreshStatus } = useBenchmark();
   const [stopping, setStopping] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Debug logging
   console.log('[BenchmarkStatusBanner] status:', {
     running: status.running,
     mode: status.mode,
-    willShow: status.running && (!status.mode || status.mode === 'benchmark')
+    willShow: status.running && (!status.mode || status.mode === 'benchmark'),
   });
 
   // Only show for regular benchmarks (not auto_tune or nano_tune)
@@ -22,8 +24,6 @@ export default function BenchmarkStatusBanner() {
   if (status.mode && status.mode !== 'benchmark') return null;
 
   const handleStop = async () => {
-    if (!confirm('Stop the running benchmark?')) return;
-
     try {
       setStopping(true);
       await api.benchmark.stop();
@@ -37,49 +37,68 @@ export default function BenchmarkStatusBanner() {
   };
 
   return (
-    <div className="bg-gradient-to-r from-[var(--matrix-green)]/20 to-[var(--neon-cyan)]/20 border-b-2 border-[var(--matrix-green)] px-4 py-3">
-      <div className="container mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Running indicator */}
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-[var(--matrix-green)] rounded-full pulse-green" />
-            <span className="text-[var(--matrix-green)] font-bold text-glow-green">
-              BENCHMARK_RUNNING
-            </span>
+    <>
+      <div className="bg-gradient-to-r from-[var(--matrix-green)]/20 to-[var(--neon-cyan)]/20 border-b-2 border-[var(--matrix-green)] px-4 py-3">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {/* Running indicator */}
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-[var(--matrix-green)] rounded-full pulse-green" />
+              <span className="text-[var(--matrix-green)] font-bold text-glow-green">
+                BENCHMARK_RUNNING
+              </span>
+            </div>
+
+            {/* Device name */}
+            {status.device && (
+              <div className="text-[var(--text-secondary)]">
+                Device: <span className="text-[var(--neon-cyan)]">{status.device}</span>
+              </div>
+            )}
+
+            {/* Progress */}
+            {status.progress !== undefined && (
+              <div className="text-[var(--text-secondary)]">
+                Progress: <span className="text-[var(--neon-cyan)]">{status.progress}%</span>
+              </div>
+            )}
+
+            {/* Current test */}
+            {status.currentTest && (
+              <div className="text-[var(--text-secondary)] text-sm">
+                {status.currentTest}
+              </div>
+            )}
           </div>
 
-          {/* Device name */}
-          {status.device && (
-            <div className="text-[var(--text-secondary)]">
-              Device: <span className="text-[var(--neon-cyan)]">{status.device}</span>
-            </div>
-          )}
-
-          {/* Progress */}
-          {status.progress !== undefined && (
-            <div className="text-[var(--text-secondary)]">
-              Progress: <span className="text-[var(--neon-cyan)]">{status.progress}%</span>
-            </div>
-          )}
-
-          {/* Current test */}
-          {status.currentTest && (
-            <div className="text-[var(--text-secondary)] text-sm">
-              {status.currentTest}
-            </div>
-          )}
+          {/* Stop button */}
+          <Button
+            onClick={() => setConfirmOpen(true)}
+            disabled={stopping}
+            size="sm"
+            className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white font-bold"
+          >
+            {stopping ? 'STOPPING...' : 'ƒ?û STOP'}
+          </Button>
         </div>
-
-        {/* Stop button */}
-        <Button
-          onClick={handleStop}
-          disabled={stopping}
-          size="sm"
-          className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white font-bold"
-        >
-          {stopping ? 'STOPPING...' : '⏹ STOP'}
-        </Button>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Stop running benchmark?"
+        description="Stopping now will end the current run and discard any partially collected samples."
+        tone="warning"
+        confirmLabel={stopping ? 'Stopping...' : 'Stop benchmark'}
+        onConfirm={() => {
+          if (stopping) return;
+          setConfirmOpen(false);
+          handleStop();
+        }}
+        onCancel={() => {
+          if (stopping) return;
+          setConfirmOpen(false);
+        }}
+      />
+    </>
   );
 }

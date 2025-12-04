@@ -7,7 +7,7 @@ set OUTPUT_NAME=AxeBench_v3.0.0_BETA
 cd /d "%~dp0"
 
 REM Build frontend (served from dist/public)
-npm run build || goto :error
+call npm run build || goto :error
 
 REM Fresh build venv
 if exist .venv-build rd /s /q .venv-build
@@ -24,7 +24,6 @@ python -m nuitka ^
   --output-filename=%OUTPUT_NAME% ^
   --include-data-dir=dist\public=dist\public ^
   --include-data-dir=python\templates=python\templates ^
-  --include-data-dir=python\static=python\static ^
   --include-data-file=python\config.py=python\config.py ^
   --output-dir=build-win ^
   python\launcher.py || goto :error

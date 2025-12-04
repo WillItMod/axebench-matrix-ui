@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MINI_GAMES, type MiniGameKey } from './games/registry';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const SECRET_UNLOCK_KEY = 'axebench_secret_unlocked';
 const SECRET_THEME_KEY = 'axebench_secret_theme';
@@ -68,6 +69,7 @@ export default function DarkModeChallengeHub() {
   const [gameKey, setGameKey] = useState<MiniGameKey>(
     () => MINI_GAMES[Math.floor(Math.random() * MINI_GAMES.length)].key,
   );
+  const [quizErrorOpen, setQuizErrorOpen] = useState(false);
 
   const completedCount = Object.values(progress.completed).filter(Boolean).length;
   const allGamesDone = completedCount === MINI_GAMES.length;
@@ -122,7 +124,7 @@ export default function DarkModeChallengeHub() {
       return ans === item.a.trim().toLowerCase();
     });
     if (!allCorrect) {
-      alert('Not quite! Review your answers and try again.');
+      setQuizErrorOpen(true);
       return;
     }
     const next = { ...progress, quizPassed: true };
@@ -135,44 +137,57 @@ export default function DarkModeChallengeHub() {
 
   if (unlocked) {
     return (
-      <div className="gridrunner-surface border border-transparent p-5 text-foreground relative overflow-hidden space-y-3 shadow-chrome">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/5 to-primary/10 pointer-events-none" />
-        <div className="relative space-y-1">
-          <div className="text-lg font-semibold">Unlocked - Satoshi&apos;s Forge Online</div>
-          <div className="text-sm text-muted-foreground">
-            Forge theme is active. Run bonus challenges any time from the Bitcoin logo.
+      <>
+        <div className="gridrunner-surface border border-transparent p-5 text-foreground relative overflow-hidden space-y-3 shadow-chrome">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/5 to-primary/10 pointer-events-none" />
+          <div className="relative space-y-1">
+            <div className="text-lg font-semibold">Unlocked - Satoshi&apos;s Forge Online</div>
+            <div className="text-sm text-muted-foreground">
+              Forge theme is active. Run bonus challenges any time from the Bitcoin logo.
+            </div>
+          </div>
+          <div className="relative flex flex-col gap-2">
+            {!replayMode && (
+              <Button
+                onClick={() => {
+                  const next = MINI_GAMES[Math.floor(Math.random() * MINI_GAMES.length)]?.key ?? MINI_GAMES[0].key;
+                  setGameKey(next);
+                  setReplayMode(true);
+                }}
+                variant="accent"
+                size="sm"
+                className="self-start uppercase tracking-wide"
+              >
+                Run a challenge for fun
+              </Button>
+            )}
+            {replayMode && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Bonus challenge (Forge already unlocked)</div>
+                  <Button onClick={() => setReplayMode(false)} variant="secondary" size="sm" className="uppercase">
+                    Close
+                  </Button>
+                </div>
+                <div className="gridrunner-surface border border-transparent p-3">
+                  <Current onComplete={() => {}} onMarkComplete={() => {}} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
-        <div className="relative flex flex-col gap-2">
-          {!replayMode && (
-            <Button
-              onClick={() => {
-                const next = MINI_GAMES[Math.floor(Math.random() * MINI_GAMES.length)]?.key ?? MINI_GAMES[0].key;
-                setGameKey(next);
-                setReplayMode(true);
-              }}
-              variant="accent"
-              size="sm"
-              className="self-start uppercase tracking-wide"
-            >
-              Run a challenge for fun
-            </Button>
-          )}
-          {replayMode && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-muted-foreground">Bonus challenge (Forge already unlocked)</div>
-                <Button onClick={() => setReplayMode(false)} variant="secondary" size="sm" className="uppercase">
-                  Close
-                </Button>
-              </div>
-              <div className="gridrunner-surface border border-transparent p-3">
-                <Current onComplete={() => {}} onMarkComplete={() => {}} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+
+        <ConfirmDialog
+          open={quizErrorOpen}
+          title="Try again"
+          description="Some quiz answers are incorrect. Double-check the Bitcoin basics and resubmit."
+          confirmLabel="Got it"
+          cancelLabel="Close"
+          onConfirm={() => setQuizErrorOpen(false)}
+          onCancel={() => setQuizErrorOpen(false)}
+          tone="warning"
+        />
+      </>
     );
   }
 
@@ -239,6 +254,17 @@ export default function DarkModeChallengeHub() {
           ))}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={quizErrorOpen}
+        title="Try again"
+        description="Some quiz answers are incorrect. Review the questions and resubmit to unlock Forge."
+        confirmLabel="Back to quiz"
+        cancelLabel="Close"
+        onConfirm={() => setQuizErrorOpen(false)}
+        onCancel={() => setQuizErrorOpen(false)}
+        tone="warning"
+      />
     </div>
   );
 }

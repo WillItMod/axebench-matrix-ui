@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface ConfigModalProps {
   open: boolean;
@@ -46,9 +47,11 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
   const [fanAuto, setFanAuto] = useState(true);
   const [targetTemp, setTargetTemp] = useState(60);
   const [applying, setApplying] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const [psus, setPsus] = useState<any[]>([]);
   const [selectedPsu, setSelectedPsu] = useState<string>('standalone');
   const [ipAddress, setIpAddress] = useState(device.ip || '');
+  const [restartConfirmOpen, setRestartConfirmOpen] = useState(false);
 
   const getPsuMetrics = (psu: any) => {
     const toNum = (v: any) => {
@@ -127,19 +130,21 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
   };
 
   const handleRestart = async () => {
-    if (!confirm(`Restart ${device.name}?`)) return;
-
     try {
+      setRestarting(true);
       await api.devices.restart(device.name);
       toast.success('Device restart initiated');
       onClose();
     } catch (error: any) {
       toast.error(error.message || 'Failed to restart device');
+    } finally {
+      setRestarting(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <>
+      <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] text-[var(--text-primary)] max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-glow-green">
@@ -270,7 +275,7 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
               {applying ? 'APPLYING...' : '✓ APPLY_SETTINGS'}
             </Button>
             <Button
-              onClick={handleRestart}
+              onClick={() => setRestartConfirmOpen(true)}
               className="btn-cyan"
             >
               🔄 RESTART
@@ -286,5 +291,23 @@ export default function ConfigModal({ open, onClose, device, onSuccess }: Config
         </div>
       </DialogContent>
     </Dialog>
+
+      <ConfirmDialog
+        open={restartConfirmOpen}
+        title={`Restart ${device.name}?`}
+        description="Device will reboot immediately. Running benchmarks or mining will stop until it comes back online."
+        tone="warning"
+        confirmLabel={restarting ? 'Restarting...' : 'Restart now'}
+        onConfirm={() => {
+          if (restarting) return;
+          setRestartConfirmOpen(false);
+          handleRestart();
+        }}
+        onCancel={() => {
+          if (restarting) return;
+          setRestartConfirmOpen(false);
+        }}
+      />
+    </>
   );
 }

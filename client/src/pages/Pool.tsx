@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Trash2, Plus, Play, Square, RefreshCw } from 'lucide-react';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Pool {
   id: string;
@@ -35,6 +36,7 @@ export default function Pool() {
   const [selectedDevices, setSelectedDevices] = usePersistentState<string[]>('pool-selected-devices', []);
   const [selectedPoolId, setSelectedPoolId] = usePersistentState<string>('pool-selected-pool', '');
   const [editingPools, setEditingPools] = useState<Record<string, Pool>>({});
+  const [pendingDeletePool, setPendingDeletePool] = useState<{ id: string; name?: string } | null>(null);
   
   // New pool form
   const [newPool, setNewPool] = useState({
@@ -183,16 +185,21 @@ export default function Pool() {
     }
   };
 
-  const handleDeletePool = async (poolId: string) => {
-    if (!confirm('Delete this pool?')) return;
+  const handleDeletePool = (pool: Pool) => {
+    setPendingDeletePool({ id: pool.id, name: pool.name });
+  };
 
+  const confirmDeletePool = async () => {
+    if (!pendingDeletePool) return;
     try {
-      await api.pool.delete(poolId);
-      toast.success('Pool deleted');
+      await api.pool.delete(pendingDeletePool.id);
+      toast.success(`Pool${pendingDeletePool.name ? ` "${pendingDeletePool.name}"` : ''} deleted`);
       loadData();
     } catch (error) {
       console.error('Failed to delete pool:', error);
       toast.error('Failed to delete pool');
+    } finally {
+      setPendingDeletePool(null);
     }
   };
 
@@ -553,7 +560,7 @@ export default function Pool() {
                         </Button>
                       )}
                       <Button
-                        onClick={() => handleDeletePool(pool.id)}
+                        onClick={() => handleDeletePool(pool)}
                         variant="destructive"
                         size="sm"
                         className="shadow-[0_0_14px_rgba(239,68,68,0.35)]"
@@ -653,6 +660,21 @@ export default function Pool() {
           </div>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDeletePool}
+        title={
+          pendingDeletePool
+            ? `Delete pool "${pendingDeletePool.name || 'pool'}"?`
+            : 'Delete pool?'
+        }
+        description="This removes the pool from AxeBench. Devices using it will keep their current configuration until a new pool is applied."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        tone="danger"
+        onConfirm={confirmDeletePool}
+        onCancel={() => setPendingDeletePool(null)}
+      />
     </div>
   );
 }

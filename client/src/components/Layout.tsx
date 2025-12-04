@@ -15,6 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import EasterEggLaunchers from './secret/EasterEggLaunchers';
 import BitcoinLoreModal from './secret/BitcoinLoreModal';
+import { MINI_GAMES, type MiniGameEntry } from './secret/games/registry';
 
 interface LayoutProps {
   children: ReactNode;
@@ -31,6 +32,8 @@ export default function Layout({ children }: LayoutProps) {
   const [isPatron, setIsPatron] = useState<boolean>(false);
   const [licenseLoaded, setLicenseLoaded] = useState(false);
   const REMINDER_KEY = 'axebench_egg_reminder_at';
+  const RANDOM_GAME_KEY = 'axebench_random_game_last';
+  const RANDOM_GAME_COOLDOWN_MS = 15 * 60 * 1000;
 
   // Fetch uptime from backend
   useEffect(() => {
@@ -140,6 +143,13 @@ export default function Layout({ children }: LayoutProps) {
   const [celebrate, setCelebrate] = useState(false);
   const [coinTaps, setCoinTaps] = useState(0);
   const [loreOpen, setLoreOpen] = useState(false);
+  const [randomGame, setRandomGame] = useState<MiniGameEntry | null>(null);
+  const [randomGameOpen, setRandomGameOpen] = useState(false);
+  const [lastRandomLaunch, setLastRandomLaunch] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    const stored = Number(localStorage.getItem(RANDOM_GAME_KEY) || 0);
+    return Number.isFinite(stored) ? stored : 0;
+  });
 
   useEffect(() => {
     const handler = () => {
@@ -161,6 +171,31 @@ export default function Layout({ children }: LayoutProps) {
 
   const handleCelebrationFinished = () => {
     // Keep overlay for coin tapping; do not auto-close here.
+  };
+
+  const handleRandomGameDone = () => {
+    setRandomGameOpen(false);
+    setRandomGame(null);
+  };
+
+  const handleUptimeClick = () => {
+    const now = Date.now();
+    const remaining = RANDOM_GAME_COOLDOWN_MS - (now - lastRandomLaunch);
+    if (remaining > 0) {
+      const minutes = Math.ceil(remaining / 60000);
+      toast.info(`Uptime portal cooling down. Try again in ~${minutes} minute${minutes === 1 ? '' : 's'}.`, {
+        duration: 3500,
+      });
+      return;
+    }
+
+    const pick = MINI_GAMES[Math.floor(Math.random() * MINI_GAMES.length)];
+    setRandomGame(pick);
+    setRandomGameOpen(true);
+    setLastRandomLaunch(now);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(RANDOM_GAME_KEY, String(now));
+    }
   };
 
   const renderLicenseBanner = () => {
@@ -336,7 +371,15 @@ export default function Layout({ children }: LayoutProps) {
                   STATUS: <span className="text-[hsl(var(--primary))]">OPERATIONAL</span>
                 </span>
                 <span>
-                  UPTIME: <span className="text-[hsl(var(--secondary))]">{uptime}</span>
+                  UPTIME:{' '}
+                  <button
+                    type="button"
+                    onClick={handleUptimeClick}
+                    className="text-[hsl(var(--secondary))] underline decoration-dotted underline-offset-4 hover:text-foreground transition-colors"
+                    title="Click to open a random mini-game (15 min cooldown)"
+                  >
+                    {uptime}
+                  </button>
                 </span>
               </div>
             </div>
@@ -348,6 +391,30 @@ export default function Layout({ children }: LayoutProps) {
         <Dialog open={showSecret} onOpenChange={setShowSecret}>
           <DialogContent className="max-w-3xl shadow-chrome">
             <DarkModeChallengeHub />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={randomGameOpen}
+          onOpenChange={(val) => {
+            setRandomGameOpen(val);
+            if (!val) setRandomGame(null);
+          }}
+        >
+          <DialogContent className="w-[98vw] max-w-[1280px] max-h-[90vh] shadow-chrome">
+            {randomGame ? (
+              <div className="space-y-3">
+                <div className="text-sm text-muted-foreground">
+                  System uptime unlocked: {randomGame.title}
+                </div>
+                {(() => {
+                  const Game = randomGame.component;
+                  return <Game onComplete={handleRandomGameDone} onMarkComplete={handleRandomGameDone} />;
+                })()}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">No game selected.</div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

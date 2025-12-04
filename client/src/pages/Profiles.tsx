@@ -10,6 +10,7 @@ import { usePersistentState } from '@/hooks/usePersistentState';
 import { Card } from '@/components/ui/card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Input } from '@/components/ui/input';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const ACTIVE_PROFILE_KEY = 'axebench:activeProfiles';
 
@@ -49,6 +50,7 @@ export default function Profiles() {
   const [editFrequency, setEditFrequency] = useState('');
   const [activeProfiles, setActiveProfiles] = useState<Record<string, string>>(() => loadActiveProfiles());
   const [selectedDevices, setSelectedDevices] = usePersistentState<string[]>('profiles-selected-devices', []);
+  const [pendingDelete, setPendingDelete] = useState<{ profile: string; device: string } | null>(null);
   const [jsonPreview, setJsonPreview] = useState<{ open: boolean; title: string; body: string }>({
     open: false,
     title: '',
@@ -114,18 +116,23 @@ export default function Profiles() {
     }
   };
 
-  const handleDelete = async (profileName: string, deviceName: string) => {
+  const handleDelete = (profileName: string, deviceName: string) => {
     console.log('[Profiles] handleDelete called with:', { profileName, deviceName });
     if (!deviceName) return;
-    if (!confirm(`Delete profile "${profileName}" from ${deviceName}?`)) return;
+    setPendingDelete({ profile: profileName, device: deviceName });
+  };
 
+  const confirmDeleteProfile = async () => {
+    if (!pendingDelete) return;
     try {
-      console.log('[Profiles] Calling API delete:', { device: deviceName, profile: profileName });
-      await api.profiles.delete(deviceName, profileName);
+      console.log('[Profiles] Calling API delete:', { device: pendingDelete.device, profile: pendingDelete.profile });
+      await api.profiles.delete(pendingDelete.device, pendingDelete.profile);
       toast.success('Profile deleted');
-      loadProfilesForDevice(deviceName);
+      loadProfilesForDevice(pendingDelete.device);
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete profile');
+    } finally {
+      setPendingDelete(null);
     }
   };
 
@@ -578,6 +585,21 @@ export default function Profiles() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={
+          pendingDelete
+            ? `Delete profile "${pendingDelete.profile}" from ${pendingDelete.device}?`
+            : 'Delete profile?'
+        }
+        description="This removes the saved profile from this device. The device will keep its current running settings until you apply another profile."
+        tone="danger"
+        confirmLabel="Delete profile"
+        cancelLabel="Cancel"
+        onConfirm={confirmDeleteProfile}
+        onCancel={() => setPendingDelete(null)}
+      />
 
       {/* Nano Tune Modal */}
       <NanoTuneModal

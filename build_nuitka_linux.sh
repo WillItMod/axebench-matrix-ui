@@ -24,7 +24,6 @@ python -m nuitka \
   --output-filename="$OUTPUT_NAME" \
   --include-data-dir=dist/public=dist/public \
   --include-data-dir=python/templates=python/templates \
-  --include-data-dir=python/static=python/static \
   --include-data-file=python/config.py=python/config.py \
   --output-dir=build-linux \
   python/launcher.py
