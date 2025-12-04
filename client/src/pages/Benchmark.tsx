@@ -1202,7 +1202,7 @@ export default function Benchmark() {
 
           {/* Engine Panel */}
           <div className="matrix-card">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-bold text-glow-cyan">ENGINE_PANEL</h3>
                 <p className="text-[var(--text-muted)] text-xs">
@@ -1214,72 +1214,79 @@ export default function Benchmark() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Progress arc + ETA */}
-              <div className="flex items-center justify-center">
+            <div className="grid gap-6 lg:grid-cols-3">
+              <div className="flex h-full items-center justify-center">
                 <ArcGauge
                   label="SWEEP PROGRESS"
                   value={progressVal || 0}
                   text={`${testsCompleted} / ${testsTotal || '?'}`}
-                  footer={`ETA ${formatEta(etaSeconds)} • Per test ${perTestSeconds || '?'}s`}
+                  footer={`ETA ${formatEta(etaSeconds)} | Per test ${perTestSeconds || '?'}s`}
                 />
               </div>
 
-              {/* Dials */}
-              <div className="flex items-center justify-center gap-6">
-                <DialGauge
-                  label="THERMAL"
-                  value={thermalStress}
-                  subtitle={`${temp.toFixed(1)} / ${maxChip}°C`}
-                  tooltip={`Headroom ${tempHeadroom.toFixed(1)}°C. Temp ratio ${(tempRatio * 100).toFixed(1)}%. Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}.`}
-                />
-                <DialGauge
-                  label="POWER"
-                  value={powerStress}
-                  subtitle={`${power.toFixed(1)}W / ${maxPower}W`}
-                  tooltip={`Headroom ${powerHeadroom.toFixed(1)}W. Power ratio ${(powerRatio * 100).toFixed(1)}%. Voltage ${(voltageRatio * 100).toFixed(1)}%.`}
-                />
-                <DialGauge
-                  label="STABILITY"
-                  value={stabilityStress}
-                  subtitle={`${errorPct.toFixed(2)}% err`}
-                  tooltip={`Error margin ${errorMargin.toFixed(2)}%. Recoveries ${status?.recovery_attempts || 0}. Failed combos ${(status?.failed_combos || []).length}.`}
-                />
+              <div className="flex h-full items-center justify-center">
+                <div className="grid w-full max-w-2xl grid-cols-3 gap-4">
+                  <div className="flex items-center justify-center">
+                    <DialGauge
+                      label="THERMAL"
+                      value={thermalStress}
+                      subtitle={`${temp.toFixed(1)} / ${maxChip}�C`}
+                      tooltip={`Headroom ${tempHeadroom.toFixed(1)}�C. Temp ratio ${(tempRatio * 100).toFixed(1)}%. Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}.`}
+                    />
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <DialGauge
+                      label="POWER"
+                      value={powerStress}
+                      subtitle={`${power.toFixed(1)}W / ${maxPower}W`}
+                      tooltip={`Headroom ${powerHeadroom.toFixed(1)}W. Power ratio ${(powerRatio * 100).toFixed(1)}%. Voltage ${(voltageRatio * 100).toFixed(1)}%.`}
+                    />
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <DialGauge
+                      label="STABILITY"
+                      value={stabilityStress}
+                      subtitle={`${errorPct.toFixed(2)}% err`}
+                      tooltip={`Error margin ${errorMargin.toFixed(2)}%. Recoveries ${status?.recovery_attempts || 0}. Failed combos ${(status?.failed_combos || []).length}.`}
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Balance + V/F + best */}
-              <div className="space-y-3">
+              <div className="flex h-full flex-col gap-3">
                 <BalanceGauge
                   value={balanceDelta}
                   tooltip={`Push avg(V/F/power): ${push.toFixed(2)}. Instability: ${instability.toFixed(2)}. Right = headroom, Left = instability/overdrive.`}
                 />
-                <MiniSlider
-                  label="VOLTAGE POSITION"
-                  ratio={vNorm}
-                  display={`${voltage} mV`}
-                />
-                <MiniSlider
-                  label="FREQUENCY POSITION"
-                  ratio={fNorm}
-                  display={`${frequency} MHz`}
-                />
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
+                <div className="space-y-2">
+                  <MiniSlider
+                    label="VOLTAGE POSITION"
+                    ratio={vNorm}
+                    display={`${voltage} mV`}
+                  />
+                  <MiniSlider
+                    label="FREQUENCY POSITION"
+                    ratio={fNorm}
+                    display={`${frequency} MHz`}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
                     <div className="text-[var(--text-secondary)]">EFFICIENCY</div>
                     <div className="text-[var(--success-green)] font-semibold">
-                      {efficiencyJth > 0 ? `${efficiencyJth.toFixed(2)} J/TH` : '—'}
+                      {efficiencyJth > 0 ? `${efficiencyJth.toFixed(2)} J/TH` : '?'}
                     </div>
                     <div className="text-[10px] text-[var(--text-muted)]">
-                      {bestEff ? `Δ vs best: ${(efficiencyJth - bestEff).toFixed(2)} J/TH` : 'No best yet'}
+                      {bestEff ? `vs best: ${(efficiencyJth - bestEff).toFixed(2)} J/TH` : 'No best yet'}
                     </div>
                   </div>
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
                     <div className="text-[var(--text-secondary)]">HASHRATE</div>
                     <div className="text-[var(--neon-cyan)] font-semibold">
-                      {hashrateGh ? `${hashrateGh.toFixed(1)} GH/s` : '—'}
+                      {hashrateGh ? `${hashrateGh.toFixed(1)} GH/s` : '?'}
                     </div>
                     <div className="text-[10px] text-[var(--text-muted)]">
-                      {bestHash ? `Δ vs best: ${(hashrateGh - bestHash).toFixed(1)} GH/s` : 'No best yet'}
+                      {bestHash ? `vs best: ${(hashrateGh - bestHash).toFixed(1)} GH/s` : 'No best yet'}
                     </div>
                   </div>
                 </div>
@@ -1542,6 +1549,7 @@ export default function Benchmark() {
     </>
   );
 }
+
 
 
 
