@@ -31,9 +31,10 @@
     --matrix-brightness: 1;
     --matrix-code-color: #22c55e;
     /* gridrunner surface tokens */
-    --surface-strong: 0.78;
-    --surface-medium: 0.7;
-    --surface-soft: 0.62;
+    --card-surface-opacity: 0.52;
+    --surface-strong: var(--card-surface-opacity);
+    --surface-medium: var(--card-surface-opacity);
+    --surface-soft: var(--card-surface-opacity);
     --frame-radius: 18px;
     --frame-notch: 12px;
     --frame-border: hsla(var(--border), 0.7);
@@ -559,6 +560,14 @@
 }
 
 @layer utilities {
+  .text-glow-cyan {
+    color: hsl(var(--accent));
+    text-shadow: 0 0 12px hsla(var(--accent), 0.5), 0 0 18px hsla(var(--accent), 0.35);
+  }
+  .text-glow-green {
+    color: var(--matrix-green);
+    text-shadow: 0 0 12px rgba(34, 197, 94, 0.6), 0 0 18px rgba(34, 197, 94, 0.4);
+  }
   .text-glow-primary { text-shadow: 0 0 15px hsla(var(--primary), 0.45); }
   .box-glow-primary { box-shadow: 0 0 15px hsla(var(--primary), 0.45), 0 0 30px hsla(var(--primary), 0.25); }
   .border-glow-primary { box-shadow: 0 0 10px hsla(var(--primary), 0.5); }

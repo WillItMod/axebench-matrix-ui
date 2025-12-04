@@ -448,7 +448,7 @@ export default function Operations() {
   return (
     <div className="space-y-6">
       <div className="hud-panel flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-glow-green">Operations & Scheduling</h1>
+        <h1 className="text-3xl font-bold text-glow-green">OPERATIONS</h1>
         <p className="text-[var(--text-secondary)] text-sm">
           Choose devices, set tuning and pool schedules, and push them together.
         </p>
@@ -494,13 +494,13 @@ export default function Operations() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <ServiceToggle
-              title="Profile scheduler service"
+              title="PROFILE_SCHEDULER_SERVICE"
               running={shedServiceRunning}
               onStart={() => toggleService('shed', true)}
               onStop={() => toggleService('shed', false)}
             />
             <ServiceToggle
-              title="Pool scheduler service"
+              title="POOL_SCHEDULER_SERVICE"
               running={poolServiceRunning}
               onStart={() => toggleService('pool', true)}
               onStop={() => toggleService('pool', false)}
@@ -517,7 +517,7 @@ export default function Operations() {
       <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
-            <h2 className="text-xl font-bold text-[var(--neon-cyan)]">Schedule editor</h2>
+            <h2 className="text-xl font-bold text-[var(--neon-cyan)]">SCHEDULE_EDITOR</h2>
             <p className="text-xs text-[var(--text-muted)]">Targets: {targetLabel}</p>
           </div>
           <Tooltip>
@@ -543,7 +543,7 @@ export default function Operations() {
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-[var(--neon-cyan)]" />
                 <div>
-                  <div className="text-sm font-bold text-[var(--neon-cyan)]">Tuning profiles</div>
+                  <div className="text-sm font-bold text-[var(--neon-cyan)]">TUNING_PROFILES</div>
                   <div className="text-xs text-[var(--text-muted)]">Start-only blocks; nearest previous start stays active.</div>
                 </div>
               </div>
@@ -578,7 +578,7 @@ export default function Operations() {
               <div className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-[var(--matrix-green)]" />
                 <div>
-                  <div className="text-sm font-bold text-[var(--matrix-green)]">Pool profiles</div>
+                  <div className="text-sm font-bold text-[var(--matrix-green)]">POOL_PROFILES</div>
                   <div className="text-xs text-[var(--text-muted)]">Start-only blocks; nearest previous start stays active.</div>
                 </div>
               </div>
@@ -612,7 +612,7 @@ export default function Operations() {
 
       <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-[var(--text-primary)]">Per-device schedules</h2>
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">PER-DEVICE_SCHEDULES</h2>
           <Button size="sm" variant="outline" onClick={() => loadSchedules(selectedDevices)}>
             <RefreshCcw className="w-4 h-4 mr-1" /> Reload selected
           </Button>
@@ -638,14 +638,14 @@ export default function Operations() {
               {schedule && (
                 <div className="space-y-3 text-xs">
                   <div>
-                    <div className="font-semibold text-[var(--neon-cyan)]">Tuning</div>
+                    <div className="font-semibold text-[var(--neon-cyan)]">TUNING</div>
                     <div className="text-[var(--text-muted)]">
                       {schedule.profile.enabled ? 'Enabled' : 'Disabled'}
                     </div>
                     <ScheduleList blocks={schedule.profile.blocks} labelKey="profile" />
                   </div>
                   <div>
-                    <div className="font-semibold text-[var(--matrix-green)]">Pool</div>
+                    <div className="font-semibold text-[var(--matrix-green)]">POOL</div>
                     <div className="text-[var(--text-muted)]">
                       {schedule.pool.enabled ? 'Enabled' : 'Disabled'}
                     </div>

@@ -19,6 +19,8 @@ const buttonVariants = cva(
           "bg-[hsla(var(--card),0.72)] text-[hsl(var(--foreground))] border-[hsl(var(--border))] shadow-[0_0_14px_hsla(var(--primary),0.12)] hover:bg-[hsl(var(--muted))]/40 hover:border-[hsla(var(--primary),0.35)]",
         accent:
           "bg-gradient-to-r from-[hsl(var(--accent))] via-[hsl(var(--primary))] to-[hsl(var(--accent))] text-[hsl(var(--primary-foreground))] border-[hsla(var(--accent),0.45)] shadow-[0_0_20px_hsla(var(--accent),0.45),0_0_28px_hsla(var(--primary),0.25)] hover:shadow-[0_0_24px_hsla(var(--accent),0.6),0_0_32px_hsla(var(--primary),0.32)]",
+        autoTune:
+          "bg-gradient-to-r from-[#6d28d9] via-[#a855f7] to-[#6d28d9] text-white border-[rgba(168,85,247,0.65)] shadow-[0_0_22px_rgba(168,85,247,0.55),0_0_30px_rgba(109,40,217,0.45)] hover:shadow-[0_0_26px_rgba(168,85,247,0.65),0_0_36px_rgba(109,40,217,0.55)] focus-visible:ring-[rgba(168,85,247,0.5)]/70",
         ghost:
           "bg-transparent text-[hsl(var(--foreground))] hover:bg-[hsl(var(--muted))]/25 hover:text-[hsl(var(--primary))]",
         link: "text-[hsl(var(--primary))] underline-offset-4 hover:underline",

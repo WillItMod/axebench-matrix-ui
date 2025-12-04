@@ -282,7 +282,7 @@ export default function Pool() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-matrix-green mb-2">🎱 AXEPOOL</h1>
+          <h1 className="text-3xl font-bold text-matrix-green mb-2">POOL</h1>
           <p className="text-neon-cyan">Pool Management & Switching</p>
         </div>
         <div className="flex gap-2">

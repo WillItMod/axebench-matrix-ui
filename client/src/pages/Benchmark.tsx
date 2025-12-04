@@ -643,8 +643,8 @@ export default function Benchmark() {
                     <Button
                       onClick={handleAutoTune}
                       disabled={!selectedDevice}
-                      variant="accent"
-                      className="w-full text-lg py-6 shadow-[0_0_24px_hsla(var(--accent),0.4)]"
+                      variant="autoTune"
+                      className="w-full text-lg py-6 shadow-[0_0_28px_rgba(168,85,247,0.4),0_0_36px_rgba(109,40,217,0.28)]"
                     >
                       🪄 AUTO_TUNE (FULL)
                     </Button>
