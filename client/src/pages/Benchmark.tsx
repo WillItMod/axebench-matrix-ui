@@ -836,32 +836,29 @@ export default function Benchmark() {
             <DialogTitle className="text-2xl font-bold text-glow-green">AUTOPILOT</DialogTitle>
             <DialogDescription className="text-[var(--text-secondary)] text-sm space-y-1">
               <p>
-                Autopilot will run a full sweep, capture session data, and produce four ready profiles: QUIET, EFFICIENT, BALANCED, MAX. You can optionally run Nano tune on each profile for extra refinement.
+                Autopilot runs a full sweep, captures session data, and builds four ready profiles: QUIET, EFFICIENT, BALANCED, MAX. Optional Nano tune adds a refinement pass.
               </p>
-              <p>
-                Duration depends on your ranges—anywhere from a few minutes to much longer on wide sweeps. Keep airflow clear and stay within your PSU/thermal limits.
+              <p className="text-[var(--text-muted)]">
+                Duration depends on your ranges; keep airflow clear and stay within PSU/thermal limits.
               </p>
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid lg:grid-cols-2 gap-4 mt-2">
             <div className="space-y-3 text-sm text-[var(--text-secondary)]">
-              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
-                <div className="font-bold text-[var(--text-primary)] mb-1">What happens</div>
+              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/70 p-4">
+                <div className="font-bold text-[var(--text-primary)] mb-2">Workflow</div>
                 <ol className="list-decimal pl-5 space-y-1">
-                  <li>Run a full sweep with current settings (Easy uses optimized defaults).</li>
-                  <li>Analyze session data; generate QUIET / EFFICIENT / BALANCED / MAX profiles.</li>
-                  <li>Optional: Nano tune each profile for tighter results.</li>
+                  <li>Full sweep with current settings (Easy uses optimized defaults).</li>
+                  <li>Analyze session data; generate QUIET / EFFICIENT / BALANCED / MAX.</li>
+                  <li>Optional Nano tune each profile.</li>
                   <li>Apply EFFICIENT when finished.</li>
                 </ol>
               </div>
 
-              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--warning-amber)]/10 p-3 text-[var(--text-primary)]">
-                <div className="font-bold text-[var(--warning-amber)] mb-1">Heads up</div>
-                <p className="text-sm">
-                  Run time depends on your ranges. Could be 5 minutes, could be a couple of hours in the absolute worst case.
-                  Keep airflow clear and respect PSU/thermal limits. If temps climb, stop the run from the banner.
-                </p>
+              <div className="rounded-lg border border-[var(--warning-amber)] bg-[var(--warning-amber)]/12 p-3 text-[var(--text-primary)]">
+                <div className="font-bold text-[var(--warning-amber)] mb-1">Safety</div>
+                <p className="text-sm">Monitor temps and power; stop from the banner if limits are exceeded.</p>
               </div>
 
               <div className="space-y-2">
@@ -887,54 +884,56 @@ export default function Benchmark() {
             </div>
 
             <div className="space-y-3">
-              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-bold text-[var(--text-primary)]">Nano tune after profiles?</div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={autoTuneNano ? 'autoTune' : 'secondary'}
-                      onClick={() => setAutoTuneNano(true)}
-                    >
-                      Yes, polish every profile
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={!autoTuneNano ? 'accent' : 'secondary'}
-                      onClick={() => setAutoTuneNano(false)}
-                    >
-                      Skip the polish
-                    </Button>
-                  </div>
+              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/70 p-3 space-y-2">
+                <div className="font-bold text-[var(--text-primary)]">Nano tune after profiles?</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    size="sm"
+                    variant={autoTuneNano ? 'autoTune' : 'secondary'}
+                    className="w-full"
+                    onClick={() => setAutoTuneNano(true)}
+                  >
+                    Run Nano tune
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={!autoTuneNano ? 'accent' : 'secondary'}
+                    className="w-full"
+                    onClick={() => setAutoTuneNano(false)}
+                  >
+                    Skip Nano
+                  </Button>
                 </div>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  Toggle Nano tuning for all four profiles after the sweep. Turning it off stops after profiles are created.
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Turn off Nano to stop after profiles are created.
                 </p>
               </div>
 
               <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
-                <div className="font-bold text-[var(--text-primary)] mb-2">Incoming profiles</div>
+                <div className="font-bold text-[var(--text-primary)] mb-2">Profiles created</div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-[var(--text-primary)]">
-                  {['AUTO_QUIET', 'AUTO_EFFICIENT', 'AUTO_BALANCED', 'AUTO_MAX'].map((name) => (
-                    <div
-                      key={name}
-                      className="rounded border border-[var(--grid-gray)] bg-[var(--bg-secondary)]/60 p-2"
-                    >
-                      <div className="font-bold">{name.replace('AUTO_', '')}</div>
-                      <div className="text-[var(--text-secondary)]">
-                        {name === 'AUTO_QUIET' && 'Low noise first.'}
-                        {name === 'AUTO_EFFICIENT' && 'Best J/TH target.'}
-                        {name === 'AUTO_BALANCED' && 'Safe middle ground.'}
-                        {name === 'AUTO_MAX' && 'Push for max hashrate.'}
-                      </div>
-                    </div>
-                  ))}
+                  <div className="rounded border border-[var(--grid-gray)] bg-gradient-to-br from-amber-500/25 to-amber-700/15 p-2">
+                    <div className="font-bold text-amber-200">QUIET</div>
+                    <div className="text-[var(--text-secondary)]">Low noise priority.</div>
+                  </div>
+                  <div className="rounded border border-[var(--grid-gray)] bg-gradient-to-br from-emerald-500/25 to-emerald-700/15 p-2">
+                    <div className="font-bold text-emerald-200">EFFICIENT</div>
+                    <div className="text-[var(--text-secondary)]">Best J/TH target.</div>
+                  </div>
+                  <div className="rounded border border-[var(--grid-gray)] bg-gradient-to-br from-sky-500/20 to-sky-700/15 p-2">
+                    <div className="font-bold text-sky-200">BALANCED</div>
+                    <div className="text-[var(--text-secondary)]">Middle ground.</div>
+                  </div>
+                  <div className="rounded border border-[var(--grid-gray)] bg-gradient-to-br from-fuchsia-500/25 to-fuchsia-700/15 p-2">
+                    <div className="font-bold text-fuchsia-200">MAX</div>
+                    <div className="text-[var(--text-secondary)]">Push for hashrate.</div>
+                  </div>
                 </div>
               </div>
 
               <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3 text-sm text-[var(--text-secondary)]">
                 <div className="font-bold text-[var(--text-primary)] mb-1">Refinement</div>
-                <p>Nano tuning is optional and adds time; enable it when you want the most polished profiles.</p>
+                <p>Nano tuning adds time but can tighten each profile. Enable it when you want the most polish.</p>
               </div>
             </div>
           </div>
