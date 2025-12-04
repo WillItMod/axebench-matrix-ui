@@ -31,7 +31,7 @@
     --matrix-brightness: 1;
     --matrix-code-color: #22c55e;
     /* gridrunner surface tokens */
-    --card-surface-opacity: 0.35;
+    --card-surface-opacity: 0.22;
     --surface-strong: var(--card-surface-opacity);
     --surface-medium: var(--card-surface-opacity);
     --surface-soft: var(--card-surface-opacity);
