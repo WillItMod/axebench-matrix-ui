@@ -218,19 +218,17 @@ export default function Layout({ children }: LayoutProps) {
             <button
               type="button"
               onClick={() => {
-                if (secretUnlocked) {
-                  setCelebrate(true);
-                } else {
-                  setShowSecret(true);
-                }
+                if (secretUnlocked) setCelebrate(true);
+                else setShowSecret(true);
               }}
-              className="flex items-center gap-2 text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
-              title={secretUnlocked ? "Satoshi's Forge unlocked" : "Secret challenges"}
+              className="flex items-center gap-1 text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
             >
               <span className="text-foreground">AXE</span>
-              <span className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.75)] border-2 border-amber-200">
+
+              <span className="relative inline-flex items-center justify-center w-9 h-9 -mx-[3px] rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.75)] border-2 border-amber-200">
                 ₿
               </span>
+
               <span className="text-foreground">ENCH</span>
             </button>
                 <div className="text-sm text-muted-foreground">
