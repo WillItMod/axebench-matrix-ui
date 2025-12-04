@@ -282,7 +282,7 @@ export default function Pool() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-glow-cyan mb-2">POOL</h1>
+          <h1 className="text-3xl font-bold text-glow-green mb-2">POOL</h1>
           <p className="text-neon-cyan">Pool Management & Switching</p>
         </div>
         <div className="flex gap-2">
@@ -341,7 +341,7 @@ export default function Pool() {
 
       {/* Create New Pool */}
       <Card className="p-6 bg-black/80 border-matrix-green">
-        <h2 className="text-xl font-bold text-glow-cyan mb-4">CREATE_NEW_POOL</h2>
+        <h2 className="text-xl font-bold text-glow-green mb-4">CREATE_NEW_POOL</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="pool-name">Pool Name *</Label>
@@ -473,7 +473,7 @@ export default function Pool() {
 
       {/* Existing Pools */}
       <Card className="p-6 bg-black/80 border-matrix-green">
-        <h2 className="text-xl font-bold text-glow-cyan mb-4">CONFIGURED_POOLS</h2>
+        <h2 className="text-xl font-bold text-glow-green mb-4">CONFIGURED_POOLS</h2>
         {pools.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             NO_POOLS_CONFIGURED
@@ -572,7 +572,7 @@ export default function Pool() {
       {selectedDevices.length > 0 && pools.length > 0 && (
         <Card className="p-6 gridrunner-surface border border-transparent shadow-chrome space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-glow-cyan">DEVICE_POOLS</h2>
+            <h2 className="text-lg font-bold text-glow-green">DEVICE_POOLS</h2>
             <Button size="sm" variant="outline" onClick={() => loadData()}>
               <RefreshCw className="w-4 h-4 mr-1" /> RELOAD
             </Button>

@@ -612,7 +612,7 @@ export default function Operations() {
 
       <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-glow-cyan">PER-DEVICE_SCHEDULES</h2>
+          <h2 className="text-lg font-bold text-glow-green">PER-DEVICE_SCHEDULES</h2>
           <Button size="sm" variant="outline" onClick={() => loadSchedules(selectedDevices)}>
             <RefreshCcw className="w-4 h-4 mr-1" /> Reload selected
           </Button>

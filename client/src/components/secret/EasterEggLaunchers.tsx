@@ -85,15 +85,15 @@ export default function EasterEggLaunchers() {
             type="button"
             aria-label={`Hidden trigger: ${label}`}
             onClick={() => handleTrigger(key)}
-            className={`pointer-events-auto absolute flex items-center justify-center w-4 h-4 rounded-full bg-transparent text-[0px] border border-transparent transition ${
-              pulse ? 'shadow-[0_0_30px_rgba(16,185,129,0.7)]' : 'shadow-none'
+            className={`pointer-events-auto absolute flex items-center justify-center w-12 h-12 rounded-full bg-transparent text-[0px] border border-transparent cursor-pointer transition ${
+              pulse ? 'shadow-[0_0_30px_rgba(16,185,129,0.5)]' : 'shadow-none'
             }`}
             style={position}
             title="Hidden protocol"
           >
             <span
-              className={`block w-full h-full rounded-full ${
-                pulse ? 'bg-emerald-300/70' : 'bg-white/0'
+              className={`block w-1 h-1 rounded-full transition ${
+                pulse ? 'bg-emerald-300/80 shadow-[0_0_24px_rgba(16,185,129,0.6)] scale-150' : 'bg-white/10'
               }`}
             />
           </button>

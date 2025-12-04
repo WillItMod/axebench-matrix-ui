@@ -112,7 +112,7 @@ export default function Settings() {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <h1 className="text-3xl font-bold text-glow-green uppercase">SETTINGS</h1>
           <p className="text-muted-foreground">Configure AxeBench to match your rig and preferences.</p>
         </div>
       </div>
