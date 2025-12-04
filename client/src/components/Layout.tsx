@@ -218,7 +218,7 @@ export default function Layout({ children }: LayoutProps) {
       <MatrixBackground />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <div className="relative z-10 space-y-2 px-2 pt-2">
+      <div className="relative z-10 space-y-2 px-2 pt-1 -mt-2">
         <div className="min-h-[36px]">
           <BenchmarkStatusBanner />
         </div>
@@ -242,7 +242,7 @@ export default function Layout({ children }: LayoutProps) {
                 <button
                   type="button"
                   onClick={handleBitcoinClick}
-                  className="group flex items-center gap-2 text-foreground transition"
+                  className="group flex items-center gap-[3px] text-foreground transition"
                 >
                   <span className="text-2xl font-semibold tracking-tight">AXE</span>
                   <span className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 via-orange-500 to-yellow-400 text-slate-900 shadow-[0_0_18px_rgba(251,191,36,0.65)] border-2 border-amber-200 group-hover:scale-105 transition-transform">
