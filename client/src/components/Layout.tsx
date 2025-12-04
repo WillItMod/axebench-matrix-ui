@@ -183,6 +183,8 @@ export default function Layout({ children }: LayoutProps) {
     { path: '/settings', label: 'SETTINGS' },
   ];
 
+  const licenseBanner = renderLicenseBanner();
+
   return (
     <div className="min-h-screen relative bg-[var(--deep-black)] text-[var(--text-primary)]">
       <BitcoinCelebrationOverlay active={celebrate} onFinished={() => setCelebrate(false)} />
@@ -190,10 +192,20 @@ export default function Layout({ children }: LayoutProps) {
       <MatrixBackground />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <BenchmarkStatusBanner />
-      <NanoTuneStatusBanner />
-      <AutoTuneStatusBanner />
-      {renderLicenseBanner()}
+      <div className="relative z-10 space-y-2">
+        <div className="min-h-[36px]">
+          <BenchmarkStatusBanner />
+        </div>
+        <div className="min-h-[36px]">
+          <NanoTuneStatusBanner />
+        </div>
+        <div className="min-h-[36px]">
+          <AutoTuneStatusBanner />
+        </div>
+        <div className="min-h-[56px] flex items-stretch transition-all duration-200">
+          {licenseBanner}
+        </div>
+      </div>
 
       {/* Main Content */}
       <div className="relative z-20">

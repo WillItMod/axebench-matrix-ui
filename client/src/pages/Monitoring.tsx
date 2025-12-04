@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import LiveMonitoringPanel from '@/components/LiveMonitoringPanel';
 import { RefreshCw } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { usePersistentState } from '@/hooks/usePersistentState';
 
 const DEVICE_COLOR_PALETTES = [
   ['#ff0000', '#0000ff', '#ff8800', '#00ff00', '#ffff00', '#0088ff'], // Device 1: RED BLUE ORANGE GREEN YELLOW LIGHTBLUE
@@ -15,7 +16,7 @@ const DEVICE_COLOR_PALETTES = [
 export default function Monitoring() {
   const [location, setLocation] = useLocation();
   const [devices, setDevices] = useState<any[]>([]);
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [selectedDevices, setSelectedDevices] = usePersistentState<string[]>('monitoring-selected-devices', []);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

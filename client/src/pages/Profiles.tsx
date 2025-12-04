@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Zap } from 'lucide-react';
+import { usePersistentState } from '@/hooks/usePersistentState';
 
 const ACTIVE_PROFILE_KEY = 'axebench:activeProfiles';
 
@@ -44,31 +45,25 @@ export default function Profiles() {
   const [editVoltage, setEditVoltage] = useState('');
   const [editFrequency, setEditFrequency] = useState('');
   const [activeProfiles, setActiveProfiles] = useState<Record<string, string>>(() => loadActiveProfiles());
-  
-  // Quick Apply state
-  const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set());
+  const [selectedDevices, setSelectedDevices] = usePersistentState<string[]>('profiles-selected-devices', []);
 
   useEffect(() => {
     loadDevices();
   }, []);
 
   useEffect(() => {
-    const list = Array.from(selectedDevices);
-    if (list.length === 0) {
+    if (selectedDevices.length === 0) {
       setProfilesByDevice({});
       return;
     }
-    loadProfilesForDevices(list);
+    loadProfilesForDevices(selectedDevices);
   }, [selectedDevices]);
 
   const loadDevices = async () => {
     try {
-      const data = await api.devices.list();
-      setDevices(data);
-      if (data?.length && selectedDevices.size === 0) {
-        setSelectedDevices(new Set([data[0].name]));
-      }
-    } catch (error) {
+    const data = await api.devices.list();
+    setDevices(data);
+  } catch (error) {
       console.error('Failed to load devices:', error);
     }
   };
@@ -160,21 +155,17 @@ export default function Profiles() {
   };
 
   const toggleDevice = (deviceName: string) => {
-    const newSelected = new Set(selectedDevices);
-    if (newSelected.has(deviceName)) {
-      newSelected.delete(deviceName);
-    } else {
-      newSelected.add(deviceName);
-    }
-    setSelectedDevices(newSelected);
+    setSelectedDevices((prev) =>
+      prev.includes(deviceName) ? prev.filter((d) => d !== deviceName) : [...prev, deviceName]
+    );
   };
 
   const applyPresetProfile = async (presetName: string) => {
-    if (selectedDevices.size === 0) {
+    if (selectedDevices.length === 0) {
       toast.error('Please select at least one device');
       return;
     }
-    const deviceArray = Array.from(selectedDevices);
+    const deviceArray = selectedDevices;
     const missing: string[] = [];
     let applied = 0;
 
@@ -257,7 +248,7 @@ export default function Profiles() {
             <Button
               key={name}
               onClick={() => applyPresetProfile(name)}
-              disabled={selectedDevices.size === 0}
+              disabled={selectedDevices.length === 0}
               className="w-full btn-matrix text-sm py-4 uppercase"
             >
               {name}
@@ -276,21 +267,21 @@ export default function Profiles() {
           </div>
           <Button
             variant="outline"
-            onClick={() => loadProfilesForDevices(Array.from(selectedDevices))}
-            disabled={selectedDevices.size === 0}
+            onClick={() => loadProfilesForDevices(selectedDevices)}
+            disabled={selectedDevices.length === 0}
             className="btn-cyan"
           >
             REFRESH_SELECTED
           </Button>
         </div>
 
-        {selectedDevices.size === 0 ? (
+        {selectedDevices.length === 0 ? (
           <div className="matrix-card text-center py-10 text-[var(--text-secondary)]">
             Select one or more devices above to view their profiles.
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {Array.from(selectedDevices).map((deviceName) => {
+            {selectedDevices.map((deviceName) => {
               const profileData = profilesByDevice[deviceName] || {};
               const profileList = Object.entries(profileData).filter(
                 ([, profile]) => profile && typeof profile === 'object'

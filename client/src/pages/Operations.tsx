@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Calendar, Layers, Play, RefreshCcw, Square, Trash2 } from 'lucide-react';
+import { usePersistentState } from '@/hooks/usePersistentState';
 
 type DayKey = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
@@ -72,7 +73,7 @@ const blankPoolSchedule = (defaultPool = ''): PoolScheduleState => ({
 
 export default function Operations() {
   const [devices, setDevices] = useState<any[]>([]);
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([]);
+  const [selectedDevices, setSelectedDevices] = usePersistentState<string[]>('operations-selected-devices', []);
   const [profiles, setProfiles] = useState<string[]>(DEFAULT_PROFILES);
   const [pools, setPools] = useState<Array<{ id: string; name: string }>>([]);
   const [deviceSchedules, setDeviceSchedules] = useState<Record<string, DeviceScheduleState>>({});
