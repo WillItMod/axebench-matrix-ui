@@ -76,9 +76,9 @@ export default function BenchmarkStatusBanner() {
             onClick={() => setConfirmOpen(true)}
             disabled={stopping}
             size="sm"
-            className="bg-[var(--error-red)] hover:bg-[var(--error-red)]/80 text-white font-bold"
+            className="bg-[#ff1f1f] hover:bg-[#d60f0f] text-white font-bold border border-[#ff1f1f] shadow-[0_0_14px_rgba(255,31,31,0.45)]"
           >
-            {stopping ? 'STOPPING...' : 'ƒ?û STOP'}
+            {stopping ? 'STOPPING...' : 'STOP'}
           </Button>
         </div>
       </div>

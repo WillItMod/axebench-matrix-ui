@@ -1205,7 +1205,7 @@ function DeviceCard({ device, onRefresh, onConfig, onDelete }: { device: Device;
             <Button 
               size="sm" 
               variant="default"
-              className="w-full text-xs uppercase tracking-wide shadow-[0_0_14px_hsla(var(--primary),0.25)]"
+              className="w-full text-xs uppercase tracking-wide bg-[#ff1f1f] hover:bg-[#d60f0f] text-white border border-[#ff1f1f] shadow-[0_0_14px_rgba(255,31,31,0.5)]"
               onClick={(e) => { e.stopPropagation(); handleBenchmark(); }}
               disabled={!device.online}
             >
