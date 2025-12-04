@@ -3,7 +3,8 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useTheme, palettes, type PaletteName, fonts } from '@/contexts/ThemeContext';
+import { useTheme, availableThemes, fonts } from '@/contexts/ThemeContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -17,9 +18,8 @@ interface LicenseStatus {
 
 export default function Settings() {
   const {
-    paletteName,
-    setPalette,
-    palette,
+    theme,
+    setTheme,
     fontKey,
     setFontKey,
     fontScale,
@@ -27,18 +27,7 @@ export default function Settings() {
     matrixCodeColor,
     setMatrixCodeColor,
   } = useTheme();
-  const [darkSurge, setDarkSurge] = useState(false);
-  const [showBlackoutGame, setShowBlackoutGame] = useState(false);
-  const [gameStage, setGameStage] = useState<'prep' | 'puzzle'>('prep');
-  const [targetRune, setTargetRune] = useState<string>('RUNE');
-  const [blackoutCode, setBlackoutCode] = useState('');
-  const [sigils, setSigils] = useState({ alpha: false, beta: false, gamma: false });
-  const [customPalette, setCustomPalette] = useState({
-    primary: palette.colors.primary,
-    accent: palette.colors.accent,
-    background: palette.colors.background,
-    surface: palette.colors.surface,
-  });
+  const [showAppearance, setShowAppearance] = useState(false);
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [tier, setTier] = useState<'free' | 'premium' | 'ultimate'>('free');
   const [deviceLimit, setDeviceLimit] = useState<number>(5);
@@ -66,25 +55,6 @@ export default function Settings() {
     };
     load();
   }, []);
-
-  useEffect(() => {
-    if (paletteName === 'custom') {
-      setCustomPalette({
-        primary: palette.colors.primary,
-        accent: palette.colors.accent,
-        background: palette.colors.background,
-        surface: palette.colors.surface,
-      });
-    }
-  }, [paletteName, palette.colors]);
-
-  const paletteEntries = useMemo(() => Object.entries(palettes), []);
-
-  const handleCustomChange = (key: keyof typeof customPalette, value: string) => {
-    const updated = { ...customPalette, [key]: value };
-    setCustomPalette(updated);
-    setPalette('custom', updated);
-  };
 
   const handleLogout = async () => {
     await api.license.logout().catch(() => null);
