@@ -73,7 +73,9 @@ export default function Profiles() {
     setLoadingDevices((prev) => ({ ...prev, [deviceName]: true }));
     try {
       const data = await api.profiles.get(deviceName);
-      const profileData = data?.profiles || data || {};
+      const raw = data?.profiles || data || {};
+      // Normalize to a plain object so downstream maps do not explode
+      const profileData = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
       setProfilesByDevice((prev) => ({ ...prev, [deviceName]: profileData }));
     } catch (error) {
       console.error('Failed to load profiles:', error);

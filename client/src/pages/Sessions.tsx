@@ -572,7 +572,11 @@ export default function Sessions() {
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(groupedSessions).sort(([a], [b]) => a.localeCompare(b)).map(([deviceName, buckets]) => (
+          {Object.entries(groupedSessions).sort(([a], [b]) => a.localeCompare(b)).map(([deviceName, buckets]) => {
+            const showAuto = modeFilter === 'all' || modeFilter === 'auto';
+            const showManual = modeFilter === 'all' || modeFilter === 'manual';
+            const columns = showAuto && showManual ? 'md:grid-cols-2' : 'md:grid-cols-1';
+            return (
             <div key={deviceName} className="matrix-card p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -586,8 +590,8 @@ export default function Sessions() {
                 </Button>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                {(modeFilter === 'all' || modeFilter === 'auto') && (
+              <div className={`grid ${columns} gap-4`}>
+                {showAuto && (
                   <div className="space-y-2">
                     <div className="text-[var(--text-secondary)] text-xs">AUTO_TUNE</div>
                     {buckets.auto.length === 0 ? (
@@ -610,7 +614,7 @@ export default function Sessions() {
                   </div>
                 )}
 
-                {(modeFilter === 'all' || modeFilter === 'manual') && (
+                {showManual && (
                   <div className="space-y-2">
                     <div className="text-[var(--text-secondary)] text-xs">MANUAL_TUNE</div>
                     {buckets.manual.length === 0 ? (
@@ -634,7 +638,8 @@ export default function Sessions() {
                 )}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
