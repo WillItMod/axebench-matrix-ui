@@ -100,9 +100,9 @@ export default function Settings() {
         <p className="text-[var(--text-secondary)]">Configure your AxeBench experience</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
         {/* Licensing */}
-        <Card className="p-4 bg-slate-900/90 border-slate-700 space-y-3 text-slate-100">
+        <Card className="p-4 bg-slate-900/90 border-slate-700 space-y-3 text-slate-100 h-full">
           <div className="text-lg font-bold text-[var(--theme-accent)]">LICENSING / PATREON</div>
           <div className="text-sm text-[var(--text-secondary)]">
             Current tier: {tier.toUpperCase()} | Devices {deviceCount}/{deviceLimit}
@@ -120,7 +120,7 @@ export default function Settings() {
         </Card>
 
         {/* Fonts */}
-        <Card className="p-4 bg-slate-900/90 border-slate-700 space-y-3 text-slate-100">
+        <Card className="p-4 bg-slate-900/90 border-slate-700 space-y-3 text-slate-100 h-full">
           <div className="text-lg font-bold text-[var(--theme-accent)]">FONTS</div>
           <div className="grid grid-cols-2 gap-2">
             {fonts.map((font) => {
