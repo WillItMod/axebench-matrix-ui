@@ -18,14 +18,32 @@ from axeshed import app as shed_app
 from axepool import app as pool_app
 
 
+class _ApiPrefixMiddleware:
+  """Ensure pool_app always sees /api/... even when mounted at /pool/api."""
+
+  def __init__(self, app, prefix="/api"):
+    self.app = app
+    self.prefix = prefix if prefix.startswith("/") else f"/{prefix}"
+
+  def __call__(self, environ, start_response):
+    path = environ.get("PATH_INFO", "") or "/"
+    if not path.startswith(self.prefix):
+      environ = environ.copy()
+      # Avoid double slashes when concatenating.
+      environ["PATH_INFO"] = f"{self.prefix}{path if path.startswith('/') else '/' + path}"
+    return self.app(environ, start_response)
+
+
 def create_unified_app():
   """Attach shed/pool apps and static frontend under one server."""
+  pool_api_app = _ApiPrefixMiddleware(pool_app)
+
   bench_app.wsgi_app = DispatcherMiddleware(
     bench_app.wsgi_app,
     {
       "/shed": shed_app,
       # Mount pool API under /pool/api so /pool can be handled by the SPA.
-      "/pool/api": pool_app,
+      "/pool/api": pool_api_app,
     },
   )
 

@@ -3,6 +3,8 @@
 # Prerequisites: Python 3.11+, npm, venv tools
 set -euo pipefail
 
+OUTPUT_NAME="AxeBench_v3.0.0_BETA"
+
 cd "$(dirname "$0")"
 
 # Build frontend (served from dist/public)
@@ -19,6 +21,7 @@ pip install nuitka
 python -m nuitka \
   --onefile \
   --follow-imports \
+  --output-filename="$OUTPUT_NAME" \
   --include-data-dir=dist/public=dist/public \
   --include-data-dir=python/templates=python/templates \
   --include-data-dir=python/static=python/static \
@@ -27,4 +30,4 @@ python -m nuitka \
   python/launcher.py
 
 echo
-echo "Build complete: build-linux/launcher"
+echo "Build complete: build-linux/${OUTPUT_NAME}"

@@ -181,6 +181,9 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
   }, 0);
 
   const passed = submitted && correctCount >= 20;
+  const incorrectQuestions = submitted
+    ? sessionQuestions.filter((q) => !fuzzyMatch(answers[q.id] || '', q.answer || ''))
+    : [];
 
   const handleSubmit = () => {
     setSubmitted(true);
@@ -285,11 +288,6 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
                       }
                     />
                   )}
-                  {submitted && (
-                    <div className="text-xs text-amber-100/70">
-                      Correct: <span className="font-mono text-emerald-300">{sessionQuestions[activeIndex].answer}</span>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -300,6 +298,22 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
                 Submit
               </Button>
             </div>
+
+            {submitted && incorrectQuestions.length > 0 && (
+              <div className="rounded-lg border border-amber-300/20 bg-black/50 p-3 space-y-2">
+                <div className="text-sm text-amber-100/80 font-semibold">
+                  Incorrect ({incorrectQuestions.length}/{sessionQuestions.length})
+                </div>
+                <ul className="space-y-1 text-xs text-amber-100/70">
+                  {incorrectQuestions.map((q) => (
+                    <li key={q.id} className="border border-amber-200/15 rounded px-2 py-2 bg-black/40">
+                      <div className="text-amber-50">{q.prompt}</div>
+                      <div className="text-emerald-300 font-mono mt-1">Answer: {q.answer}</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="facts" className="mt-3">

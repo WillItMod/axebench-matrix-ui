@@ -602,9 +602,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(MATRIX_COLOR_OVERRIDE_KEY, 'false');
     setMatrixCodeColor(nextMatrixColor);
     localStorage.setItem(MATRIX_CODE_COLOR_KEY, nextMatrixColor);
-    if (name === 'solarSynth' && !matrixRainbow) {
-      setMatrixRainbow(true);
-    }
     if (name === 'forge') {
       localStorage.setItem(SECRET_THEME_KEY, 'forge');
       localStorage.setItem(SECRET_UNLOCK_KEY, 'true');
