@@ -28,6 +28,7 @@ export type PaletteName =
   | 'midnight-gold'
   | 'oceanic-blue'
   | 'neon-teal'
+  | 'boring-grey'
   | 'custom';
 
 export interface Palette {
@@ -222,16 +223,16 @@ const basePalettes: Record<PaletteName, Palette> = {
     label: 'Neon Blast',
     colors: {
       primary: '#ff00ff',
-      secondary: '#21ff54',
-      accent: '#ffef00',
-      background: '#030005',
-      surface: '#120018',
-      text: '#fff0ff',
-      textSecondary: '#d19cff',
-      border: '#2c0d3b',
-      success: '#41ff93',
-      warning: '#ffb300',
-      error: '#ff3b70',
+      secondary: '#00ffd5',
+      accent: '#ffe600',
+      background: '#01000f',
+      surface: '#19002a',
+      text: '#fff4ff',
+      textSecondary: '#e5b4ff',
+      border: '#3c0c52',
+      success: '#56ffb8',
+      warning: '#ffcb00',
+      error: '#ff2270',
     },
   },
   'cyberpunk-core': {
@@ -239,16 +240,16 @@ const basePalettes: Record<PaletteName, Palette> = {
     label: 'Cyberpunk Core',
     colors: {
       primary: '#ff007a',
-      secondary: '#00d2ff',
-      accent: '#f6ff4d',
-      background: '#090017',
-      surface: '#1a0030',
-      text: '#f7edff',
-      textSecondary: '#a3c8ff',
-      border: '#32144f',
-      success: '#32f0b5',
-      warning: '#ffc94a',
-      error: '#ff2f6f',
+      secondary: '#00f8ff',
+      accent: '#faff00',
+      background: '#0c001c',
+      surface: '#21003f',
+      text: '#fdf3ff',
+      textSecondary: '#a8ddff',
+      border: '#43186c',
+      success: '#2dfacf',
+      warning: '#ffe04f',
+      error: '#ff0f70',
     },
   },
   'arcade-neon': {
@@ -404,6 +405,23 @@ const basePalettes: Record<PaletteName, Palette> = {
       error: '#ff3f72',
     },
   },
+  'boring-grey': {
+    name: 'boring-grey',
+    label: 'BORING (All Grey)',
+    colors: {
+      primary: '#7a7a7a',
+      secondary: '#6b6b6b',
+      accent: '#5c5c5c',
+      background: '#111111',
+      surface: '#1a1a1a',
+      text: '#c0c0c0',
+      textSecondary: '#8f8f8f',
+      border: '#2a2a2a',
+      success: '#8c8c8c',
+      warning: '#999999',
+      error: '#a6a6a6',
+    },
+  },
   custom: {
     name: 'custom',
     label: 'Custom Palette',
@@ -486,7 +504,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const [customPalette, setCustomPalette] = useState<Partial<Palette['colors']> | null>(() => loadCustomPalette());
 
-  const [fontKey, setFontKey] = useState<string>(() => localStorage.getItem(FONT_KEY) || 'oxanium');
+  const [fontKey, setFontKey] = useState<string>(() => localStorage.getItem(FONT_KEY) || 'share-tech');
   const [fontScale, setFontScale] = useState<number>(() => {
     const saved = localStorage.getItem(FONT_SCALE_KEY);
     return saved ? Number(saved) || 1 : 1;
@@ -554,6 +572,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.style.setProperty('--matrix-brightness', String(clamped));
     localStorage.setItem(MATRIX_BRIGHTNESS_KEY, String(clamped));
   }, [matrixBrightness]);
+
+  useEffect(() => {
+    // Sync rain color to palette unless user is on custom; blackout uses deep grey
+    if (paletteName === 'custom') return;
+    if (paletteName === 'blackout') {
+      setMatrixCodeColor('#555555');
+      return;
+    }
+    setMatrixCodeColor(palette.colors.primary);
+  }, [paletteName, palette.colors]);
 
   useEffect(() => {
     const root = document.documentElement;

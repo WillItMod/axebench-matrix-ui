@@ -8,31 +8,32 @@
 @layer base {
   :root {
     /* Matrix Color Palette */
-    --matrix-green: #00ff41;
-    --neon-cyan: #00ffff;
-    --electric-blue: #0080ff;
+    --matrix-green: var(--theme-primary, #00ff41);
+    --neon-cyan: var(--theme-accent, #00ffff);
+    --electric-blue: var(--theme-secondary, #0080ff);
     
     /* Backgrounds */
-    --deep-black: #000000;
-    --dark-gray: #0a0a0a;
-    --grid-gray: #1a1a1a;
+    --deep-black: var(--theme-background, #000000);
+    --dark-gray: var(--theme-surface, #0a0a0a);
+    --grid-gray: var(--theme-border, #1a1a1a);
     
     /* Status Colors */
-    --success-green: #00ff41;
-    --warning-amber: #ffaa00;
-    --error-red: #ff0040;
-    --info-cyan: #00ffff;
+    --success-green: var(--theme-success, #00ff41);
+    --warning-amber: var(--theme-warning, #ffaa00);
+    --error-red: var(--theme-error, #ff0040);
+    --info-cyan: var(--theme-accent, #00ffff);
     
     /* Text Colors */
-    --text-primary: #00ff41;
-    --text-secondary: #00ffff;
-    --text-muted: #808080;
+    --text-primary: var(--theme-text, #00ff41);
+    --text-secondary: var(--theme-textSecondary, #00ffff);
+    --text-muted: color-mix(in srgb, var(--text-primary) 25%, #808080);
     --text-bright: #ffffff;
+    --matrix-brightness: 1;
     
     /* Glow Effects */
-    --glow-green: 0 0 10px rgba(0, 255, 65, 0.5), 0 0 20px rgba(0, 255, 65, 0.3);
-    --glow-cyan: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(0, 255, 255, 0.3);
-    --glow-blue: 0 0 10px rgba(0, 128, 255, 0.5), 0 0 20px rgba(0, 128, 255, 0.3);
+    --glow-green: 0 0 10px var(--theme-primary), 0 0 20px color-mix(in srgb, var(--theme-primary) 50%, transparent);
+    --glow-cyan: 0 0 10px var(--theme-accent), 0 0 20px color-mix(in srgb, var(--theme-accent) 50%, transparent);
+    --glow-blue: 0 0 10px var(--theme-secondary), 0 0 20px color-mix(in srgb, var(--theme-secondary) 50%, transparent);
     
     /* Standard theme variables for compatibility */
     --background: 0 0% 0%;
@@ -424,14 +425,14 @@
 /* Blackout mode overrides */
 body.blackout-mode {
   background-color: #000;
-  color: #b0b0b0;
-  filter: saturate(0) brightness(0.5);
+  color: #8a8a8a;
+  filter: saturate(0) brightness(0.35);
 }
 body.blackout-mode * {
   --theme-background: #000;
-  --theme-surface: #070707;
-  --theme-text: #b0b0b0;
-  --theme-textSecondary: #6a6a6a;
+  --theme-surface: #050505;
+  --theme-text: #8a8a8a;
+  --theme-textSecondary: #555555;
   --theme-border: #0a0a0a;
   color: var(--theme-text);
 }

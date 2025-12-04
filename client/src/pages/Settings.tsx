@@ -26,8 +26,6 @@ export default function Settings() {
     setFontScale,
     matrixCodeColor,
     setMatrixCodeColor,
-    matrixBrightness,
-    setMatrixBrightness,
   } = useTheme();
   const [darkSurge, setDarkSurge] = useState(false);
   const [showBlackoutGame, setShowBlackoutGame] = useState(false);
@@ -100,10 +98,10 @@ export default function Settings() {
         <p className="text-[var(--text-secondary)]">Configure your AxeBench experience</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Licensing */}
         <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
-          <div className="text-lg font-bold text-[var(--neon-cyan)]">LICENSING / PATREON</div>
+          <div className="text-lg font-bold text-[var(--theme-accent)]">LICENSING / PATREON</div>
           <div className="text-sm text-[var(--text-secondary)]">
             Current tier: {tier.toUpperCase()} | Devices {deviceCount}/{deviceLimit}
           </div>
@@ -121,7 +119,7 @@ export default function Settings() {
 
         {/* Fonts */}
         <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
-          <div className="text-lg font-bold text-[var(--neon-cyan)]">FONTS</div>
+          <div className="text-lg font-bold text-[var(--theme-accent)]">FONTS</div>
           <div className="grid grid-cols-2 gap-2">
             {fonts.map((font) => {
               const selected = fontKey === font.key;
@@ -155,27 +153,13 @@ export default function Settings() {
             />
             <div className="text-xs text-[var(--text-secondary)]">Scale: {fontScale.toFixed(2)}x</div>
           </div>
-
-          <div className="mt-3">
-            <Label className="text-xs text-[var(--text-secondary)]">Digital Rain Brightness</Label>
-            <input
-              type="range"
-              min="0.2"
-              max="1.2"
-              step="0.02"
-              value={matrixBrightness}
-              onChange={(e) => setMatrixBrightness(parseFloat(e.target.value))}
-              className="w-full accent-[var(--theme-primary)]"
-            />
-            <div className="text-xs text-[var(--text-secondary)]">Brightness: {matrixBrightness.toFixed(2)}x</div>
-          </div>
         </Card>
       </div>
 
       {/* Palettes */}
       <Card className="p-6 bg-black/80 border-[var(--grid-gray)] space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[var(--neon-cyan)]">PALETTES</h2>
+          <h2 className="text-xl font-bold text-[var(--theme-accent)]">PALETTES</h2>
           <div className="text-sm text-[var(--text-secondary)]">Compact contrasting color sets</div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -191,7 +175,7 @@ export default function Settings() {
                 }}
                 className={`rounded-lg border text-left p-3 transition-all relative overflow-hidden ${
                   selected
-                    ? 'border-[var(--matrix-green)] shadow-[0_0_10px_rgba(0,255,65,0.3)]'
+                    ? 'border-[var(--theme-primary)] shadow-[0_0_10px_rgba(0,255,65,0.3)]'
                     : 'border-[var(--grid-gray)] hover:border-[var(--theme-accent)] hover:shadow-[0_0_12px_rgba(0,255,255,0.25)]'
                 }`}
                 style={{ background: `linear-gradient(145deg, ${pal.colors.surface}, ${pal.colors.background})` }}
@@ -237,7 +221,7 @@ export default function Settings() {
         {/* Custom palette */}
         <div className="mt-4 border-t border-[var(--grid-gray)] pt-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-bold text-[var(--neon-cyan)]">Custom Palette</h3>
+            <h3 className="text-lg font-bold text-[var(--theme-accent)]">Custom Palette</h3>
             <Button
               size="sm"
               variant="outline"
@@ -273,26 +257,6 @@ export default function Settings() {
             <div className="text-[var(--text-secondary)] text-xs">Adjust the digital rain hue (keeps animation intact).</div>
           </div>
         </div>
-      </Card>
-
-      {/* Blackout fun switch */}
-      <Card className="p-6 bg-black/90 border border-[var(--grid-gray)] space-y-3 relative overflow-hidden">
-        <div className="text-xl font-bold text-[var(--theme-primary)] flex items-center gap-2">
-          BLACKOUT MODE
-          <span className="text-[var(--theme-accent)] text-xs uppercase">secret</span>
-        </div>
-        <p className="text-sm text-[var(--text-secondary)]">
-          Engage total darkness. Fonts, outlines, buttons—everything goes obsidian. Complete the ritual to unlock.
-        </p>
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={() => setShowBlackoutGame(true)} className="hover:shadow-[0_0_14px_rgba(0,255,255,0.35)]">
-            Initiate
-          </Button>
-          <Button variant="ghost" onClick={() => setPalette('blackout')}>
-            Force Apply
-          </Button>
-        </div>
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[var(--theme-accent)]/30 to-transparent animate-pulse" />
       </Card>
 
       {/* Blackout fun switch */}

@@ -186,7 +186,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <div className="relative z-20">
         {/* Header */}
-        <header className="border-b-2 border-[var(--matrix-green)] bg-[var(--dark-gray)]/90 backdrop-blur-sm">
+        <header className="border-b-2 border-[var(--theme-primary)] bg-[var(--dark-gray)]/90 backdrop-blur-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               {/* Logo */}
@@ -194,15 +194,15 @@ export default function Layout({ children }: LayoutProps) {
                 <div className="text-3xl font-bold text-glow-green flicker">
                   AXEBENCH
                 </div>
-                <div className="text-sm text-[var(--neon-cyan)] text-glow-cyan">
+                <div className="text-sm text-[var(--theme-accent)] text-glow-cyan">
                   UI v2.0 | AxeBench v3.0.0
                 </div>
               </div>
 
               {/* Status Indicator */}
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--matrix-green)] rounded-full pulse-green box-glow-green" />
-                <span className="text-[var(--matrix-green)] text-sm">SYSTEM_ONLINE</span>
+                <div className="w-2 h-2 bg-[var(--theme-primary)] rounded-full pulse-green box-glow-green" />
+                <span className="text-[var(--theme-primary)] text-sm">SYSTEM_ONLINE</span>
               </div>
             </div>
           </div>
