@@ -8,32 +8,32 @@
 @layer base {
   :root {
     /* Matrix Color Palette */
-    --matrix-green: var(--theme-primary, #00ff41);
-    --neon-cyan: var(--theme-accent, #00ffff);
-    --electric-blue: var(--theme-secondary, #0080ff);
+    --matrix-green: var(--theme-primary, #22c55e);     /* lime-500 fallback */
+    --neon-cyan: var(--theme-accent, #06b6d4);         /* cyan-500 */
+    --electric-blue: var(--theme-secondary, #38bdf8);  /* sky-400 */
     
     /* Backgrounds */
-    --deep-black: var(--theme-background, #000000);
-    --dark-gray: var(--theme-surface, #0a0a0a);
-    --grid-gray: var(--theme-border, #1a1a1a);
+    --deep-black: var(--theme-background, #020617);  /* slate-950 */
+    --dark-gray: var(--theme-surface, #0b1220);      /* darker slate */
+    --grid-gray: var(--theme-border, #1f2937);       /* slate-800 */
     
     /* Status Colors */
-    --success-green: var(--theme-success, #00ff41);
-    --warning-amber: var(--theme-warning, #ffaa00);
-    --error-red: var(--theme-error, #ff0040);
-    --info-cyan: var(--theme-accent, #00ffff);
+    --success-green: var(--theme-success, #a3e635);  /* lime-400 */
+    --warning-amber: var(--theme-warning, #fbbf24);  /* amber-400 */
+    --error-red: var(--theme-error, #ef4444);        /* red-500 */
+    --info-cyan: var(--theme-accent, #22d3ee);       /* cyan-400 */
     
     /* Text Colors */
-    --text-primary: var(--theme-text, #00ff41);
-    --text-secondary: var(--theme-textSecondary, #00ffff);
-    --text-muted: color-mix(in srgb, var(--text-primary) 25%, #808080);
+    --text-primary: var(--theme-text, #e2e8f0);            /* slate-200 */
+    --text-secondary: var(--theme-textSecondary, #9ca3af); /* slate-400/300 */
+    --text-muted: #6b7280;                                 /* slate-500 */
     --text-bright: #ffffff;
     --matrix-brightness: 1;
     
     /* Glow Effects */
-    --glow-green: 0 0 10px var(--theme-primary), 0 0 20px color-mix(in srgb, var(--theme-primary) 50%, transparent);
-    --glow-cyan: 0 0 10px var(--theme-accent), 0 0 20px color-mix(in srgb, var(--theme-accent) 50%, transparent);
-    --glow-blue: 0 0 10px var(--theme-secondary), 0 0 20px color-mix(in srgb, var(--theme-secondary) 50%, transparent);
+    --glow-green: 0 0 10px rgba(132, 204, 22, 0.45), 0 0 20px rgba(132, 204, 22, 0.25); /* lime-500 */
+    --glow-cyan: 0 0 10px rgba(34, 211, 238, 0.45), 0 0 20px rgba(34, 211, 238, 0.25);
+    --glow-blue: 0 0 10px rgba(56, 189, 248, 0.45), 0 0 20px rgba(56, 189, 248, 0.25);
     
     /* Standard theme variables for compatibility */
     --background: 0 0% 0%;
@@ -225,28 +225,7 @@
   }
   
   /* Scanline Effect */
-  .scanline {
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .scanline::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--matrix-green), transparent);
-    animation: scan 3s linear infinite;
-    pointer-events: none;
-    z-index: 10;
-  }
-  
-  @keyframes scan {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(100vh); }
-  }
+  .scanline::before { display: none; }
   
   /* Matrix Grid Background */
   .matrix-grid {
@@ -346,7 +325,7 @@
   
   /* HUD Style */
   .hud-panel {
-    @apply bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] rounded-lg p-4;
+    @apply bg-slate-900 border-2 border-slate-700 rounded-lg p-4 text-slate-100;
     position: relative;
     box-shadow: var(--glow-green), inset 0 0 20px rgba(0, 255, 65, 0.1);
   }
@@ -381,8 +360,8 @@
 
 /* Button variants */
 .btn-matrix {
-  @apply bg-transparent border-2 border-[var(--matrix-green)] text-[var(--matrix-green)];
-  @apply hover:bg-[var(--matrix-green)] hover:text-black transition-all;
+  @apply bg-transparent border-2 border-[var(--theme-primary)] text-[var(--theme-primary)];
+  @apply hover:bg-[var(--theme-primary)] hover:text-black transition-all;
   @apply px-4 py-2 rounded font-bold;
   text-shadow: var(--glow-green);
 }
@@ -392,8 +371,8 @@
 }
 
 .btn-cyan {
-  @apply bg-transparent border-2 border-[var(--neon-cyan)] text-[var(--neon-cyan)];
-  @apply hover:bg-[var(--neon-cyan)] hover:text-black transition-all;
+  @apply bg-transparent border-2 border-[var(--theme-accent)] text-[var(--theme-accent)];
+  @apply hover:bg-[var(--theme-accent)] hover:text-black transition-all;
   @apply px-4 py-2 rounded font-bold;
   text-shadow: var(--glow-cyan);
 }
@@ -404,8 +383,8 @@
 
 /* Card styles */
 .matrix-card {
-  @apply bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded-lg p-4;
-  @apply hover:border-[var(--matrix-green)] transition-all;
+  @apply bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded-lg p-4 text-[var(--text-primary)];
+  @apply hover:border-[var(--theme-primary)] transition-all;
 }
 
 .matrix-card:hover {
@@ -424,16 +403,16 @@
 
 /* Blackout mode overrides */
 body.blackout-mode {
-  background-color: #000;
-  color: #5a5a5a;
-  filter: saturate(0) brightness(0.18);
+  background-color: #020202;
+  color: #3f3f46;
+  filter: saturate(0) brightness(0.12);
 }
 body.blackout-mode * {
-  --theme-background: #000;
-  --theme-surface: #050505;
-  --theme-text: #6a6a6a;
-  --theme-textSecondary: #3a3a3a;
-  --theme-border: #0a0a0a;
+  --theme-background: #020202;
+  --theme-surface: #080808;
+  --theme-text: #3f3f46;         /* slate-700 */
+  --theme-textSecondary: #2a2a30;
+  --theme-border: #0c0c0c;
   color: var(--theme-text);
 }
 
@@ -442,6 +421,6 @@ body.blackout-mode .glow-pulse {
 }
 
 @keyframes blackoutGlow {
-  0% { text-shadow: 0 0 6px rgba(0,255,180,0.12), 0 0 12px rgba(0,180,255,0.08); }
-  100% { text-shadow: 0 0 12px rgba(0,255,180,0.18), 0 0 20px rgba(0,180,255,0.12); }
+  0% { text-shadow: 0 0 6px rgba(56,189,248,0.12), 0 0 12px rgba(34,197,94,0.10); }
+  100% { text-shadow: 0 0 14px rgba(56,189,248,0.18), 0 0 20px rgba(34,197,94,0.14); }
 }

@@ -102,7 +102,7 @@ export default function Settings() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* Licensing */}
-        <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
+        <Card className="p-4 bg-slate-900/90 border-slate-700 space-y-3 text-slate-100">
           <div className="text-lg font-bold text-[var(--theme-accent)]">LICENSING / PATREON</div>
           <div className="text-sm text-[var(--text-secondary)]">
             Current tier: {tier.toUpperCase()} | Devices {deviceCount}/{deviceLimit}
@@ -120,7 +120,7 @@ export default function Settings() {
         </Card>
 
         {/* Fonts */}
-        <Card className="p-4 bg-black/80 border-[var(--grid-gray)] space-y-3">
+        <Card className="p-4 bg-slate-900/90 border-slate-700 space-y-3 text-slate-100">
           <div className="text-lg font-bold text-[var(--theme-accent)]">FONTS</div>
           <div className="grid grid-cols-2 gap-2">
             {fonts.map((font) => {
