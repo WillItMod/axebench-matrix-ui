@@ -115,6 +115,7 @@ export default function Benchmark() {
     recovery_cooldown: 10,
   });
   const [graphsLoading, setGraphsLoading] = useState(false);
+  const settingsLocked = benchmarkStatus.running;
 
   // Load devices
   useEffect(() => {
@@ -221,6 +222,10 @@ export default function Benchmark() {
   }, [benchmarkStatus.running, selectedDevice]);
 
   const handleStart = async () => {
+    if (settingsLocked) {
+      toast.error('Stop the running benchmark before starting a new one');
+      return;
+    }
     if (!selectedDevice) {
       toast.error('Select a device first');
       return;
@@ -256,6 +261,10 @@ export default function Benchmark() {
   };
 
   const handleAutoTune = () => {
+    if (settingsLocked) {
+      toast.error('Stop the running benchmark before adjusting Autopilot');
+      return;
+    }
     if (!selectedDevice) {
       toast.error('Select a device first');
       return;
@@ -266,6 +275,10 @@ export default function Benchmark() {
   };
 
   const startAutoTune = async ({ runNano, silent }: { runNano?: boolean; silent?: boolean } = {}) => {
+    if (settingsLocked) {
+      toast.error('Stop the running benchmark before starting Autopilot');
+      return;
+    }
     if (!selectedDevice || autoTuneStarting) return;
     const nanoPass = runNano ?? autoTuneNano;
     try {
@@ -328,6 +341,12 @@ export default function Benchmark() {
         </p>
       </div>
 
+      {settingsLocked && (
+        <div className="matrix-card border-[var(--warning-amber)] text-[var(--warning-amber)] text-sm bg-[var(--dark-gray)]/70">
+          Settings are locked while a benchmark is running. Press STOP_BENCHMARK to make changes.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Sidebar - Device Selection & Gauges */}
         <div className="lg:col-span-1 space-y-6">
@@ -337,7 +356,7 @@ export default function Benchmark() {
             <div className="space-y-4">
               <div>
                 <Label className="text-[var(--text-secondary)]">Target Device</Label>
-                <Select value={selectedDevice} onValueChange={setSelectedDevice}>
+                <Select disabled={settingsLocked} value={selectedDevice} onValueChange={setSelectedDevice}>
                   <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
                     <SelectValue placeholder="Select device..." />
                   </SelectTrigger>
@@ -353,7 +372,7 @@ export default function Benchmark() {
 
               <div>
                 <Label className="text-[var(--text-secondary)]">Device Model</Label>
-                <Select value={config.device_model} onValueChange={(v) => setConfig({...config, device_model: v})}>
+                <Select disabled={settingsLocked} value={config.device_model} onValueChange={(v) => setConfig({...config, device_model: v})}>
                   <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
                     <SelectValue />
                   </SelectTrigger>
@@ -376,12 +395,14 @@ export default function Benchmark() {
               <div className="flex bg-[var(--dark-gray)] border border-[var(--grid-gray)] rounded-lg p-1 shadow-[0_0_12px_rgba(0,0,0,0.35)]">
                 <button
                   onClick={() => setTuningMode('auto')}
+                  disabled={settingsLocked}
                   className={toggleButtonClass(tuningMode === 'auto')}
                 >
                   EASY (PRESET)
                 </button>
                 <button
                   onClick={() => setTuningMode('manual')}
+                  disabled={settingsLocked}
                   className={toggleButtonClass(tuningMode === 'manual', 'accent')}
                 >
                   ADVANCED
@@ -401,6 +422,7 @@ export default function Benchmark() {
                     <button
                       key={opt.key}
                       onClick={() => setPreset(opt.key)}
+                      disabled={settingsLocked}
                       className={`${toggleButtonClass(preset === opt.key, 'accent')} text-left px-3 py-3 h-full`}
                     >
                       <div>{opt.label}</div>
@@ -416,6 +438,7 @@ export default function Benchmark() {
                     <button
                       key={opt.key}
                       onClick={() => setConfig((prev) => ({ ...prev, goal: opt.key }))}
+                      disabled={settingsLocked}
                       className={`${toggleButtonClass(config.goal === opt.key)} py-3`}
                     >
                       {opt.label}
@@ -439,6 +462,7 @@ export default function Benchmark() {
               </div>
               <Switch
                     checked={config.auto_mode}
+                    disabled={settingsLocked}
                     onCheckedChange={(checked) => setConfig({...config, auto_mode: checked})}
                   />
                 </div>
@@ -454,6 +478,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.voltage_start}
                   onChange={(e) => setConfig({...config, voltage_start: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -463,6 +488,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.voltage_stop}
                   onChange={(e) => setConfig({...config, voltage_stop: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -474,7 +500,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.voltage_step}
                   onChange={(e) => setConfig({...config, voltage_step: parseInt(e.target.value)})}
-                  disabled={config.auto_mode}
+                  disabled={settingsLocked || config.auto_mode}
                   className="mt-1"
                 />
               </div>
@@ -484,6 +510,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.frequency_start}
                   onChange={(e) => setConfig({...config, frequency_start: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -493,6 +520,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.frequency_stop}
                   onChange={(e) => setConfig({...config, frequency_stop: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -504,7 +532,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.frequency_step}
                   onChange={(e) => setConfig({...config, frequency_step: parseInt(e.target.value)})}
-                  disabled={config.auto_mode}
+                  disabled={settingsLocked || config.auto_mode}
                   className="mt-1"
                 />
               </div>
@@ -521,6 +549,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.benchmark_duration}
                   onChange={(e) => setConfig({...config, benchmark_duration: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -530,6 +559,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.warmup_time}
                   onChange={(e) => setConfig({...config, warmup_time: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -539,6 +569,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.cooldown_time}
                   onChange={(e) => setConfig({...config, cooldown_time: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -548,6 +579,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.cycles_per_test}
                   onChange={(e) => setConfig({...config, cycles_per_test: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -560,7 +592,7 @@ export default function Benchmark() {
             <div className="space-y-4">
               <div>
                 <Label className="text-[var(--text-secondary)]">Goal</Label>
-                <Select value={config.goal} onValueChange={(v) => setConfig({...config, goal: v})}>
+                <Select disabled={settingsLocked} value={config.goal} onValueChange={(v) => setConfig({...config, goal: v})}>
                   <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
                     <SelectValue />
                   </SelectTrigger>
@@ -580,6 +612,7 @@ export default function Benchmark() {
                     type="number"
                     value={config.fan_target || 40}
                     onChange={(e) => setConfig({...config, fan_target: parseInt(e.target.value)})}
+                    disabled={settingsLocked}
                     className="mt-1"
                   />
                 </div>
@@ -597,6 +630,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.max_chip_temp}
                   onChange={(e) => setConfig({...config, max_chip_temp: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -606,6 +640,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.max_vr_temp}
                   onChange={(e) => setConfig({...config, max_vr_temp: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -615,6 +650,7 @@ export default function Benchmark() {
                   type="number"
                   value={config.max_power}
                   onChange={(e) => setConfig({...config, max_power: parseInt(e.target.value)})}
+                  disabled={settingsLocked}
                   className="mt-1"
                 />
               </div>
@@ -632,6 +668,7 @@ export default function Benchmark() {
               </div>
               <Switch
                 checked={config.auto_recovery}
+                disabled={settingsLocked}
                 onCheckedChange={(checked) => setConfig({...config, auto_recovery: checked})}
               />
             </div>
@@ -640,7 +677,11 @@ export default function Benchmark() {
               <div className="grid grid-cols-3 gap-4 mt-4">
                 <div>
                   <Label className="text-[var(--text-secondary)]">Strategy</Label>
-                  <Select value={config.recovery_strategy} onValueChange={(v) => setConfig({...config, recovery_strategy: v})}>
+                  <Select
+                    disabled={settingsLocked}
+                    value={config.recovery_strategy}
+                    onValueChange={(v) => setConfig({...config, recovery_strategy: v})}
+                  >
                     <SelectTrigger className="mt-1 bg-[var(--dark-gray)] border-[var(--grid-gray)]">
                       <SelectValue />
                     </SelectTrigger>
@@ -657,6 +698,7 @@ export default function Benchmark() {
                     type="number"
                     value={config.recovery_max_retries}
                     onChange={(e) => setConfig({...config, recovery_max_retries: parseInt(e.target.value)})}
+                    disabled={settingsLocked}
                     className="mt-1"
                   />
                 </div>
@@ -666,6 +708,7 @@ export default function Benchmark() {
                     type="number"
                     value={config.recovery_cooldown}
                     onChange={(e) => setConfig({...config, recovery_cooldown: parseInt(e.target.value)})}
+                    disabled={settingsLocked}
                     className="mt-1"
                   />
                 </div>
@@ -681,6 +724,7 @@ export default function Benchmark() {
                 <Label className="text-[var(--text-secondary)]">Restart Between Tests</Label>
                 <Switch
                   checked={config.restart_between_tests}
+                  disabled={settingsLocked}
                   onCheckedChange={(checked) => setConfig({...config, restart_between_tests: checked})}
                 />
               </div>
@@ -688,6 +732,7 @@ export default function Benchmark() {
                 <Label className="text-[var(--text-secondary)]">Enable Plots</Label>
                 <Switch
                   checked={config.enable_plots}
+                  disabled={settingsLocked}
                   onCheckedChange={(checked) => setConfig({...config, enable_plots: checked})}
                 />
               </div>
@@ -695,6 +740,7 @@ export default function Benchmark() {
                 <Label className="text-[var(--text-secondary)]">Export CSV</Label>
                 <Switch
                   checked={config.export_csv}
+                  disabled={settingsLocked}
                   onCheckedChange={(checked) => setConfig({...config, export_csv: checked})}
                 />
               </div>
@@ -892,6 +938,7 @@ export default function Benchmark() {
                     type="checkbox"
                     className="mt-1"
                     checked={autoTuneAck}
+                    disabled={settingsLocked}
                     onChange={(e) => setAutoTuneAck(e.target.checked)}
                   />
                   <span>I understand overclocking can damage hardware.</span>
@@ -901,6 +948,7 @@ export default function Benchmark() {
                     type="checkbox"
                     className="mt-1"
                     checked={autoTuneDontRemind}
+                    disabled={settingsLocked}
                     onChange={(e) => setAutoTuneDontRemind(e.target.checked)}
                   />
                   <span>Do not remind me again.</span>
@@ -916,6 +964,7 @@ export default function Benchmark() {
                     size="sm"
                     variant={autoTuneNano ? 'autoTune' : 'secondary'}
                     className="w-full whitespace-normal text-sm py-2"
+                    disabled={settingsLocked}
                     onClick={() => setAutoTuneNano(true)}
                   >
                     NANO
@@ -924,6 +973,7 @@ export default function Benchmark() {
                     size="sm"
                     variant={!autoTuneNano ? 'accent' : 'secondary'}
                     className="w-full whitespace-normal text-sm py-2"
+                    disabled={settingsLocked}
                     onClick={() => setAutoTuneNano(false)}
                   >
                     SKIP
@@ -948,6 +998,7 @@ export default function Benchmark() {
                           step={5}
                           value={(config.fan_target ?? 60).toString()}
                           onChange={(e) => setConfig({ ...config, fan_target: parseInt(e.target.value) })}
+                          disabled={settingsLocked}
                           className="w-full accent-[hsl(var(--accent))]"
                         />
                         <div className="text-[10px] text-[var(--text-primary)] text-right">{config.fan_target ?? 60}%</div>
@@ -978,7 +1029,7 @@ export default function Benchmark() {
               </Button>
               <Button
                 variant="autoTune"
-                disabled={!autoTuneAck || autoTuneStarting}
+                disabled={settingsLocked || !autoTuneAck || autoTuneStarting}
                 onClick={() => startAutoTune({ runNano: autoTuneNano })}
                 className="min-w-[140px] text-lg"
               >
