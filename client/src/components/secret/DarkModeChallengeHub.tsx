@@ -1,34 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import CrackTheHashGame from './games/CrackTheHashGame';
-import BreachTheNodeGame from './games/BreachTheNodeGame';
-import PulseAlignmentGame from './games/PulseAlignmentGame';
-import AsicMazeRunnerGame from './games/AsicMazeRunnerGame';
-import VoltageRouletteGame from './games/VoltageRouletteGame';
-import FanCurveTunerGame from './games/FanCurveTunerGame';
-import PacketSnifferGame from './games/PacketSnifferGame';
-import PortScannerGame from './games/PortScannerGame';
-import EntropyShakerGame from './games/EntropyShakerGame';
-import UptimeKeeperGame from './games/UptimeKeeperGame';
 import { useTheme } from '@/contexts/ThemeContext';
+import { MINI_GAMES, type MiniGameKey } from './games/registry';
 
 type GameEntry = {
-  key: string;
+  key: MiniGameKey;
   component: (props: { onComplete: () => void }) => JSX.Element;
   title: string;
 };
 
-const games: GameEntry[] = [
-  { key: 'hash', component: CrackTheHashGame, title: 'Crack the Hash' },
-  { key: 'breach', component: BreachTheNodeGame, title: 'Breach the Node' },
-  { key: 'pulse', component: PulseAlignmentGame, title: 'Pulse Alignment' },
-  { key: 'maze', component: AsicMazeRunnerGame, title: 'ASIC Maze Runner' },
-  { key: 'volt', component: VoltageRouletteGame, title: 'Voltage Roulette' },
-  { key: 'fan', component: FanCurveTunerGame, title: 'Fan Curve Tuner' },
-  { key: 'sniff', component: PacketSnifferGame, title: 'Packet Sniffer' },
-  { key: 'ports', component: PortScannerGame, title: 'Port Scanner' },
-  { key: 'entropy', component: EntropyShakerGame, title: 'Entropy Shaker' },
-  { key: 'uptime', component: UptimeKeeperGame, title: 'Uptime Keeper' },
-];
+const games: GameEntry[] = MINI_GAMES;
 
 const SECRET_UNLOCK_KEY = 'axebench_secret_unlocked';
 const SECRET_THEME_KEY = 'axebench_secret_theme';
@@ -40,7 +20,7 @@ export default function DarkModeChallengeHub() {
     () => secretUnlocked || localStorage.getItem(SECRET_UNLOCK_KEY) === 'true'
   );
   const [replayMode, setReplayMode] = useState(false);
-  const [gameKey, setGameKey] = useState<string>(
+  const [gameKey, setGameKey] = useState<MiniGameKey>(
     () => games[Math.floor(Math.random() * games.length)].key
   );
 

@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { MouseEvent, ReactNode, useEffect, useState } from 'react';
 import { Bitcoin } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import MatrixBackground from './MatrixBackground';
@@ -13,6 +13,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import DarkModeChallengeHub from './secret/DarkModeChallengeHub';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
+import EasterEggLaunchers from './secret/EasterEggLaunchers';
 
 interface LayoutProps {
   children: ReactNode;
@@ -131,18 +132,14 @@ export default function Layout({ children }: LayoutProps) {
     return () => window.removeEventListener('forge-celebrate', handler);
   }, []);
 
-  const handleBitcoinClick = () => {
-    if (!secretUnlocked) {
-      setShowSecret((prev) => !prev);
-      setCelebrate(false);
-      return;
-    }
-    if (showSecret) {
+  const handleBitcoinClick = (event: MouseEvent<HTMLButtonElement>) => {
+    if (secretUnlocked && event.altKey) {
+      setCelebrate(true);
       setShowSecret(false);
-      setCelebrate(false);
       return;
     }
-    setCelebrate(true);
+    setCelebrate(false);
+    setShowSecret((prev) => !prev);
   };
 
   const handleCelebrationFinished = () => {
@@ -216,6 +213,7 @@ export default function Layout({ children }: LayoutProps) {
       <BitcoinCelebrationOverlay active={celebrate} onFinished={handleCelebrationFinished} />
       {/* Matrix Background */}
       <MatrixBackground />
+      <EasterEggLaunchers />
 
       {/* Status Banners - Show across all pages when operations are running */}
       <div className="relative z-10 space-y-2 px-2 pt-0 -mt-12">
