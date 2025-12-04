@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useSettings } from '@/contexts/SettingsContext';
 import BitcoinCelebrationOverlay from '@/components/BitcoinCelebrationOverlay';
 import FireworksOverlay from '@/components/FireworksOverlay';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import {
   Dialog,
   DialogContent,
@@ -50,6 +51,7 @@ export default function Benchmark() {
   const autoTuneIntentRef = useRef(false);
   const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
   const [preset, setPreset] = useState('standard'); // For EASY mode
+  const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
   const presetOptions = [
     { key: 'quick', label: 'QUICK', detail: 'Fast scan' },
     { key: 'standard', label: 'STANDARD', detail: 'Balanced pass' },
@@ -293,14 +295,12 @@ export default function Benchmark() {
         device: selectedDevice,
         ...config,
         auto_mode: true,
-        goal: 'balanced',
-        voltage_start: 1100,
-        voltage_stop: 1200,
-        voltage_step: 25,
-        frequency_start: 400,
-        frequency_stop: 700,
-        frequency_step: 25,
-        benchmark_duration: 60,
+        goal: config.goal,
+        benchmark_duration: config.benchmark_duration,
+        duration: config.benchmark_duration, // alias expected by backend
+        warmup: config.warmup_time,
+        cooldown: config.cooldown_time,
+        cycles_per_test: config.cycles_per_test,
         strategy: 'adaptive_progression',
         mode: 'auto_tune',
         nano_after_profiles: nanoPass,
@@ -798,7 +798,7 @@ export default function Benchmark() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    onClick={handleStop}
+                    onClick={() => setStopConfirmOpen(true)}
                     variant="destructive"
                     className="w-full text-lg py-6 bg-[#ef4444] hover:bg-[#dc2626] border border-[#ef4444] text-white shadow-[0_0_26px_rgba(239,68,68,0.6)]"
                   >
@@ -809,6 +809,18 @@ export default function Benchmark() {
                   Signals the running benchmark to stop; current test may take a moment to exit.
                 </TooltipContent>
               </Tooltip>
+              <ConfirmDialog
+                open={stopConfirmOpen}
+                title="Stop running benchmark?"
+                description="Stopping now will end the current run and discard any partially collected samples."
+                tone="warning"
+                confirmLabel="Stop benchmark"
+                onConfirm={() => {
+                  setStopConfirmOpen(false);
+                  handleStop();
+                }}
+                onCancel={() => setStopConfirmOpen(false)}
+              />
             )}
           </div>
 

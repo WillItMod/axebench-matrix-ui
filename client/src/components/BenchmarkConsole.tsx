@@ -15,8 +15,17 @@ export default function BenchmarkConsole() {
     }
   }, [logs]);
 
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = (timestamp: string | undefined) => {
+    if (!timestamp) return '';
+    // Handle HH:MM:SS-only strings by anchoring to today
+    if (/^\\d{2}:\\d{2}:\\d{2}$/.test(timestamp)) {
+      const today = new Date();
+      const [h, m, s] = timestamp.split(':').map(Number);
+      today.setHours(h, m, s, 0);
+      return today.toLocaleTimeString('en-US', { hour12: false });
+    }
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return timestamp;
     return date.toLocaleTimeString('en-US', { hour12: false });
   };
 
