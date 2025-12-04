@@ -205,7 +205,7 @@ export default function Settings() {
                       {paletteColors && (
                         <div className="mt-2 flex gap-1">
                           {[paletteColors.primary, paletteColors.secondary, paletteColors.surface, paletteColors.hover].map((color, idx) => (
-                            <span key={${color}-} className="h-4 w-4 rounded border border-border" style={{ background: color }} />
+                            <span key={`${color}-${idx}`} className="h-4 w-4 rounded border border-border" style={{ background: color }} />
                           ))}
                         </div>
                       )}
