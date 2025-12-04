@@ -587,47 +587,51 @@ export default function Sessions() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="text-[var(--text-secondary)] text-xs">AUTO_TUNE</div>
-                  {buckets.auto.length === 0 ? (
-                    <div className="text-[var(--text-muted)] text-xs border border-dashed border-[var(--grid-gray)] rounded px-3 py-2">
-                      NO_AUTO_TUNE_SESSIONS
-                    </div>
-                  ) : (
-                    buckets.auto.map((session) => (
-                      <SessionCard
-                        key={session.id}
-                        session={session}
-                        onView={() => handleViewDetails(session.id)}
-                        onDelete={() => handleDelete(session.id)}
-                        onGenerateProfiles={() => handleGenerateProfiles(session.id)}
-                        generating={processingSessionId === session.id}
-                        onDownloadJson={() => handleDownloadJson(session)}
-                      />
-                    ))
-                  )}
-                </div>
+                {(modeFilter === 'all' || modeFilter === 'auto') && (
+                  <div className="space-y-2">
+                    <div className="text-[var(--text-secondary)] text-xs">AUTO_TUNE</div>
+                    {buckets.auto.length === 0 ? (
+                      <div className="text-[var(--text-muted)] text-xs border border-dashed border-[var(--grid-gray)] rounded px-3 py-2">
+                        NO_AUTO_TUNE_SESSIONS
+                      </div>
+                    ) : (
+                      buckets.auto.map((session) => (
+                        <SessionCard
+                          key={session.id}
+                          session={session}
+                          onView={() => handleViewDetails(session.id)}
+                          onDelete={() => handleDelete(session.id)}
+                          onGenerateProfiles={() => handleGenerateProfiles(session.id)}
+                          generating={processingSessionId === session.id}
+                          onDownloadJson={() => handleDownloadJson(session)}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
 
-                <div className="space-y-2">
-                  <div className="text-[var(--text-secondary)] text-xs">MANUAL_TUNE</div>
-                  {buckets.manual.length === 0 ? (
-                    <div className="text-[var(--text-muted)] text-xs border border-dashed border-[var(--grid-gray)] rounded px-3 py-2">
-                      NO_MANUAL_SESSIONS
-                    </div>
-                  ) : (
-                    buckets.manual.map((session) => (
-                      <SessionCard
-                        key={session.id}
-                        session={session}
-                        onView={() => handleViewDetails(session.id)}
-                        onDelete={() => handleDelete(session.id)}
-                        onGenerateProfiles={() => handleGenerateProfiles(session.id)}
-                        generating={processingSessionId === session.id}
-                        onDownloadJson={() => handleDownloadJson(session)}
-                      />
-                    ))
-                  )}
-                </div>
+                {(modeFilter === 'all' || modeFilter === 'manual') && (
+                  <div className="space-y-2">
+                    <div className="text-[var(--text-secondary)] text-xs">MANUAL_TUNE</div>
+                    {buckets.manual.length === 0 ? (
+                      <div className="text-[var(--text-muted)] text-xs border border-dashed border-[var(--grid-gray)] rounded px-3 py-2">
+                        NO_MANUAL_SESSIONS
+                      </div>
+                    ) : (
+                      buckets.manual.map((session) => (
+                        <SessionCard
+                          key={session.id}
+                          session={session}
+                          onView={() => handleViewDetails(session.id)}
+                          onDelete={() => handleDelete(session.id)}
+                          onGenerateProfiles={() => handleGenerateProfiles(session.id)}
+                          generating={processingSessionId === session.id}
+                          onDownloadJson={() => handleDownloadJson(session)}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
