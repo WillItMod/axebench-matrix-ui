@@ -32,6 +32,7 @@ export default function Settings() {
     setMatrixBrightness,
     matrixRainbow,
     setMatrixRainbow,
+    resetMatrixVisuals,
   } = useTheme();
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [tier, setTier] = useState<'free' | 'premium' | 'ultimate'>('free');
@@ -151,7 +152,7 @@ export default function Settings() {
             <Button variant="outline" size="sm" onClick={() => setShowAppearanceModal(true)}>
               Adjust fonts & appearance
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setTheme('matrix')}>
+            <Button size="sm" variant="ghost" onClick={resetMatrixVisuals}>
               Reset to Matrix Dark
             </Button>
           </div>

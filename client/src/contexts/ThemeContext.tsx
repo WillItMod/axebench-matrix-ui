@@ -367,6 +367,7 @@ const palettes: Record<ThemeName, Palette> = {
 interface ThemeContextType {
   theme: ThemeName;
   setTheme: (theme: ThemeName) => void;
+  resetMatrixVisuals: () => void;
   palette: Palette;
   fontKey: string;
   setFontKey: (key: string) => void;
@@ -608,6 +609,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const resetMatrixVisuals = () => {
+    setTheme('matrix');
+    setMatrixBrightness(1);
+    localStorage.setItem(MATRIX_BRIGHTNESS_KEY, '1');
+    setMatrixCodeColorOverride(false);
+    localStorage.setItem(MATRIX_COLOR_OVERRIDE_KEY, 'false');
+    setMatrixCodeColor(palettes.matrix.colors.primary);
+    localStorage.setItem(MATRIX_CODE_COLOR_KEY, palettes.matrix.colors.primary);
+    setMatrixRainbow(false);
+    localStorage.setItem(MATRIX_RAINBOW_KEY, 'false');
+  };
+
   const setFont = (key: string) => {
     applyFont(key, true);
   };
@@ -617,6 +630,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       value={{
         theme,
         setTheme,
+        resetMatrixVisuals,
         palette,
         fontKey,
         setFontKey: setFont,

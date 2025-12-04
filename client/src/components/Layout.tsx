@@ -226,7 +226,7 @@ export default function Layout({ children }: LayoutProps) {
       <EasterEggLaunchers />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <div className="relative z-10 space-y-2 px-2 pt-0 -mt-12">
+      <div className="relative z-30 space-y-2 px-2 pt-2 -mt-8">
         <div className="min-h-[36px]">
           <BenchmarkStatusBanner />
         </div>

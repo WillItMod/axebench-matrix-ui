@@ -31,9 +31,9 @@
     --matrix-brightness: 1;
     --matrix-code-color: #22c55e;
     /* gridrunner surface tokens */
-    --surface-strong: 0.9;
-    --surface-medium: 0.82;
-    --surface-soft: 0.72;
+    --surface-strong: 0.78;
+    --surface-medium: 0.7;
+    --surface-soft: 0.62;
     --frame-radius: 18px;
     --frame-notch: 12px;
     --frame-border: hsla(var(--border), 0.7);

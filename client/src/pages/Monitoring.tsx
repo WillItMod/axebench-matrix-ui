@@ -110,8 +110,8 @@ export default function Monitoring() {
                 onClick={() => toggleDevice(device.name)}
                 variant={selectedDevices.includes(device.name) ? 'default' : 'outline'}
                 className={selectedDevices.includes(device.name)
-                  ? 'flex items-center gap-2 uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]'
-                  : 'flex items-center gap-2 uppercase tracking-wide'
+                  ? 'flex flex-col items-start gap-1 uppercase tracking-wide shadow-[0_0_18px_hsla(var(--primary),0.35)]'
+                  : 'flex flex-col items-start gap-1 uppercase tracking-wide'
                 }
                 style={
                   selectedDevices.includes(device.name)
@@ -119,8 +119,8 @@ export default function Monitoring() {
                     : undefined
                 }
               >
-                {device.name}
-                <span className="ml-1 text-xs opacity-60">({device.model})</span>
+                <span className="text-sm">{device.name}</span>
+                <span className="text-xs opacity-80 normal-case">{device.model}</span>
               </Button>
             );
           })}

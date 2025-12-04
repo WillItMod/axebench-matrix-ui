@@ -91,7 +91,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[82vh] appearance-modal space-y-5 p-6 sm:p-7 overflow-hidden flex flex-col">
+      <DialogContent className="max-w-[1400px] w-[96vw] h-[90vh] sm:h-[92vh] appearance-modal space-y-6 p-6 sm:p-8 overflow-hidden flex flex-col">
         <div className="flex items-start justify-between gap-3">
           <DialogHeader className="space-y-1">
             <DialogTitle className="text-xl">Fonts & Appearance</DialogTitle>
@@ -103,14 +103,14 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
             Forge unlocks via Bitcoin challenges
           </Badge>
         </div>
-        <div className="flex-1 overflow-auto pr-1 space-y-5">
-          <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr] min-h-[360px]">
+        <div className="flex-1 overflow-auto pr-1 space-y-6">
+          <div className="grid gap-5 xl:grid-cols-[1.45fr_1fr] min-h-[400px]">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">Themes</div>
                 <div className="text-xs text-muted-foreground">Pick a shell; fonts follow unless overridden</div>
               </div>
-              <ScrollArea className="gridrunner-surface h-[380px] border border-transparent shadow-chrome appearance-scroll">
+              <ScrollArea className="gridrunner-surface h-[520px] border border-transparent shadow-chrome appearance-scroll">
                 <div className="grid gap-3 p-4 sm:grid-cols-2">
                   {availableThemes.map((t) => {
                     const locked = t.name === 'forge' && !secretUnlocked;
@@ -144,10 +144,10 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                         {renderThemeSwatch(t.name as ThemeName)}
                         <div className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                           <span>Default font:</span>
-                          <Badge variant="outline" className="text-[11px]">
+                          <span className="px-2 py-0.5 rounded-full border border-border/70 bg-background/60 text-foreground/90">
                             {fontChoices.find((f) => f.key === themePalettes[t.name as ThemeName]?.defaults.font)?.label ??
                               themePalettes[t.name as ThemeName]?.defaults.font}
-                          </Badge>
+                          </span>
                         </div>
                         {paletteColors && (
                           <div
@@ -171,7 +171,7 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
                   Use theme default
                 </Button>
               </div>
-              <ScrollArea className="gridrunner-surface h-[380px] border border-transparent shadow-chrome appearance-scroll">
+              <ScrollArea className="gridrunner-surface h-[520px] border border-transparent shadow-chrome appearance-scroll">
                 <div className="grid gap-2 p-3">
                   {fontChoices.map((font) => {
                     const active = pendingFont === font.key;
@@ -225,8 +225,8 @@ export default function FontAppearanceSplash({ open, onOpenChange }: FontAppeara
             </div>
           </div>
 
-          <div className="grid gap-4 xl:grid-cols-[1.4fr_1fr]">
-            <div className="gridrunner-surface border border-transparent p-4 shadow-chrome min-h-[260px]">
+          <div className="grid gap-5 xl:grid-cols-[1.4fr_1fr]">
+            <div className="gridrunner-surface border border-transparent p-5 shadow-chrome min-h-[320px]">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">Live preview</div>
                 <Badge variant="outline" className="text-xs">
