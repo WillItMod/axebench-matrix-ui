@@ -332,6 +332,24 @@ export default function Benchmark() {
   const instability = clamp01(errRatio + (stabilityStress / 100) * 0.3);
   const balanceDelta = Math.max(-1, Math.min(1, push - instability));
   const efficiencyJth = hashrateGh > 0 ? power / (hashrateGh / 1000) : 0;
+  const bestEff = status?.best_efficiency?.efficiency ?? null;
+  const bestHash = status?.best_hashrate?.avg_hashrate ?? null;
+  const deltaEff = bestEff ? efficiencyJth - bestEff : null;
+  const deltaHash = bestHash ? hashrateGh - bestHash : null;
+  const perTestSeconds = (config.benchmark_duration || 0) + (config.warmup_time || 0) + (config.cooldown_time || 0);
+  const remainingTests = Math.max(0, (testsTotal || 0) - (testsCompleted || 0));
+  const etaSeconds = perTestSeconds > 0 ? remainingTests * perTestSeconds : 0;
+  const formatEta = (secs: number) => {
+    if (!secs || secs < 1) return '—';
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    if (m > 59) {
+      const h = Math.floor(m / 60);
+      const mrem = m % 60;
+      return `${h}h ${mrem}m`;
+    }
+    return `${m}m ${s}s`;
+  };
 
   const StressBar = ({
     label,
@@ -1002,6 +1020,8 @@ export default function Benchmark() {
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
                   <div>Current: {voltage} mV / {frequency} MHz</div>
                   <div>Goal: {config.goal?.toString().toUpperCase()}</div>
+                  <div>ETA: {formatEta(etaSeconds)}</div>
+                  <div>Per test: {perTestSeconds || '?'}s</div>
                 </div>
               </div>
 
@@ -1071,6 +1091,14 @@ export default function Benchmark() {
                   </div>
                   <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
                     Error margin: {errorMargin.toFixed(2)}%
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
+                    Recoveries: {status?.recovery_attempts ?? 0} / {config.recovery_max_retries}
+                  </div>
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
+                    Failed combos: {(status?.failed_combos || []).length}
                   </div>
                 </div>
               </div>
@@ -1147,11 +1175,21 @@ export default function Benchmark() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
                     <div className="text-[var(--text-secondary)]">EFFICIENCY</div>
-                    <div className="text-[var(--success-green)] font-semibold">{efficiencyJth > 0 ? `${efficiencyJth.toFixed(2)} J/TH` : '—'}</div>
+                    <div className="text-[var(--success-green)] font-semibold">
+                      {efficiencyJth > 0 ? `${efficiencyJth.toFixed(2)} J/TH` : '—'}
+                    </div>
+                    <div className="text-[10px] text-[var(--text-muted)]">
+                      {bestEff ? `Δ vs best: ${(efficiencyJth - bestEff).toFixed(2)} J/TH` : 'No best yet'}
+                    </div>
                   </div>
                   <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
                     <div className="text-[var(--text-secondary)]">HASHRATE</div>
-                    <div className="text-[var(--neon-cyan)] font-semibold">{hashrateGh ? `${hashrateGh.toFixed(1)} GH/s` : '—'}</div>
+                    <div className="text-[var(--neon-cyan)] font-semibold">
+                      {hashrateGh ? `${hashrateGh.toFixed(1)} GH/s` : '—'}
+                    </div>
+                    <div className="text-[10px] text-[var(--text-muted)]">
+                      {bestHash ? `Δ vs best: ${(hashrateGh - bestHash).toFixed(1)} GH/s` : 'No best yet'}
+                    </div>
                   </div>
                 </div>
               </div>
