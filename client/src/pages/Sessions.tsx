@@ -304,7 +304,7 @@ export default function Sessions() {
     return sessions.filter((s) => {
       const deviceMatch = deviceFilter ? s.device === deviceFilter : true;
       const tune = (s.tune_type || s.mode || '').toLowerCase();
-      const isAuto = tune.startsWith('auto') || tune.includes('auto_tune');
+      const isAuto = tune.includes('auto') || tune.includes('auto_tune') || s.auto_mode === true;
       const modeMatch =
         modeFilter === 'all' ? true : modeFilter === 'auto' ? isAuto : !isAuto;
       return deviceMatch && modeMatch;
@@ -316,7 +316,8 @@ export default function Sessions() {
     filteredSessions.forEach((session) => {
       const deviceName = session.device || 'UNKNOWN_DEVICE';
       const tune = (session.tune_type || session.mode || '').toLowerCase();
-      const bucket = tune.startsWith('auto') || tune.includes('auto_tune') ? 'auto' : 'manual';
+      const bucket =
+        tune.includes('auto') || tune.includes('auto_tune') || session.auto_mode === true ? 'auto' : 'manual';
       if (!groups[deviceName]) {
         groups[deviceName] = { auto: [], manual: [] };
       }
