@@ -831,11 +831,9 @@ export default function Benchmark() {
             <DialogTitle className="text-2xl font-bold text-glow-green">AUTOPILOT</DialogTitle>
             <DialogDescription className="text-[var(--text-secondary)] text-sm space-y-1">
               <p>
-                Autopilot runs a full sweep, captures session data, and builds four ready profiles: QUIET, EFFICIENT, BALANCED, MAX. Optional Nano tune adds a refinement pass.
+                Autopilot runs a full sweep, captures session data, and builds four profiles: QUIET, EFFICIENT, BALANCED, MAX. Optional Nano tune refines them.
               </p>
-              <p className="text-[var(--text-muted)]">
-                Duration depends on your ranges; keep airflow clear and stay within PSU/thermal limits.
-              </p>
+              <p className="text-[var(--text-muted)]">Run time depends on ranges; keep airflow clear and within PSU/thermal limits.</p>
             </DialogDescription>
           </DialogHeader>
 
@@ -844,16 +842,10 @@ export default function Benchmark() {
               <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/70 p-4">
                 <div className="font-bold text-[var(--text-primary)] mb-2">Workflow</div>
                 <ol className="list-decimal pl-5 space-y-1">
-                  <li>Full sweep with current settings (Easy uses optimized defaults).</li>
-                  <li>Analyze session data; generate QUIET / EFFICIENT / BALANCED / MAX.</li>
-                  <li>Optional Nano tune each profile.</li>
-                  <li>Apply EFFICIENT when finished.</li>
+                  <li>Full sweep (Easy uses optimized defaults).</li>
+                  <li>Analyze data; generate QUIET / EFFICIENT / BALANCED / MAX.</li>
+                  <li>Optional Nano tune each profile; then apply EFFICIENT.</li>
                 </ol>
-              </div>
-
-              <div className="rounded-lg border border-[var(--warning-amber)] bg-[var(--warning-amber)]/12 p-3 text-[var(--text-primary)]">
-                <div className="font-bold text-[var(--warning-amber)] mb-1">Safety</div>
-                <p className="text-sm">Monitor temps and power; stop from the banner if limits are exceeded.</p>
               </div>
 
               <div className="space-y-2">
@@ -864,7 +856,7 @@ export default function Benchmark() {
                     checked={autoTuneAck}
                     onChange={(e) => setAutoTuneAck(e.target.checked)}
                   />
-                  <span>I understand overclocking can damage or brick hardware. I will be nice to my silicon.</span>
+                  <span>I understand overclocking can damage hardware.</span>
                 </label>
                 <label className="flex items-start gap-2 text-sm text-[var(--text-primary)]">
                   <input
@@ -873,7 +865,7 @@ export default function Benchmark() {
                     checked={autoTuneDontRemind}
                     onChange={(e) => setAutoTuneDontRemind(e.target.checked)}
                   />
-                  <span>Do not remind me again, I am living dangerously.</span>
+                  <span>Do not remind me again.</span>
                 </label>
               </div>
             </div>
@@ -899,9 +891,7 @@ export default function Benchmark() {
                     Skip Nano
                   </Button>
                 </div>
-                <p className="text-xs text-[var(--text-secondary)]">
-                  Turn off Nano to stop after profiles are created.
-                </p>
+                <p className="text-xs text-[var(--text-secondary)]">Turn off Nano to stop after profiles are created.</p>
               </div>
 
               <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
@@ -921,14 +911,9 @@ export default function Benchmark() {
                   </div>
                   <div className="rounded border border-[var(--grid-gray)] bg-gradient-to-br from-fuchsia-500/25 to-fuchsia-700/15 p-2">
                     <div className="font-bold text-fuchsia-200">MAX</div>
-                    <div className="text-[var(--text-secondary)]">Push for hashrate.</div>
+                    <div className="text-[var(--text-secondary)]">Hashrate focus.</div>
                   </div>
                 </div>
-              </div>
-
-              <div className="rounded-lg border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3 text-sm text-[var(--text-secondary)]">
-                <div className="font-bold text-[var(--text-primary)] mb-1">Refinement</div>
-                <p>Nano tuning adds time but can tighten each profile. Enable it when you want the most polish.</p>
               </div>
             </div>
           </div>
