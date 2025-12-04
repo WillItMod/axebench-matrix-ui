@@ -12,7 +12,8 @@ export type MiniGameKey =
   | 'cat-survivors'
   | 'catapoolt'
   | 'clawstrike'
-  | 'wash-the-cat';
+  | 'wash-the-cat'
+  | 'pacman';
 
 export type MiniGameEntry = {
   key: MiniGameKey;
@@ -160,7 +161,16 @@ export const MINI_GAMES: MiniGameEntry[] = [
     src: '/games/wash-the-cat/index.html',
     hint: 'Keep the cat happy and clean.',
   }),
+  makeEntry({
+    key: 'pacman',
+    title: 'Pac-Man',
+    description: 'Classic maze chase (local build).',
+    src: '/games/pacman/pacman-master/index.html',
+    hint: 'Chomp all pellets and dodge ghosts.',
+  }),
 ];
+
 
 export const getMiniGameByKey = (key: MiniGameKey) =>
   MINI_GAMES.find((game) => game.key === key) ?? MINI_GAMES[0];
+

@@ -20,6 +20,7 @@ const baseSlots: Spot[] = [
   { key: 'catapoolt', position: { bottom: 200, right: '10%' }, label: 'Footer node' },
   { key: 'clawstrike', position: { bottom: 120, left: '18%' }, label: 'Console spark' },
   { key: 'wash-the-cat', position: { bottom: 120, right: '18%' }, label: 'Console spark' },
+  { key: 'pacman', position: { top: 220, left: '50%' }, label: 'Core relay' },
 ];
 
 export default function EasterEggLaunchers() {
@@ -82,18 +83,18 @@ export default function EasterEggLaunchers() {
             type="button"
             aria-label={`Hidden trigger: ${label}`}
             onClick={() => handleTrigger(key)}
-            className={`pointer-events-auto absolute flex items-center justify-center w-12 h-12 rounded-full bg-transparent text-[0px] border border-transparent cursor-pointer transition ${
-              pulse ? 'shadow-[0_0_30px_rgba(251,191,36,0.6)]' : 'shadow-none'
+            className={`pointer-events-auto absolute flex items-center justify-center w-3 h-3 rounded-full bg-transparent text-[0px] border border-transparent cursor-pointer transition ${
+              pulse ? 'shadow-[0_0_22px_rgba(251,191,36,0.55)]' : 'shadow-none'
             }`}
             style={position}
             title="Hidden protocol"
           >
             <span
-              className={`block text-[10px] leading-none text-amber-300 transition duration-75 ${
-                pulse ? 'opacity-100 scale-125' : 'opacity-0 scale-0'
+              className={`block text-[8px] leading-none transition duration-75 ${
+                pulse ? 'opacity-100 scale-125 text-amber-300' : 'opacity-0 scale-0 text-transparent'
               }`}
             >
-              ₿
+              B
             </span>
           </button>
         ))}
@@ -122,3 +123,4 @@ export default function EasterEggLaunchers() {
     </>
   );
 }
+
