@@ -25,7 +25,7 @@ import {
 
 export default function Benchmark() {
   const { status: benchmarkStatus, refreshStatus } = useBenchmark();
-  const { applySafetyCaps } = useSettings();
+  const { applySafetyCaps, getModelBenchmarkDefaults, globalBenchmarkDefaults } = useSettings();
   const [devices, setDevices] = useState<any[]>([]);
   const [selectedDevice, setSelectedDevice] = usePersistentState<string>('benchmark-selected-device', '');
   
@@ -130,6 +130,44 @@ export default function Benchmark() {
       }
     }
   }, [selectedDevice, devices]);
+
+  useEffect(() => {
+    const model = config.device_model || '';
+    const defaults = getModelBenchmarkDefaults(model) || null;
+    const globalDefaults = globalBenchmarkDefaults;
+    const base = defaults || {
+      auto_mode: config.auto_mode,
+      voltage_start: config.voltage_start,
+      voltage_stop: config.voltage_stop,
+      voltage_step: config.voltage_step,
+      frequency_start: config.frequency_start,
+      frequency_stop: config.frequency_stop,
+      frequency_step: config.frequency_step,
+      benchmark_duration: globalDefaults.benchmark_duration,
+      warmup_time: globalDefaults.warmup_time,
+      cooldown_time: globalDefaults.cooldown_time,
+      cycles_per_test: globalDefaults.cycles_per_test,
+      goal: config.goal,
+      fan_target: config.fan_target,
+    };
+    setConfig(prev => ({
+      ...prev,
+      auto_mode: base.auto_mode,
+      voltage_start: base.voltage_start,
+      voltage_stop: base.voltage_stop,
+      voltage_step: base.voltage_step,
+      frequency_start: base.frequency_start,
+      frequency_stop: base.frequency_stop,
+      frequency_step: base.frequency_step,
+      benchmark_duration: base.benchmark_duration,
+      warmup_time: base.warmup_time,
+      cooldown_time: base.cooldown_time,
+      cycles_per_test: base.cycles_per_test,
+      goal: base.goal,
+      fan_target: base.fan_target ?? null,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.device_model]);
 
   useEffect(() => {
     if (autoTuneIntentRef.current && selectedDevice) {
@@ -702,7 +740,7 @@ export default function Benchmark() {
                       variant="autoTune"
                       className="w-full text-lg py-6 shadow-[0_0_28px_rgba(168,85,247,0.4),0_0_36px_rgba(109,40,217,0.28)]"
                     >
-                      🪄 FULL_SWEEP_OPTIMIZER
+                      🪄 AXEBENCH AUTOPILOT
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -939,5 +977,7 @@ export default function Benchmark() {
     </>
   );
 }
+
+
 
 

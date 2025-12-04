@@ -20,10 +20,38 @@ export interface SettingsState {
   safetyMaxChipTemp: number; // stored in Celsius
   safetyMaxVrTemp: number; // stored in Celsius
   safetyMaxPower: number; // stored in Watts
+  modelBenchmarkDefaults: Record<string, BenchmarkDefaults>;
+  globalBenchmarkDefaults: GlobalBenchmarkDefaults;
+}
+
+export interface BenchmarkDefaults {
+  auto_mode: boolean;
+  voltage_start: number;
+  voltage_stop: number;
+  voltage_step: number;
+  frequency_start: number;
+  frequency_stop: number;
+  frequency_step: number;
+  benchmark_duration: number;
+  warmup_time: number;
+  cooldown_time: number;
+  cycles_per_test: number;
+  goal: 'quiet' | 'efficient' | 'balanced' | 'max';
+  fan_target?: number | null;
+}
+
+export interface GlobalBenchmarkDefaults {
+  benchmark_duration: number;
+  warmup_time: number;
+  cooldown_time: number;
+  cycles_per_test: number;
 }
 
 type SettingsContextValue = SettingsState & {
   updateSettings: (patch: Partial<SettingsState>) => void;
+  getModelBenchmarkDefaults: (model: string | undefined | null) => BenchmarkDefaults | null;
+  setModelBenchmarkDefaults: (model: string, defaults: BenchmarkDefaults | null) => void;
+  setGlobalBenchmarkDefaults: (defaults: GlobalBenchmarkDefaults) => void;
   formatTemp: (tempC: number) => string;
   toDisplayTemp: (tempC: number) => number;
   fromDisplayTemp: (displayValue: number) => number;
@@ -47,6 +75,13 @@ const defaultState: SettingsState = {
   safetyMaxChipTemp: 75,
   safetyMaxVrTemp: 95,
   safetyMaxPower: 35,
+  modelBenchmarkDefaults: {},
+  globalBenchmarkDefaults: {
+    benchmark_duration: 120,
+    warmup_time: 10,
+    cooldown_time: 5,
+    cycles_per_test: 1,
+  },
 };
 
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
@@ -139,6 +174,29 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return { config: next, changed: capped.length > 0, capped };
   };
 
+  const getModelBenchmarkDefaults = (model: string | undefined | null): BenchmarkDefaults | null => {
+    if (!model) return null;
+    const key = String(model).toLowerCase();
+    return settings.modelBenchmarkDefaults[key] || null;
+  };
+
+  const setModelBenchmarkDefaults = (model: string, defaults: BenchmarkDefaults | null) => {
+    const key = String(model || '').toLowerCase();
+    setSettings((prev) => {
+      const next = { ...prev.modelBenchmarkDefaults };
+      if (!defaults) {
+        delete next[key];
+      } else {
+        next[key] = defaults;
+      }
+      return { ...prev, modelBenchmarkDefaults: next };
+    });
+  };
+
+  const setGlobalBenchmarkDefaults = (defaults: GlobalBenchmarkDefaults) => {
+    setSettings((prev) => ({ ...prev, globalBenchmarkDefaults: { ...prev.globalBenchmarkDefaults, ...defaults } }));
+  };
+
   const updateSettings = (patch: Partial<SettingsState>) => {
     setSettings((prev) => ({ ...prev, ...patch }));
   };
@@ -153,6 +211,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     formatPower,
     formatTime,
     applySafetyCaps,
+    getModelBenchmarkDefaults,
+    setModelBenchmarkDefaults,
+    setGlobalBenchmarkDefaults,
   }), [settings]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

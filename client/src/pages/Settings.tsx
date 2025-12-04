@@ -5,11 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useTheme, availableThemes, fonts as fontChoices, themePalettes } from '@/contexts/ThemeContext';
-import { useSettings } from '@/contexts/SettingsContext';
+import { useSettings, type BenchmarkDefaults, type GlobalBenchmarkDefaults } from '@/contexts/SettingsContext';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface LicenseStatus {
   tier?: string;
@@ -54,12 +62,20 @@ export default function Settings() {
     updateSettings,
     toDisplayTemp,
     fromDisplayTemp,
+    modelBenchmarkDefaults,
+    globalBenchmarkDefaults,
+    setModelBenchmarkDefaults,
+    setGlobalBenchmarkDefaults,
   } = useSettings();
   const [license, setLicense] = useState<LicenseStatus | null>(null);
   const [tier, setTier] = useState<'free' | 'premium' | 'ultimate'>('free');
   const [deviceLimit, setDeviceLimit] = useState<number>(5);
   const [deviceCount, setDeviceCount] = useState<number>(0);
   const [patreonUrl, setPatreonUrl] = useState<string | null>(null);
+  const [showModelDefaults, setShowModelDefaults] = useState<string | null>(null);
+  const [showGlobalDefaults, setShowGlobalDefaults] = useState(false);
+  const [draftModelDefaults, setDraftModelDefaults] = useState<BenchmarkDefaults | null>(null);
+  const [draftGlobalDefaults, setDraftGlobalDefaults] = useState<GlobalBenchmarkDefaults>(globalBenchmarkDefaults);
 
   useEffect(() => {
     const load = async () => {
@@ -107,6 +123,55 @@ export default function Settings() {
     () => Number((Math.max(500, monitoringRefreshMs) / 1000).toFixed(1)),
     [monitoringRefreshMs]
   );
+
+  const modelCards = [
+    { key: 'gamma', label: 'Gamma (BM1370)' },
+    { key: 'supra', label: 'Supra (BM1368)' },
+    { key: 'ultra', label: 'Ultra (BM1366)' },
+    { key: 'hex', label: 'Hex (BM1366 x6)' },
+    { key: 'max', label: 'Max (BM1397)' },
+    { key: 'nerdqaxe', label: 'NerdQAxe (BM1370)' },
+    { key: 'nerdqaxe_plus', label: 'NerdQAxe+' },
+    { key: 'nerdqaxe_plus_plus', label: 'NerdQAxe++' },
+  ];
+
+  const handleOpenModelDefaults = (model: string) => {
+    const existing = modelBenchmarkDefaults[model] || null;
+    setDraftModelDefaults(
+      existing || {
+        auto_mode: true,
+        voltage_start: 1100,
+        voltage_stop: 1200,
+        voltage_step: 25,
+        frequency_start: 400,
+        frequency_stop: 700,
+        frequency_step: 25,
+        benchmark_duration: globalBenchmarkDefaults.benchmark_duration,
+        warmup_time: globalBenchmarkDefaults.warmup_time,
+        cooldown_time: globalBenchmarkDefaults.cooldown_time,
+        cycles_per_test: globalBenchmarkDefaults.cycles_per_test,
+        goal: 'balanced',
+        fan_target: null,
+      }
+    );
+    setShowModelDefaults(model);
+  };
+
+  const saveModelDefaults = () => {
+    if (!showModelDefaults || !draftModelDefaults) {
+      setShowModelDefaults(null);
+      return;
+    }
+    setModelBenchmarkDefaults(showModelDefaults, draftModelDefaults);
+    toast.success(`Saved benchmark defaults for ${showModelDefaults.toUpperCase()}`);
+    setShowModelDefaults(null);
+  };
+
+  const saveGlobalDefaults = () => {
+    setGlobalBenchmarkDefaults(draftGlobalDefaults);
+    toast.success('Saved global benchmark defaults');
+    setShowGlobalDefaults(false);
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -417,6 +482,44 @@ export default function Settings() {
         </Card>
       </div>
 
+      {/* Benchmark defaults */}
+      <Card className="p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm text-muted-foreground">Bench tuning</div>
+            <div className="text-xl font-semibold text-glow-cyan">DEFAULT BENCHMARK PROFILES</div>
+            <p className="text-sm text-muted-foreground">
+              Set per-model defaults that prefill benchmarking and Autopilot for each device family.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => { setDraftGlobalDefaults(globalBenchmarkDefaults); setShowGlobalDefaults(true); }}>
+            Global test defaults
+          </Button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {modelCards.map((m) => {
+            const hasCustom = !!modelBenchmarkDefaults[m.key];
+            return (
+              <div
+                key={m.key}
+                className="rounded-lg border border-border/60 bg-card/60 p-3 flex items-center justify-between"
+              >
+                <div>
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">{m.label}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {hasCustom ? 'Custom defaults set' : 'Using global defaults'}
+                  </div>
+                </div>
+                <Button size="sm" variant="secondary" onClick={() => handleOpenModelDefaults(m.key)}>
+                  Configure
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5 space-y-4">
           <div className="flex items-center justify-between">
@@ -522,6 +625,198 @@ export default function Settings() {
         </Card>
       </div>
     </div>
+
+    {/* Model benchmark defaults dialog */}
+    <Dialog open={!!showModelDefaults} onOpenChange={(open) => { if (!open) setShowModelDefaults(null); }}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-glow-cyan">
+            {showModelDefaults ? `Benchmark defaults: ${showModelDefaults.toUpperCase()}` : 'Benchmark defaults'}
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Prefill voltage/frequency ranges and goals when benchmarking this model.
+          </DialogDescription>
+        </DialogHeader>
+
+        {draftModelDefaults && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Voltage start (mV)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.voltage_start}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, voltage_start: parseInt(e.target.value) || 0 })}
+              />
+              <Label className="text-xs text-muted-foreground">Voltage stop (mV)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.voltage_stop}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, voltage_stop: parseInt(e.target.value) || 0 })}
+              />
+              <Label className="text-xs text-muted-foreground">Voltage step (mV)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.voltage_step}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, voltage_step: parseInt(e.target.value) || 0 })}
+              />
+              <Label className="text-xs text-muted-foreground">Goal</Label>
+              <Select
+                value={draftModelDefaults.goal}
+                onValueChange={(val) => setDraftModelDefaults({ ...draftModelDefaults, goal: val as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="quiet">Quiet</SelectItem>
+                  <SelectItem value="efficient">Efficient</SelectItem>
+                  <SelectItem value="balanced">Balanced</SelectItem>
+                  <SelectItem value="max">Max</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={draftModelDefaults.auto_mode}
+                  onCheckedChange={(val) => setDraftModelDefaults({ ...draftModelDefaults, auto_mode: val })}
+                />
+                <span className="text-sm text-muted-foreground">Auto step</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Frequency start (MHz)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.frequency_start}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, frequency_start: parseInt(e.target.value) || 0 })}
+              />
+              <Label className="text-xs text-muted-foreground">Frequency stop (MHz)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.frequency_stop}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, frequency_stop: parseInt(e.target.value) || 0 })}
+              />
+              <Label className="text-xs text-muted-foreground">Frequency step (MHz)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.frequency_step}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, frequency_step: parseInt(e.target.value) || 0 })}
+              />
+
+              <Label className="text-xs text-muted-foreground">Fan target (%) (optional)</Label>
+              <Input
+                type="number"
+                placeholder="e.g., 40"
+                value={draftModelDefaults.fan_target ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? null : parseInt(e.target.value);
+                  setDraftModelDefaults({ ...draftModelDefaults, fan_target: val });
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {draftModelDefaults && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Duration (s)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.benchmark_duration}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, benchmark_duration: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Warmup (s)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.warmup_time}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, warmup_time: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Cooldown (s)</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.cooldown_time}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, cooldown_time: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Cycles per test</Label>
+              <Input
+                type="number"
+                value={draftModelDefaults.cycles_per_test}
+                onChange={(e) => setDraftModelDefaults({ ...draftModelDefaults, cycles_per_test: parseInt(e.target.value) || 1 })}
+              />
+            </div>
+          </div>
+        )}
+
+        <DialogFooter className="flex items-center justify-between">
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => { if (showModelDefaults) setModelBenchmarkDefaults(showModelDefaults, null); setShowModelDefaults(null); }}>
+              Reset to global
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowModelDefaults(null)}>Cancel</Button>
+            <Button onClick={saveModelDefaults}>Save</Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Global benchmark defaults dialog */}
+    <Dialog open={showGlobalDefaults} onOpenChange={(open) => { if (!open) setShowGlobalDefaults(false); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold text-glow-cyan">Global test defaults</DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Applies when no per-model defaults exist.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Duration (s)</Label>
+            <Input
+              type="number"
+              value={draftGlobalDefaults.benchmark_duration}
+              onChange={(e) => setDraftGlobalDefaults({ ...draftGlobalDefaults, benchmark_duration: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Warmup (s)</Label>
+            <Input
+              type="number"
+              value={draftGlobalDefaults.warmup_time}
+              onChange={(e) => setDraftGlobalDefaults({ ...draftGlobalDefaults, warmup_time: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Cooldown (s)</Label>
+            <Input
+              type="number"
+              value={draftGlobalDefaults.cooldown_time}
+              onChange={(e) => setDraftGlobalDefaults({ ...draftGlobalDefaults, cooldown_time: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Cycles per test</Label>
+            <Input
+              type="number"
+              value={draftGlobalDefaults.cycles_per_test}
+              onChange={(e) => setDraftGlobalDefaults({ ...draftGlobalDefaults, cycles_per_test: parseInt(e.target.value) || 1 })}
+            />
+          </div>
+        </div>
+        <DialogFooter className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setShowGlobalDefaults(false)}>Cancel</Button>
+          <Button onClick={saveGlobalDefaults}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
