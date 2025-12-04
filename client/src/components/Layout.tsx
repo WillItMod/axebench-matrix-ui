@@ -144,7 +144,7 @@ export default function Layout({ children }: LayoutProps) {
 
     if (licenseTier === 'premium') {
       return (
-        <div className="bg-[var(--dark-gray)] border border-[var(--neon-cyan)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="bg-card border border-border text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="text-sm">
             Premium: up to {deviceLimit} devices. Thanks for supporting! Devices: {deviceCount}.
           </div>
@@ -161,7 +161,7 @@ export default function Layout({ children }: LayoutProps) {
 
     if (licenseTier === 'ultimate') {
       return (
-        <div className="bg-[var(--dark-gray)] border border-[var(--matrix-green)] text-[var(--text-primary)] px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="bg-card border border-border text-foreground px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="text-sm">
             Ultimate supporter! Limit {deviceLimit} devices. Thanks for keeping AxeBench running strong.
           </div>
@@ -186,7 +186,7 @@ export default function Layout({ children }: LayoutProps) {
   const licenseBanner = renderLicenseBanner();
 
   return (
-    <div className="min-h-screen relative bg-[var(--deep-black)] text-[var(--text-primary)]">
+    <div className="min-h-screen relative bg-background text-foreground">
       <BitcoinCelebrationOverlay active={celebrate} onFinished={() => setCelebrate(false)} />
       {/* Matrix Background */}
       <MatrixBackground />
@@ -210,7 +210,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <div className="relative z-20">
         {/* Header */}
-        <header className="border-b-2 border-[var(--theme-primary)] bg-[var(--dark-gray)]/90 backdrop-blur-sm">
+        <header className="border-b border-border bg-card/90 backdrop-blur-sm">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               {/* Logo */}
@@ -224,28 +224,28 @@ export default function Layout({ children }: LayoutProps) {
                       setShowSecret(true);
                     }
                   }}
-                  className="flex items-center gap-2 text-3xl font-bold text-glow-green flicker hover:text-[var(--theme-accent)] transition"
+                  className="flex items-center gap-2 text-3xl font-bold text-[var(--theme-primary)] hover:text-[var(--theme-secondary)] transition"
                   title={secretUnlocked ? "Satoshi's Forge unlocked" : '???'}
                 >
                   <span className="text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,0.7)]">₿</span>
                   AXEBENCH
                 </button>
-                <div className="text-sm text-[var(--theme-accent)] text-glow-cyan">
+                <div className="text-sm text-muted-foreground">
                   UI v2.0 | AxeBench v3.0.0
                 </div>
               </div>
 
               {/* Status Indicator */}
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-[var(--theme-primary)] rounded-full pulse-green box-glow-green" />
-                <span className="text-[var(--theme-primary)] text-sm">SYSTEM_ONLINE</span>
+                <div className="w-2 h-2 bg-primary rounded-full shadow-[0_0_12px_rgba(34,197,94,0.6)] animate-pulse" />
+                <span className="text-sm text-muted-foreground">SYSTEM_ONLINE</span>
               </div>
             </div>
           </div>
         </header>
 
         {/* Navigation Tabs */}
-        <nav className="border-b border-[var(--grid-gray)] bg-[var(--dark-gray)]/80 backdrop-blur-sm">
+        <nav className="border-b border-border bg-card/80 backdrop-blur-sm">
           <div className="container mx-auto px-4">
             <div className="flex gap-1">
               {tabs.map((tab) => {
@@ -254,11 +254,11 @@ export default function Layout({ children }: LayoutProps) {
                   <Link key={tab.path} href={tab.path}>
                     <button
                       className={`
-                        px-6 py-3 font-bold uppercase tracking-wide transition-all relative rounded-md
+                        px-6 py-3 font-bold uppercase tracking-wide transition-all relative rounded-md border
                         ${
                           isActive
-                            ? 'text-[var(--deep-black)] border border-[var(--theme-primary)] shadow-[0_0_16px_rgba(0,255,65,0.5)] bg-[var(--theme-primary)]/70'
-                            : 'text-[var(--text-primary)]/90 hover:text-[var(--theme-accent)] hover:border-[var(--theme-accent)] hover:shadow-[0_0_10px_rgba(0,255,255,0.35)] hover:bg-[var(--grid-gray)]/60 border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60'
+                            ? 'text-primary-foreground bg-primary border-primary shadow-[0_0_16px_rgba(34,197,94,0.45)]'
+                            : 'text-foreground/90 hover:text-primary hover:border-primary hover:shadow-[0_0_10px_rgba(34,211,238,0.3)] hover:bg-muted border-border bg-card/60'
                         }
                       `}
                     >
@@ -280,15 +280,15 @@ export default function Layout({ children }: LayoutProps) {
         </main>
 
         {/* Footer */}
-        <footer className="border-t border-[var(--grid-gray)] bg-[var(--dark-gray)]/80 backdrop-blur-sm mt-12">
+        <footer className="border-t border-border bg-card/80 backdrop-blur-sm mt-12">
           <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between text-sm text-[var(--text-muted)]">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div>
                 AxeBench Interface | Bitaxe Fleet Management System
               </div>
               <div className="flex items-center gap-4">
-                <span>STATUS: <span className="text-[var(--matrix-green)]">OPERATIONAL</span></span>
-                <span>UPTIME: <span className="text-[var(--neon-cyan)]">{uptime}</span></span>
+                <span>STATUS: <span className="text-primary">OPERATIONAL</span></span>
+                <span>UPTIME: <span className="text-secondary">{uptime}</span></span>
               </div>
             </div>
           </div>
