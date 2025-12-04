@@ -118,7 +118,10 @@ export default function Layout({ children }: LayoutProps) {
   const [showSecret, setShowSecret] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   useEffect(() => {
-    const handler = () => {\n      setCelebrate(true);\n      setShowSecret(false);\n    };
+    const handler = () => {
+      setCelebrate(true);
+      setShowSecret(false);
+    };
     window.addEventListener('forge-celebrate', handler);
     return () => window.removeEventListener('forge-celebrate', handler);
   }, []);
