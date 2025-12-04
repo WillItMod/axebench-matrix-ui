@@ -156,49 +156,109 @@ export default function Settings() {
           </div>
         </Card>
 
-        <Card className="p-5 space-y-4 lg:col-span-2">
+        <Card className="p-5 space-y-5 lg:col-span-2">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-muted-foreground">Current Theme</div>
-              <div className="text-xl font-semibold text-foreground">{currentThemeLabel}</div>
+              <div className="text-sm text-muted-foreground">Appearance & Typography</div>
+              <div className="text-xl font-semibold text-glow-cyan">THEME & FONT LAB</div>
             </div>
             <Badge variant="secondary" className="text-xs">
               {fontOverride ? 'Custom font' : 'Theme default'}
             </Badge>
           </div>
-          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
-            <span className="rounded-full bg-muted/40 px-3 py-1 border border-border/60">
-              Font: <span className="text-foreground">{currentFontLabel}</span>
-            </span>
-            <span className="rounded-full bg-muted/40 px-3 py-1 border border-border/60">
-              Default: <span className="text-foreground">{defaultFontLabel}</span>
-            </span>
-            <span className="rounded-full bg-muted/40 px-3 py-1 border border-border/60">
-              Scale {fontScale.toFixed(2)}x
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="outline" size="sm" onClick={() => setShowAppearanceModal(true)}>
-              Adjust fonts & appearance
-            </Button>
-            <Button size="sm" variant="ghost" onClick={resetMatrixVisuals}>
-              Reset to Matrix Dark
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-muted-foreground">Matrix Code Color</Label>
-              <Input
-                type="color"
-                value={matrixCodeColor}
-                onChange={(e) => setMatrixCodeColor(e.target.value)}
-                className="h-9 w-20 rounded-md border border-border/70 bg-card px-1 shadow-sm cursor-pointer"
-              />
-              <div className="text-[11px] text-muted-foreground">
-                Adjust digital rain hue. Animation & brightness stay untouched.
+
+          <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">Themes</div>
+                <div className="text-xs text-muted-foreground">Current: {currentThemeLabel}</div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {availableThemes.map((t) => {
+                  const locked = t.name === 'forge' && !secretUnlocked;
+                  const active = theme === t.name;
+                  const paletteColors = themePalettes[t.name]?.colors;
+                  return (
+                    <button
+                      key={t.name}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => setTheme(t.name)}
+                      className={[
+                        'relative overflow-hidden rounded-lg border px-3 py-3 text-left transition-all',
+                        active
+                          ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.3),0_0_18px_hsla(var(--primary),0.18)]'
+                          : 'border-border hover:border-[hsl(var(--primary))]/60 hover:shadow-[0_0_16px_hsla(var(--primary),0.12)]',
+                        locked ? 'opacity-50 cursor-not-allowed' : '',
+                      ].join(' ')}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-semibold text-sm">{t.label}</div>
+                        {locked ? (
+                          <Badge variant="outline" className="text-amber-400 border-amber-400/60">
+                            Locked
+                          </Badge>
+                        ) : active ? (
+                          <Badge variant="secondary" className="text-xs">Active</Badge>
+                        ) : null}
+                      </div>
+                      {paletteColors && (
+                        <div className="mt-2 flex gap-1">
+                          {[paletteColors.primary, paletteColors.secondary, paletteColors.surface, paletteColors.hover].map((color, idx) => (
+                            <span key={${color}-} className="h-4 w-4 rounded border border-border" style={{ background: color }} />
+                          ))}
+                        </div>
+                      )}
+                      <div className="mt-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        Default font: {fontChoices.find((f) => f.key === themePalettes[t.name]?.defaults.font)?.label ?? themePalettes[t.name]?.defaults.font}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <div className="flex flex-col gap-1">
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">Fonts</div>
+                <Button variant="outline" size="sm" onClick={() => { setFontKey(themePalettes[theme]?.defaults.font || 'share-tech'); resetFontOverride(); }}>
+                  Use theme default
+                </Button>
+              </div>
+              <div className="grid gap-2">
+                {fontChoices.map((font) => {
+                  const active = fontKey === font.key;
+                  const isDefault = font.key === (themePalettes[theme]?.defaults.font || 'share-tech');
+                  return (
+                    <button
+                      key={font.key}
+                      type="button"
+                      onClick={() => setFontKey(font.key)}
+                      className={[
+                        'rounded-lg border px-3 py-2 text-left transition-all',
+                        active
+                          ? 'border-[hsl(var(--primary))] shadow-[0_0_0_1px_hsla(var(--primary),0.28),0_0_14px_hsla(var(--primary),0.2)]'
+                          : 'border-border hover:border-[hsl(var(--primary))]/60 hover:shadow-[0_0_12px_hsla(var(--primary),0.12)]',
+                      ].join(' ')}
+                      style={{ fontFamily: font.stack }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="font-medium text-sm">{font.label}</div>
+                        <div className="flex gap-2 items-center">
+                          {isDefault && <Badge variant="outline">Theme default</Badge>}
+                          {active && <Badge variant="secondary">Selected</Badge>}
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">The quick brown fox jumps over the lazy miner.</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+            <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Font scale</Label>
               <input
                 type="range"
@@ -211,10 +271,19 @@ export default function Settings() {
               />
               <div className="text-[11px] text-muted-foreground">Scale: {fontScale.toFixed(2)}x</div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Matrix Code Color</Label>
+              <Input
+                type="color"
+                value={matrixCodeColor}
+                onChange={(e) => setMatrixCodeColor(e.target.value)}
+                className="h-9 w-20 rounded-md border border-border/70 bg-card px-1 shadow-sm cursor-pointer"
+              />
+              <div className="text-[11px] text-muted-foreground">
+                Adjust digital rain hue. Animation & brightness stay untouched.
+              </div>
+            </div>
+            <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Matrix brightness</Label>
               <input
                 type="range"
@@ -226,16 +295,23 @@ export default function Settings() {
                 className="w-full accent-[hsl(var(--primary))]"
               />
               <div className="text-[11px] text-muted-foreground">
-                Intensity: {matrixBrightness.toFixed(2)} (affects background rain only)
+                Intensity: {matrixBrightness.toFixed(2)} (background rain only)
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
-              <div className="flex flex-col">
-                <span className="text-sm text-foreground">Rainbow rain mode</span>
-                <span className="text-[11px] text-muted-foreground">Cycle the digital rain through full spectrum</span>
-              </div>
-              <Switch checked={matrixRainbow} onCheckedChange={setMatrixRainbow} />
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card/80 px-3 py-2">
+            <div className="flex flex-col">
+              <span className="text-sm text-foreground">Rainbow rain mode</span>
+              <span className="text-[11px] text-muted-foreground">Cycle the digital rain through full spectrum</span>
             </div>
+            <Switch checked={matrixRainbow} onCheckedChange={setMatrixRainbow} />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button size="sm" variant="ghost" onClick={resetMatrixVisuals}>
+              Reset to Matrix Dark
+            </Button>
           </div>
         </Card>
       </div>
@@ -457,8 +533,6 @@ export default function Settings() {
           </div>
         </Card>
       </div>
-
-      <FontAppearanceSplash open={showAppearanceModal} onOpenChange={setShowAppearanceModal} />
     </div>
   );
 }
