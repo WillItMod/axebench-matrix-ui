@@ -212,13 +212,13 @@ export default function Layout({ children }: LayoutProps) {
   const licenseBanner = renderLicenseBanner();
 
   return (
-    <div className="min-h-screen relative bg-background text-foreground">
+    <div className="min-h-screen relative bg-background text-foreground overflow-x-hidden">
       <BitcoinCelebrationOverlay active={celebrate} onFinished={handleCelebrationFinished} />
       {/* Matrix Background */}
       <MatrixBackground />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <div className="relative z-10 space-y-2 px-2 pt-1 -mt-2">
+      <div className="relative z-10 space-y-2 px-2 pt-0 -mt-12">
         <div className="min-h-[36px]">
           <BenchmarkStatusBanner />
         </div>

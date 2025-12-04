@@ -299,6 +299,13 @@
     padding: 0;
   }
 
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
   a {
     color: hsl(var(--accent));
     text-decoration: none;
@@ -385,6 +392,78 @@
   }
 
   .chrome-card::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+
+  /* Legacy containers upgraded to chrome styling */
+  .matrix-card,
+  .hud-panel {
+    position: relative;
+    border-radius: 14px;
+    padding: 1.1rem;
+    background: linear-gradient(155deg, hsla(var(--card), 0.9), hsla(var(--background), 0.82));
+    border: 1px solid hsla(var(--border), 0.85);
+    color: hsl(var(--foreground));
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 16px 38px rgba(0, 0, 0, 0.32),
+      0 0 26px hsla(var(--primary), 0.12);
+    backdrop-filter: blur(10px);
+  }
+
+  .matrix-card::before,
+  .hud-panel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(circle at 20% 20%, hsla(var(--primary), 0.08), transparent 35%),
+      radial-gradient(circle at 80% 0%, hsla(var(--secondary), 0.08), transparent 32%),
+      radial-gradient(circle at 50% 100%, hsla(var(--accent), 0.05), transparent 38%);
+    opacity: 0.7;
+  }
+
+  .matrix-card::after,
+  .hud-panel::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.03),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+
+  .matrix-card {
+    gap: 0.75rem;
+  }
+
+  .hud-panel {
+    gap: 0.4rem;
+  }
+
+  .glass-panel {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(150deg, hsla(var(--card), 0.94), hsla(var(--background), 0.86));
+    border: 1px solid hsla(var(--border), 0.9);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 16px 36px rgba(0, 0, 0, 0.3),
+      0 0 24px hsla(var(--primary), 0.1);
+    backdrop-filter: blur(10px);
+  }
+
+  .glass-panel::after {
     content: "";
     position: absolute;
     inset: 1px;

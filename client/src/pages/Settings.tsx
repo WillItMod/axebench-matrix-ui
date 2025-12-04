@@ -89,19 +89,14 @@ export default function Settings() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground">Configure AxeBench to match your rig and preferences.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setShowAppearanceModal(true)}>
-            Fonts & Appearance
-          </Button>
-        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         <Card className="p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -131,7 +126,7 @@ export default function Settings() {
           </div>
         </Card>
 
-        <Card className="p-5 space-y-4">
+        <Card className="p-5 space-y-4 lg:col-span-2">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-muted-foreground">Current Theme</div>
@@ -141,10 +136,18 @@ export default function Settings() {
               {fontOverride ? 'Custom font' : 'Theme default'}
             </Badge>
           </div>
-          <div className="text-sm text-muted-foreground">
-            Font: {currentFontLabel} · Default: {defaultFontLabel} · Scale {fontScale.toFixed(2)}x
+          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+            <span className="rounded-full bg-muted/40 px-3 py-1 border border-border/60">
+              Font: <span className="text-foreground">{currentFontLabel}</span>
+            </span>
+            <span className="rounded-full bg-muted/40 px-3 py-1 border border-border/60">
+              Default: <span className="text-foreground">{defaultFontLabel}</span>
+            </span>
+            <span className="rounded-full bg-muted/40 px-3 py-1 border border-border/60">
+              Scale {fontScale.toFixed(2)}x
+            </span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             <Button variant="outline" size="sm" onClick={() => setShowAppearanceModal(true)}>
               Adjust fonts & appearance
             </Button>
@@ -211,3 +214,4 @@ export default function Settings() {
     </div>
   );
 }
+
