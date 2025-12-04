@@ -70,6 +70,13 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
         const hashrate = status.hashrate || 0;
         const power = status.power || 0;
         const efficiency = hashrate > 0 ? (power / hashrate) * 1000 : 0; // J/TH = (W / GH/s) * 1000
+        const asicErrors = Number(
+          status.error_percentage ??
+          status.errorPercent ??
+          status.asic_errors ??
+          status.errors ??
+          0
+        );
         
         const newStats: LiveStats = {
           voltage: status.voltage || 0,
@@ -78,7 +85,7 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
           power,
           chipTemp: status.temp || status.chipTemp || 0,
           vrTemp: status.vrTemp || status.vr_temp || 0,
-          asicErrors: status.asic_errors || status.errors || 0,
+          asicErrors,
           efficiency,
           timestamp: Date.now(),
         };
