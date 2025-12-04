@@ -1,3 +1,4 @@
+#
 import { MouseEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { Bitcoin } from 'lucide-react';
 import { useLocation } from 'wouter';
