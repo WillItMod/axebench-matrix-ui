@@ -29,6 +29,8 @@ export default function Settings() {
   } = useTheme();
   const [darkSurge, setDarkSurge] = useState(false);
   const [showBlackoutGame, setShowBlackoutGame] = useState(false);
+  const [gameStage, setGameStage] = useState<'prep' | 'puzzle'>('prep');
+  const [targetRune, setTargetRune] = useState<string>('RUNE');
   const [blackoutCode, setBlackoutCode] = useState('');
   const [sigils, setSigils] = useState({ alpha: false, beta: false, gamma: false });
   const [customPalette, setCustomPalette] = useState({
@@ -269,7 +271,17 @@ export default function Settings() {
           Engage total darkness. Fonts, outlines, buttons—everything goes obsidian. Complete the ritual to unlock.
         </p>
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => setShowBlackoutGame(true)} className="hover:shadow-[0_0_14px_rgba(0,255,255,0.35)]">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowBlackoutGame(true);
+              setGameStage('prep');
+              setTargetRune(['Ξ', '₿', 'Λ'][Math.floor(Math.random() * 3)]);
+              setSigils({ alpha: false, beta: false, gamma: false });
+              setBlackoutCode('');
+            }}
+            className="hover:shadow-[0_0_14px_rgba(0,255,255,0.35)]"
+          >
             Initiate
           </Button>
         </div>
@@ -284,52 +296,89 @@ export default function Settings() {
         <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-sm flex items-center justify-center">
           <Card className="w-full max-w-xl p-6 bg-[#050505]/95 border border-[var(--theme-primary)] shadow-[0_0_25px_rgba(0,0,0,0.6)]">
             <div className="text-lg font-bold text-[var(--theme-primary)] mb-2">Enter the Void</div>
-            <p className="text-[var(--text-secondary)] text-sm mb-3">
-              Whisper a passphrase, toggle the sigils, and press “Descend”. Any passphrase works—we just like the drama.
-            </p>
-            <div className="space-y-3">
-              <Input
-                placeholder="Passphrase"
-                value={blackoutCode}
-                onChange={(e) => setBlackoutCode(e.target.value)}
-                className="bg-black border-[var(--grid-gray)]"
-              />
-              <div className="grid grid-cols-3 gap-2 text-xs text-[var(--text-secondary)]">
-                {(['alpha', 'beta', 'gamma'] as const).map((key) => (
-                  <label key={key} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={sigils[key]}
-                      onChange={(e) => setSigils({ ...sigils, [key]: e.target.checked })}
-                    />
-                    Toggle {key.toUpperCase()}
-                  </label>
-                ))}
+            {gameStage === 'prep' && (
+              <>
+                <p className="text-[var(--text-secondary)] text-sm mb-3">
+                  Whisper the passphrase (try “bitcoin” or “axebench”), toggle all sigils, then begin the challenge.
+                </p>
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Passphrase"
+                    value={blackoutCode}
+                    onChange={(e) => setBlackoutCode(e.target.value)}
+                    className="bg-black border-[var(--grid-gray)]"
+                  />
+                  <div className="grid grid-cols-3 gap-2 text-xs text-[var(--text-secondary)]">
+                    {(['alpha', 'beta', 'gamma'] as const).map((key) => (
+                      <label key={key} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={sigils[key]}
+                          onChange={(e) => setSigils({ ...sigils, [key]: e.target.checked })}
+                        />
+                        Toggle {key.toUpperCase()}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 btn-matrix"
+                      disabled={
+                        !blackoutCode ||
+                        !sigils.alpha ||
+                        !sigils.beta ||
+                        !sigils.gamma ||
+                        !['bitcoin', 'axebench'].includes(blackoutCode.toLowerCase())
+                      }
+                      onClick={() => {
+                        setGameStage('puzzle');
+                        setTargetRune(['Ξ', '₿', 'Λ'][Math.floor(Math.random() * 3)]);
+                      }}
+                    >
+                      Begin Challenge
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowBlackoutGame(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                  <div className="text-[10px] text-[var(--text-secondary)]">
+                    Hint: passphrase is fun (bitcoin / AxeBench). All sigils must glow.
+                  </div>
+                </div>
+              </>
+            )}
+
+            {gameStage === 'puzzle' && (
+              <div className="space-y-3">
+                <p className="text-[var(--text-secondary)] text-sm">
+                  Final step: select the rune <span className="text-[var(--theme-accent)] font-bold">{targetRune}</span> to open the blackout.
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {['Ξ', '₿', 'Λ'].map((rune) => (
+                    <Button
+                      key={rune}
+                      className="text-2xl bg-[var(--theme-surface)] border-[var(--theme-primary)] hover:bg-[var(--theme-primary)] hover:text-black"
+                      onClick={() => {
+                        if (rune === targetRune) {
+                          setPalette('blackout');
+                          toast.success('Blackout engaged.');
+                          setShowBlackoutGame(false);
+                          setSigils({ alpha: false, beta: false, gamma: false });
+                          setBlackoutCode('');
+                          setDarkSurge(true);
+                          setTimeout(() => setDarkSurge(false), 800);
+                          setGameStage('prep');
+                        } else {
+                          toast.error('Wrong rune—try again.');
+                        }
+                      }}
+                    >
+                      {rune}
+                    </Button>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 btn-matrix"
-                  disabled={!blackoutCode || !sigils.alpha || !sigils.beta || !sigils.gamma}
-                  onClick={() => {
-                    setPalette('blackout');
-                    toast.success('Blackout engaged.');
-                    setShowBlackoutGame(false);
-                    setSigils({ alpha: false, beta: false, gamma: false });
-                    setBlackoutCode('');
-                    setDarkSurge(true);
-                    setTimeout(() => setDarkSurge(false), 800);
-                  }}
-                >
-                  Descend
-                </Button>
-                <Button variant="outline" onClick={() => setShowBlackoutGame(false)}>
-                  Cancel
-                </Button>
-              </div>
-              <div className="text-[10px] text-[var(--text-secondary)]">
-                Hint: any passphrase works. The void welcomes all.
-              </div>
-            </div>
+            )}
           </Card>
         </div>
       )}

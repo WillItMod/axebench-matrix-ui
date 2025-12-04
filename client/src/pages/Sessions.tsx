@@ -304,7 +304,7 @@ export default function Sessions() {
     return sessions.filter((s) => {
       const deviceMatch = deviceFilter ? s.device === deviceFilter : true;
       const tune = (s.tune_type || s.mode || '').toLowerCase();
-      const isAuto = tune.includes('auto');
+      const isAuto = tune.includes('auto') || s.auto_mode === true || tune.includes('auto_tune');
       const modeMatch =
         modeFilter === 'all' ? true : modeFilter === 'auto' ? isAuto : !isAuto;
       return deviceMatch && modeMatch;
