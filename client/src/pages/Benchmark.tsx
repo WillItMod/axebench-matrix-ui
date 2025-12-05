@@ -327,7 +327,7 @@ export default function Benchmark() {
       (status as any)?.planned_tests ??
       benchmarkStatus.testsTotal
     );
-    const total = reportedTotal > 0 ? reportedTotal : plannedByConfig;
+    const total = Math.max(plannedByConfig, reportedTotal);
     return total > 0 ? total : 0;
   };
   const plannedTestsTotal = isRunning ? derivePlannedTests() : 0;
@@ -336,10 +336,19 @@ export default function Benchmark() {
     (status as any)?.tests_complete ??
     benchmarkStatus.testsCompleted
   );
-  const testsCompleted = isRunning
-    ? Math.max(0, plannedTestsTotal > 0 ? Math.min(reportedCompleted, plannedTestsTotal) : reportedCompleted)
-    : 0;
   const fallbackProgress = isRunning ? numeric((status as any)?.progress ?? benchmarkStatus.progress) : 0;
+  const pctDerivedCompleted = plannedTestsTotal > 0 ? Math.round((fallbackProgress / 100) * plannedTestsTotal) : 0;
+  const testsCompleted = isRunning
+    ? Math.max(
+        0,
+        plannedTestsTotal > 0
+          ? Math.min(
+              Math.max(reportedCompleted, pctDerivedCompleted),
+              plannedTestsTotal
+            )
+          : reportedCompleted
+      )
+    : 0;
   const sweepProgressDisplayRounded = plannedTestsTotal > 0
     ? Math.min(100, Math.round((testsCompleted / plannedTestsTotal) * 100))
     : Math.min(100, Math.max(0, Math.round(fallbackProgress)));

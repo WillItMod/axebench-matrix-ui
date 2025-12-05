@@ -6,11 +6,30 @@ export default function NanoTuneStatusBanner() {
   // Only show when nano_tune is running
   if (!status.running || status.mode !== 'nano_tune') return null;
 
-  const plannedTests = status.testsTotal || 0;
-  const completedTests = Math.min(status.testsCompleted || 0, plannedTests || Number.POSITIVE_INFINITY);
+  const toNumber = (val: any) => {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const plannedTests = (() => {
+    const cfg = (status as any)?.config || {};
+    const vStart = toNumber(cfg.voltage_start ?? cfg.voltageStart);
+    const vStop = toNumber(cfg.voltage_stop ?? cfg.voltageStop);
+    const vStep = Math.max(1, toNumber(cfg.voltage_step ?? cfg.voltageStep) || 1);
+    const fStart = toNumber(cfg.frequency_start ?? cfg.frequencyStart);
+    const fStop = toNumber(cfg.frequency_stop ?? cfg.frequencyStop);
+    const fStep = Math.max(1, toNumber(cfg.frequency_step ?? cfg.frequencyStep) || 1);
+    const cycles = Math.max(1, toNumber(cfg.cycles_per_test ?? cfg.cyclesPerTest) || 1);
+    const plannedByConfig = (vStop > vStart ? Math.floor((vStop - vStart) / vStep) + 1 : 1) *
+      (fStop > fStart ? Math.floor((fStop - fStart) / fStep) + 1 : 1) *
+      cycles;
+    const reported = toNumber(status.testsTotal);
+    return Math.max(plannedByConfig, reported, 0);
+  })();
+  const completedTests = Math.min(toNumber(status.testsCompleted), plannedTests || Number.POSITIVE_INFINITY);
+  const fallbackPct = Math.min(100, Math.max(0, Math.round(toNumber(status.progress))));
   const progress = plannedTests > 0
     ? Math.min(100, Math.round((completedTests / plannedTests) * 100))
-    : Math.min(100, Math.max(0, Math.round(status.progress || 0)));
+    : fallbackPct;
   const testsLabel = plannedTests > 0 ? `${completedTests}/${plannedTests}` : null;
   const device = status.device || 'Unknown';
   const goal = status.goal || 'balanced';

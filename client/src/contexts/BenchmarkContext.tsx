@@ -7,6 +7,7 @@ interface BenchmarkStatus {
   mode?: string; // 'benchmark', 'auto_tune', 'nano_tune'
   device?: string;
   progress?: number;
+  config?: any;
   testsTotal?: number;
   testsCompleted?: number;
   currentTest?: string;
@@ -54,6 +55,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
         mode,
         device: data.device_name || data.device,
         progress: data.progress,
+        config: data.config,
         tests_total: testsTotal,
         tests_completed: testsCompleted,
         phase: data.phase,
@@ -66,6 +68,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
         mode,
         device: data.device_name || data.device,
         progress: data.progress,
+        config: (data as any)?.config,
         testsTotal,
         testsCompleted,
         currentTest: data.current_test,

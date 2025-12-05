@@ -10,11 +10,32 @@ export default function BenchmarkStatusBanner() {
   const [stopping, setStopping] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const plannedTests = status.testsTotal || 0;
-  const completedTests = Math.min(status.testsCompleted || 0, plannedTests || Number.POSITIVE_INFINITY);
+  const toNumber = (val: any) => {
+    const n = Number(val);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const derivePlannedTests = () => {
+    const cfg = (status as any)?.config || {};
+    const vStart = toNumber(cfg.voltage_start ?? cfg.voltageStart);
+    const vStop = toNumber(cfg.voltage_stop ?? cfg.voltageStop);
+    const vStep = Math.max(1, toNumber(cfg.voltage_step ?? cfg.voltageStep) || 1);
+    const fStart = toNumber(cfg.frequency_start ?? cfg.frequencyStart);
+    const fStop = toNumber(cfg.frequency_stop ?? cfg.frequencyStop);
+    const fStep = Math.max(1, toNumber(cfg.frequency_step ?? cfg.frequencyStep) || 1);
+    const cycles = Math.max(1, toNumber(cfg.cycles_per_test ?? cfg.cyclesPerTest) || 1);
+    const vCount = vStop > vStart ? Math.floor((vStop - vStart) / vStep) + 1 : 1;
+    const fCount = fStop > fStart ? Math.floor((fStop - fStart) / fStep) + 1 : 1;
+    const plannedByConfig = vCount * fCount * cycles;
+    const reported = toNumber(status.testsTotal);
+    return Math.max(plannedByConfig, reported, 0);
+  };
+
+  const plannedTests = derivePlannedTests();
+  const completedTests = Math.min(toNumber(status.testsCompleted), plannedTests || Number.POSITIVE_INFINITY);
+  const fallbackPct = Math.min(100, Math.max(0, Math.round(toNumber(status.progress))));
   const progressPct = plannedTests > 0
     ? Math.min(100, Math.round((completedTests / plannedTests) * 100))
-    : Math.min(100, Math.max(0, Math.round(status.progress || 0)));
+    : fallbackPct;
   const progressText = plannedTests > 0
     ? `${completedTests} / ${plannedTests} (${progressPct}%)`
     : `${progressPct}%`;
