@@ -2179,8 +2179,11 @@ def get_benchmark_status():
     est_total = estimate_tests_total(cfg)
     tests_total = status.get('tests_total') or est_total
     tests_completed = status.get('tests_completed') or status.get('tests_complete') or len(status.get('seen_combos') or []) or 0
-    if status.get('running') and (status.get('current_test') or status.get('live_data')) and tests_completed == 0:
-        tests_completed = max(1, len(status.get('seen_combos') or []))
+    if status.get('running') and tests_total:
+        if tests_completed == 0:
+            tests_completed = max(1, len(status.get('seen_combos') or []), 1)
+        if status.get('current_test') or status.get('live_data'):
+            tests_completed = max(tests_completed, len(status.get('seen_combos') or []), 1)
     if tests_total and tests_completed > tests_total:
         tests_completed = tests_total
     if tests_total and tests_completed:
