@@ -125,10 +125,15 @@ export default function Benchmark() {
   });
   const [graphsLoading, setGraphsLoading] = useState(false);
   const settingsLocked = benchmarkStatus.running;
+  const sweepCombosRef = useRef<Set<string>>(new Set());
 
   // Utility helpers for derived gauges
   const clamp01 = (v: number) => Math.min(1, Math.max(0, v || 0));
   const safeDiv = (a: number, b: number) => (b ? a / b : 0);
+  const numeric = (v: any) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
 
   // Load devices
   useEffect(() => {
@@ -303,12 +308,25 @@ export default function Benchmark() {
 
   // Derived engine metrics for visual "stress" panel
   const liveData = status?.live_data || {};
-  const numeric = (v: any) => {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
+  // Predictive sweep progress (client-side, independent of backend inconsistencies)
+  const parseCombo = () => {
+    const ld = status?.live_data || {};
+    const vLive = numeric(ld.voltage);
+    const fLive = numeric(ld.frequency);
+    if (vLive && fLive) return `${Math.round(vLive)}-${Math.round(fLive)}`;
+    const testText = status?.current_test || status?.currentTest || '';
+    if (testText && testText.includes('@')) {
+      const cleaned = testText.replace(/[,]/g, '');
+      const parts = cleaned.split('@');
+      const vPart = parts[0].replace(/[^\d.]/g, '');
+      const fPart = parts[1].replace(/[^\d.]/g, '');
+      const v = numeric(vPart);
+      const f = numeric(fPart);
+      if (v && f) return `${Math.round(v)}-${Math.round(f)}`;
+    }
+    return null;
   };
 
-  // Estimate total tests when backend doesn't provide (or sends bad) counts.
   const estimateTestsTotal = () => {
     const src = (status as any)?.config || config;
     const vStart = numeric(src?.voltage_start);
@@ -326,23 +344,43 @@ export default function Benchmark() {
   };
 
   const isRunning = status?.running ?? benchmarkStatus.running ?? false;
+
+  // Track seen combos while running to derive a floor for completed tests
+  useEffect(() => {
+    if (!isRunning) {
+      sweepCombosRef.current = new Set();
+      return;
+    }
+    const combo = parseCombo();
+    if (combo) {
+      const next = new Set(sweepCombosRef.current);
+      next.add(combo);
+      sweepCombosRef.current = next;
+    }
+  }, [isRunning, status?.current_test, status?.currentTest, status?.live_data]);
+
   const rawCompleted = numeric(status?.tests_completed ?? status?.tests_complete ?? benchmarkStatus.tests_completed);
   const rawTotal = numeric(status?.tests_total ?? benchmarkStatus.tests_total);
   const derivedTotal = rawTotal > 0 ? rawTotal : estimateTestsTotal();
-  const clampedCompleted = Math.min(rawCompleted, derivedTotal || rawCompleted);
+  const seenCount = sweepCombosRef.current.size;
+  const completedFloor = isRunning ? Math.max(rawCompleted, seenCount, derivedTotal > 0 ? 1 : 0) : 0;
+  const clampedCompleted = derivedTotal > 0 ? Math.min(completedFloor, derivedTotal) : completedFloor;
   const percentFromCounts =
-    derivedTotal > 0 ? Math.min(100, Math.max(0, (clampedCompleted / derivedTotal) * 100)) : null;
+    isRunning && derivedTotal > 0
+      ? Math.min(100, Math.max(0, (clampedCompleted / derivedTotal) * 100))
+      : null;
   const baseProgress =
     Number.isFinite(status?.progress) && status?.progress !== null && status?.progress !== undefined
       ? numeric(status?.progress)
       : Number.isFinite(benchmarkStatus.progress)
       ? numeric(benchmarkStatus.progress)
-      : percentFromCounts ?? 0;
-  const progressVal = isRunning
-    ? (derivedTotal > 0 && percentFromCounts !== null
-        ? Math.max(0, Math.min(100, percentFromCounts))
-        : Math.max(0, Math.min(100, baseProgress)))
-    : 0;
+      : 0;
+  const progressVal =
+    isRunning && percentFromCounts !== null
+      ? percentFromCounts
+      : isRunning
+      ? Math.max(0, Math.min(100, baseProgress))
+      : 0;
   const testsCompleted = isRunning ? clampedCompleted : 0;
   const testsTotal = isRunning ? derivedTotal : 0;
   const maxChip = config.max_chip_temp || status?.safety_limits?.max_chip_temp || 70;
