@@ -160,6 +160,13 @@ def record_status_message(message: str, level: str = 'info'):
     benchmark_status.setdefault('message_queue', []).append({'phase': level, 'message': message})
     save_benchmark_state()
 
+def reset_progress_state():
+    """Clear progress-related counters when not running."""
+    benchmark_status['tests_total'] = 0
+    benchmark_status['tests_completed'] = 0
+    benchmark_status['progress'] = 0
+    benchmark_status['seen_combos'] = []
+
 def build_benchmark_config_from_request(data: dict, preset_obj=None):
     """Build BenchmarkConfig and SafetyLimits from request payload."""
     cfg = BenchmarkConfig()
@@ -2186,11 +2193,13 @@ def get_benchmark_status():
             tests_completed = max(tests_completed, len(status.get('seen_combos') or []), 1)
     if tests_total and tests_completed > tests_total:
         tests_completed = tests_total
-    if tests_total and tests_completed:
+    if status.get('running') and tests_total:
         pct = min(100, max(0, (tests_completed / tests_total) * 100))
         status['progress'] = min(100, max(0, status.get('progress') or pct))
-    elif status.get('progress') is not None:
-        status['progress'] = min(100, max(0, status.get('progress', 0)))
+    else:
+        status['progress'] = 0
+        tests_total = 0
+        tests_completed = 0
     status['tests_total'] = tests_total or 0
     status['tests_completed'] = tests_completed
     # Persist clamped values back into global so subsequent polls keep the floor
@@ -2260,6 +2269,42 @@ def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyL
         global benchmark_status
         status_dict['mode'] = 'auto_tune'
         status_dict['phase'] = phase
+
+        cfg_for_estimate = status_dict.get('config') or benchmark_status.get('config') or {}
+        est_total_local = estimate_tests_total(cfg_for_estimate) or est_total
+        tests_total = status_dict.get('tests_total') or benchmark_status.get('tests_total') or est_total_local
+        tests_completed = status_dict.get('tests_completed') or status_dict.get('tests_complete') or benchmark_status.get('tests_completed') or 0
+
+        # Track combos for predictive progress
+        combo = parse_current_combo(status_dict)
+        if combo:
+            seen = benchmark_status.get('seen_combos') or []
+            if combo not in seen:
+                seen.append(combo)
+                if len(seen) > 5000:
+                    seen = seen[-5000:]
+                benchmark_status['seen_combos'] = seen
+            if not status_dict.get('tests_completed') and not status_dict.get('tests_complete'):
+                tests_completed = max(tests_completed, len(benchmark_status['seen_combos']))
+
+        if tests_total:
+            status_dict['tests_total'] = tests_total
+            if tests_completed > tests_total:
+                tests_completed = tests_total
+        if tests_completed:
+            status_dict['tests_completed'] = tests_completed
+        # If running and we have a current test but zero completed, count at least one
+        if status_dict.get('running') and (status_dict.get('current_test') or status_dict.get('live_data')) and tests_completed == 0:
+            tests_completed = max(1, len(benchmark_status.get('seen_combos') or []))
+            status_dict['tests_completed'] = tests_completed
+
+        if tests_total and tests_completed:
+            pct = (tests_completed / tests_total) * 100
+            status_dict['progress'] = min(100, max(0, pct))
+        elif status_dict.get('progress') is not None:
+            # Clamp any provided progress
+            status_dict['progress'] = min(100, max(0, status_dict.get('progress', 0)))
+
         benchmark_status.update(status_dict)
         if status_dict.get('message'):
             benchmark_status.setdefault('message_queue', []).append({
@@ -2271,15 +2316,6 @@ def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyL
                 'message': status_dict['message'],
                 'type': status_dict.get('phase', 'info')
             })
-        # Track combos for predictive progress
-        combo = parse_current_combo(status_dict)
-        if combo:
-            seen = benchmark_status.get('seen_combos') or []
-            if combo not in seen:
-                seen.append(combo)
-                if len(seen) > 5000:
-                    seen = seen[-5000:]
-                benchmark_status['seen_combos'] = seen
         save_benchmark_state()
 
     try:
@@ -2345,8 +2381,7 @@ def run_auto_tune_sequence(device_name: str, data: dict):
         benchmark_status['running'] = True
         benchmark_status['seen_combos'] = []
         benchmark_status['tests_total'] = est_total or benchmark_status.get('tests_total') or 0
-        if benchmark_status['tests_total'] > 0:
-            benchmark_status['tests_completed'] = 1
+        benchmark_status['tests_completed'] = 0
         save_benchmark_state()
 
         cfg, safety = build_benchmark_config_from_request(data)
