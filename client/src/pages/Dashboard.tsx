@@ -307,7 +307,7 @@ export default function Dashboard() {
               status: {
                 hashrate: status.hashrate || 0,
                 temp: status.temperature || 0,
-                power: status.power || 0,
+          power: normalizeNumber(status.power, 0) ?? 0,
                 voltage: status.voltage || 0,
                 frequency: status.frequency || 0,
                 fan_speed: status.fan_speed || 0,
@@ -393,7 +393,14 @@ const loadPsus = async () => {
       normalizedPsus.forEach((psu: any) => {
         const assignedDevices = resolveAssignedDevices(psu, devices, storedAssignments);
         const metrics = getPsuMetrics(psu, assignedDevices);
-        const psuLoad = assignedDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
+        const psuLoad = assignedDevices.reduce(
+          (sum, d) =>
+            sum +
+            (normalizeNumber((d.status as any)?.power, null) ??
+              normalizeNumber((d.status as any)?.wattage, 0) ??
+              0),
+          0
+        );
         const loadPercent = metrics.wattage > 0 ? (psuLoad / metrics.wattage) * 100 : 0;
         
         if (metrics.wattage > 0 && loadPercent >= 80) {
@@ -553,7 +560,10 @@ const loadPsus = async () => {
   // Calculate fleet stats
   const onlineDevices = devices.filter(d => d.online && d.status);
   const totalHashrate = onlineDevices.reduce((sum, d) => sum + (d.status?.hashrate || 0), 0);
-  const totalPower = onlineDevices.reduce((sum, d) => sum + (d.status?.power || 0), 0);
+  const totalPower = onlineDevices.reduce(
+    (sum, d) => sum + (normalizeNumber(d.status?.power, 0) ?? 0),
+    0
+  );
   
   // Calculate fleet efficiency (J/TH = W / (GH/s / 1000))
   const fleetEfficiency = totalHashrate > 0 ? (totalPower / (totalHashrate / 1000)) : 0;
@@ -706,7 +716,11 @@ const loadPsus = async () => {
               const assignedCount = assignedDevices.length || backendCount || 0;
               const metrics = getPsuMetrics(psu, assignedDevices);
               const psuLoad = assignedDevices.reduce(
-                (sum, d) => sum + (d.status?.power ?? d.status?.wattage ?? 0),
+                (sum, d) =>
+                  sum +
+                  (normalizeNumber((d.status as any)?.power, null) ??
+                    normalizeNumber((d.status as any)?.wattage, 0) ??
+                    0),
                 0
               );
               const loadPercent = metrics.wattage > 0 ? (psuLoad / metrics.wattage) * 100 : 0;
@@ -784,12 +798,18 @@ const loadPsus = async () => {
                     {assignedDevices.length > 0 && (
                       <div className="text-xs text-[var(--text-muted)] mt-2 space-y-1">
                         <div className="font-bold text-[var(--text-secondary)]">Assigned Devices:</div>
-                        {assignedDevices.map(d => (
-                          <div key={d.name} className="flex justify-between">
-                            <span>{d.name}</span>
-                            <span className="text-[var(--neon-cyan)]">{(d.status?.power || 0).toFixed(1)}W</span>
-                          </div>
-                        ))}
+                        {assignedDevices.map(d => {
+                          const devicePower =
+                            normalizeNumber((d.status as any)?.power, null) ??
+                            normalizeNumber((d.status as any)?.wattage, 0) ??
+                            0;
+                          return (
+                            <div key={d.name} className="flex justify-between">
+                              <span>{d.name}</span>
+                              <span className="text-[var(--neon-cyan)]">{devicePower.toFixed(1)}W</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     {assignedDevices.length === 0 && backendCount ? (

@@ -202,7 +202,7 @@ export function BitcoinLoreModal({ open, onClose, onUnlocked }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 px-3">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70 px-3 overflow-y-auto py-6">
       <div className="w-full max-w-4xl rounded-2xl border border-amber-300/30 bg-neutral-950/90 shadow-[0_0_40px_rgba(251,191,36,0.35)] p-4 sm:p-6 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
