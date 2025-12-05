@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useBenchmark } from '@/contexts/BenchmarkContext';
 
 export default function AutoTuneStatusBanner() {
   const { status } = useBenchmark();
+  const [collapsed, setCollapsed] = useState(false);
 
   // Only show when auto_tune is running
   if (!status.running || status.mode !== 'auto_tune') return null;
@@ -19,21 +21,30 @@ export default function AutoTuneStatusBanner() {
     const fStop = toNumber(cfg.frequency_stop ?? cfg.frequencyStop);
     const fStep = Math.max(1, toNumber(cfg.frequency_step ?? cfg.frequencyStep) || 1);
     const cycles = Math.max(1, toNumber(cfg.cycles_per_test ?? cfg.cyclesPerTest) || 1);
-    const plannedByConfig = (vStop > vStart ? Math.floor((vStop - vStart) / vStep) + 1 : 1) *
+    const plannedByConfig =
+      (vStop > vStart ? Math.floor((vStop - vStart) / vStep) + 1 : 1) *
       (fStop > fStart ? Math.floor((fStop - fStart) / fStep) + 1 : 1) *
       cycles;
-    const reported = toNumber(status.testsTotal);
+    const reported = toNumber((status as any)?.testsTotal);
     const base = Math.max(plannedByConfig, reported, 0);
-    const needsCushion = status.running && status.phase !== 'complete' && toNumber(status.testsCompleted) >= base && base > 0;
+    const needsCushion =
+      status.running &&
+      status.phase !== 'complete' &&
+      toNumber((status as any)?.testsCompleted) >= base &&
+      base > 0;
     return needsCushion
-      ? toNumber(status.testsCompleted) + Math.max(1, Math.round(base * 0.25))
+      ? toNumber((status as any)?.testsCompleted) + Math.max(1, Math.round(base * 0.25))
       : base;
   })();
-  const completedTests = Math.min(toNumber(status.testsCompleted), plannedTests || Number.POSITIVE_INFINITY);
+  const completedTests = Math.min(
+    toNumber((status as any)?.testsCompleted),
+    plannedTests || Number.POSITIVE_INFINITY
+  );
   const fallbackPct = Math.min(100, Math.max(0, Math.round(toNumber(status.progress))));
-  const progress = plannedTests > 0
-    ? Math.min(100, Math.round((completedTests / plannedTests) * 100))
-    : fallbackPct;
+  const progress =
+    plannedTests > 0
+      ? Math.min(100, Math.round((completedTests / plannedTests) * 100))
+      : fallbackPct;
   const testsLabel = plannedTests > 0 ? `${completedTests}/${plannedTests}` : null;
   const device = status.device || 'Unknown';
   const currentTest = status.currentTest || '';
@@ -56,15 +67,23 @@ export default function AutoTuneStatusBanner() {
   ];
 
   const activeStage =
-    stages.find((s) =>
-      s.match.some((m) => phase.toLowerCase().includes(m))
-    ) || stages[0];
+    stages.find((s) => s.match.some((m) => phase.toLowerCase().includes(m))) || stages[0];
 
   return (
     <div className="sticky top-14 sm:top-0 left-0 right-0 z-30 bg-gradient-to-r from-[#6d28d9]/95 via-[#a855f7]/90 to-[#6d28d9]/95 backdrop-blur-sm border-b-2 border-[#a855f7] shadow-lg shadow-[#a855f7]/40">
       <div className="container mx-auto px-4 py-3 space-y-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setCollapsed((c) => !c)}
+              className="flex items-center gap-2 px-2 py-1 rounded bg-black/20 text-white text-xs border border-white/20 hover:bg-white/10 transition"
+              aria-label={collapsed ? 'Expand Auto Tune status' : 'Collapse Auto Tune status'}
+            >
+              <span className="font-semibold">{collapsed ? 'Show' : 'Hide'}</span>
+              <span className="text-[10px] opacity-80">AUTO TUNE</span>
+            </button>
+
             <div className="flex items-center gap-2">
               <div className="relative">
                 <div className="w-3 h-3 bg-amber-300 rounded-full animate-pulse" />
@@ -72,24 +91,21 @@ export default function AutoTuneStatusBanner() {
               </div>
               <span className="text-white font-bold text-sm">FULL SWEEP OPTIMIZER ACTIVE</span>
             </div>
-            
+
             <div className="text-white text-sm flex items-center gap-1">
-              <span className="text-pink-200">Device:</span> <span className="font-mono">{device}</span>
+              <span className="text-pink-200">Device:</span>{' '}
+              <span className="font-mono">{device}</span>
             </div>
 
             <div className="text-white text-sm flex items-center gap-1">
-              <span className="text-pink-200">Phase:</span> <span className="font-mono">{phase}</span>
+              <span className="text-pink-200">Phase:</span>{' '}
+              <span className="font-mono">{phase}</span>
             </div>
-
-            {currentTest && (
-              <div className="text-white text-sm flex items-center gap-1">
-                <span className="text-pink-200">Test:</span> <span className="font-mono text-xs">{currentTest}</span>
-              </div>
-            )}
 
             {testsLabel && (
               <div className="text-white text-sm flex items-center gap-1">
-                <span className="text-pink-200">Tests:</span> <span className="font-mono">{testsLabel}</span>
+                <span className="text-pink-200">Tests:</span>{' '}
+                <span className="font-mono">{testsLabel}</span>
               </div>
             )}
 
@@ -101,49 +117,55 @@ export default function AutoTuneStatusBanner() {
 
           <div className="flex items-center gap-3">
             <div className="text-white text-sm">
-              <span className="text-pink-200">Progress:</span> <span className="font-mono font-bold">{progress}%</span>
+              <span className="text-pink-200">Progress:</span>{' '}
+              <span className="font-mono font-bold">{progress}%</span>
             </div>
-            
+
             <div className="w-44 h-2.5 bg-purple-950 rounded-full overflow-hidden border border-[#a855f7]/40">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-[#a855f7] via-[#c084fc] to-[#22d3ee] transition-all duration-300 shadow-[0_0_14px_rgba(168,85,247,0.7)]"
                 style={{ width: `${progress}%` }}
               />
             </div>
 
-            <div className="text-xl animate-pulse">✨</div>
+            <div className="text-xl animate-pulse">ƒoù</div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {stages.map((s, idx) => {
-            const active = s.key === activeStage.key;
-            const complete =
-              stages.findIndex((st) => st.key === activeStage.key) > idx;
-            return (
-              <div
-                key={s.key}
-                className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                  active
-                    ? 'bg-white/15 border-white text-white shadow-[0_0_14px_rgba(255,255,255,0.4)]'
-                    : complete
-                    ? 'bg-white/10 border-white/30 text-white/80'
-                    : 'bg-black/20 border-white/10 text-white/60'
-                }`}
-              >
-                {idx + 1}. {s.label}
-              </div>
-            );
-          })}
-        </div>
+        {!collapsed && (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {stages.map((s, idx) => {
+                const active = s.key === activeStage.key;
+                const complete = stages.findIndex((st) => st.key === activeStage.key) > idx;
+                return (
+                  <div
+                    key={s.key}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                      active
+                        ? 'bg-white/15 border-white text-white shadow-[0_0_14px_rgba(255,255,255,0.4)]'
+                        : complete
+                        ? 'bg-white/10 border-white/30 text-white/80'
+                        : 'bg-black/20 border-white/10 text-white/60'
+                    }`}
+                  >
+                    {idx + 1}. {s.label}
+                  </div>
+                );
+              })}
+            </div>
 
-        <div className="text-xs text-pink-100 opacity-90">
-          {activeStage.key === 'sweep' && 'Stage 1: Full sweep in progress (silicon leg day).'}
-          {activeStage.key === 'analyze' && 'Stage 2: Crunching session data (charts and vibes).'}
-          {activeStage.key === 'profiles' && 'Stage 3: Minting profiles (collect them all).'}
-          {activeStage.key === 'nano' && 'Stage 4: Nano tuning QUIET/EFFICIENT/BALANCED/MAX (one by one).'}
-          {activeStage.key === 'apply' && 'Stage 5: Wrapping up (do not pull the plug).'}
-        </div>
+            <div className="text-xs text-pink-100 opacity-90">
+              {activeStage.key === 'sweep' && 'Stage 1: Full sweep in progress (silicon leg day).'}
+              {activeStage.key === 'analyze' &&
+                'Stage 2: Crunching session data (charts and vibes).'}
+              {activeStage.key === 'profiles' && 'Stage 3: Minting profiles (collect them all).'}
+              {activeStage.key === 'nano' &&
+                'Stage 4: Nano tuning QUIET/EFFICIENT/BALANCED/MAX (one by one).'}
+              {activeStage.key === 'apply' && 'Stage 5: Wrapping up (do not pull the plug).'}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

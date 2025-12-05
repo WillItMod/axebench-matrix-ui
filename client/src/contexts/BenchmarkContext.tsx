@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { autoTuneTracer } from '@/lib/autoTuneTracer';
 
@@ -40,7 +40,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     setStatus(prev => ({ ...prev, logs: [] }));
   };
 
-  const refreshStatus = async () => {
+  const refreshStatus = useCallback(async () => {
     try {
       const data = await api.benchmark.status();
       const mode = normalizeMode((data as any)?.mode || (data as any)?.tune_type, (data as any)?.auto_mode);
@@ -80,9 +80,9 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Failed to fetch benchmark status:', error);
       autoTuneTracer.recordError('Status poll failed', { error: String(error) });
-      setStatus({ running: false });
+      // Preserve current state on transient failures; a visibility/focus refresh will recover.
     }
-  };
+  }, []);
 
   // Initialize status on app startup without interrupting any running benchmark
   useEffect(() => {
@@ -105,6 +105,22 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
 
     return () => clearInterval(interval);
   }, [status.running, refreshStatus]);
+
+  // When returning to the tab or window, force a status refresh to recover throttled timers.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshStatus();
+      }
+    };
+    const handleFocus = () => refreshStatus();
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshStatus]);
 
   return (
     <BenchmarkContext.Provider value={{ status, refreshStatus, clearLogs }}>
