@@ -29,6 +29,12 @@ const toneClasses: Record<Tone, string> = {
   danger: 'text-[var(--error-red)]',
 };
 
+const confirmToneButtonClasses: Record<Tone, string | undefined> = {
+  default: undefined,
+  warning: 'bg-[var(--warning-amber)] text-black hover:bg-[var(--warning-amber)]/80 border border-[var(--warning-amber)] shadow-[0_0_16px_rgba(234,179,8,0.35)]',
+  danger: 'bg-[#ef4444] text-white hover:bg-[#dc2626] border border-[#ef4444] shadow-[0_0_18px_rgba(239,68,68,0.55)]',
+};
+
 export function ConfirmDialog({
   open,
   title,
@@ -58,7 +64,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             variant={tone === 'danger' ? 'destructive' : 'default'}
-            className={tone === 'warning' ? 'bg-[var(--warning-amber)] text-black hover:bg-[var(--warning-amber)]/80' : undefined}
+            className={confirmToneButtonClasses[tone]}
             onClick={onConfirm}
           >
             {confirmLabel}

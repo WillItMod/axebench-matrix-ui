@@ -1102,7 +1102,7 @@ export default function Benchmark() {
                 open={stopConfirmOpen}
                 title="Stop running benchmark?"
                 description="Stopping now will end the current run and discard any partially collected samples."
-                tone="warning"
+                tone="danger"
                 confirmLabel="Stop benchmark"
                 onConfirm={() => {
                   setStopConfirmOpen(false);
