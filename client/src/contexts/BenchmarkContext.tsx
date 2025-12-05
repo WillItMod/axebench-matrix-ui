@@ -24,6 +24,14 @@ const BenchmarkContext = createContext<BenchmarkContextType | undefined>(undefin
 export function BenchmarkProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<BenchmarkStatus>({ running: false });
 
+  const normalizeMode = (rawMode?: string, autoMode?: boolean) => {
+    const mode = (rawMode || '').toLowerCase();
+    if (mode.includes('nano')) return 'nano_tune';
+    if (mode.includes('auto')) return 'auto_tune';
+    if (autoMode) return 'auto_tune';
+    return 'benchmark';
+  };
+
   const clearLogs = () => {
     setStatus(prev => ({ ...prev, logs: [] }));
   };
@@ -31,9 +39,10 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
   const refreshStatus = async () => {
     try {
       const data = await api.benchmark.status();
+      const mode = normalizeMode((data as any)?.mode || (data as any)?.tune_type, (data as any)?.auto_mode);
       console.log('[BenchmarkContext] Status poll result:', {
         running: data.running,
-        mode: data.mode,
+        mode,
         device: data.device_name || data.device,
         progress: data.progress,
         phase: data.phase,
@@ -42,7 +51,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
       });
       setStatus({
         running: data.running || false,
-        mode: data.mode || 'benchmark',
+        mode,
         device: data.device_name || data.device,
         progress: data.progress,
         currentTest: data.current_test,

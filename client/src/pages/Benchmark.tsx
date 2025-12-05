@@ -244,14 +244,42 @@ export default function Benchmark() {
     }
 
     try {
+      const presetId = tuningMode === 'auto'
+        ? { quick: 'fast', standard: 'balanced', deep: 'nerd' }[preset] || 'balanced'
+        : undefined;
+      const goalKey = (config.goal || 'balanced').toLowerCase();
+      const optimization_goal =
+        goalKey === 'max' ? 'max_hashrate' :
+        goalKey === 'performance' ? 'max_hashrate' :
+        goalKey === 'efficient' ? 'efficient' :
+        goalKey === 'quiet' ? 'quiet' :
+        'balanced';
+
       const benchmarkConfig = {
         device: selectedDevice,
         ...config,
         strategy: 'adaptive_progression',
+        preset: presetId,
+        goal: goalKey,
+        optimization_goal,
       };
 
       const { config: safeConfig, changed, capped } = applySafetyCaps(benchmarkConfig);
-      await api.benchmark.start(safeConfig);
+      const payload = {
+        ...safeConfig,
+        device: selectedDevice,
+        mode: 'benchmark',
+        preset: presetId,
+        goal: goalKey,
+        optimization_goal,
+        duration: safeConfig.benchmark_duration,
+        warmup: safeConfig.warmup_time,
+        cooldown: safeConfig.cooldown_time,
+        restart: safeConfig.restart_between_tests,
+        enable_plotting: safeConfig.enable_plots,
+        max_temp: safeConfig.max_chip_temp,
+      };
+      await api.benchmark.start(payload);
       await refreshStatus(); // Update global benchmark state
       toast.success('Benchmark started');
       if (changed) {
@@ -434,11 +462,24 @@ export default function Benchmark() {
         setAutoTuneDontRemind(true);
       }
 
+      const presetId = tuningMode === 'auto'
+        ? { quick: 'fast', standard: 'balanced', deep: 'nerd' }[preset] || 'balanced'
+        : undefined;
+      const goalKey = (config.goal || 'balanced').toLowerCase();
+      const optimization_goal =
+        goalKey === 'max' ? 'max_hashrate' :
+        goalKey === 'performance' ? 'max_hashrate' :
+        goalKey === 'efficient' ? 'efficient' :
+        goalKey === 'quiet' ? 'quiet' :
+        'balanced';
+
       const autoTuneConfig = {
         device: selectedDevice,
         ...config,
         auto_mode: true,
-        goal: config.goal,
+        goal: goalKey,
+        optimization_goal,
+        preset: presetId,
         benchmark_duration: config.benchmark_duration,
         duration: config.benchmark_duration, // alias expected by backend
         warmup: config.warmup_time,
@@ -451,12 +492,28 @@ export default function Benchmark() {
         run_nano: nanoPass,
         profile_set: ['AUTO_QUIET', 'AUTO_EFFICIENT', 'AUTO_BALANCED', 'AUTO_MAX'],
         banner_hint: nanoPass ? 'Full sweep + Nano finish' : 'Full sweep',
+        restart: config.restart_between_tests,
+        enable_plotting: config.enable_plots,
+        max_temp: config.max_chip_temp,
       };
 
       const { config: safeConfig, changed, capped } = applySafetyCaps(autoTuneConfig);
       localStorage.setItem('axebench:autoTune_stage_hint', 'Full sweep running');
       localStorage.setItem('axebench:autoTune_nano', nanoPass ? 'true' : 'false');
-      await api.benchmark.start(safeConfig);
+      await api.benchmark.start({
+        ...safeConfig,
+        device: selectedDevice,
+        mode: 'auto_tune',
+        preset: presetId,
+        optimization_goal,
+        goal: goalKey,
+        duration: safeConfig.benchmark_duration,
+        warmup: safeConfig.warmup_time,
+        cooldown: safeConfig.cooldown_time,
+        restart: safeConfig.restart_between_tests,
+        enable_plotting: safeConfig.enable_plots,
+        max_temp: safeConfig.max_chip_temp,
+      });
       await refreshStatus(); // Update global benchmark state
       if (!silent) {
         toast.success(

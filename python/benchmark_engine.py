@@ -4,6 +4,7 @@ Main benchmark engine with smart algorithms and multi-device support
 import asyncio
 import time
 import logging
+import statistics
 from typing import List, Optional, Dict, Tuple
 from datetime import datetime
 from pathlib import Path
@@ -492,8 +493,15 @@ class BenchmarkEngine:
         power_samples = []
         input_voltage_samples = []
         error_percentage_samples = []  # Track ASIC error rate
-        baseline_error_samples: list[float] = []  # First few % readings to define a dynamic limit
+        error_window: list[float] = []  # Rolling error history for adaptive cap
         error_abort_threshold: Optional[float] = None  # Dynamic early-exit cap based on baseline
+        error_cap_floor = max(self.config.target_error * 1.5, 0.2)  # Never cap tighter than this
+        error_cap_multiplier = 1.75  # Slope factor vs. baseline
+        spike_cap_multiplier = 1.6  # Allow brief spikes up to this factor
+        min_samples_before_abort = max(4, self.config.min_samples // 2)  # Grace window before aborting
+        over_cap_streak = 0
+        sustained_over_cap = 0
+        severe_spike_seen = False
         max_temp = 0.0
         max_vr_temp = 0.0
         max_power = 0.0
@@ -548,36 +556,69 @@ class BenchmarkEngine:
             max_error_percentage = max(max_error_percentage, error_pct)
 
             # Dynamic ASIC error early-exit:
-            # - Take the first few non-zero samples as a baseline
-            # - Define a soft cap as baseline * 1.25
-            # - If we later see error_pct above that cap, abort this test point early
+            # - Build a small rolling baseline from recent non-zero samples
+            # - Cap is softer: max(floor, baseline * multiplier, baseline + 2*std)
+            # - Only abort after a short grace window and repeated breaches (or a large spike)
             if error_pct > 0:
-                if error_abort_threshold is None:
-                    baseline_error_samples.append(error_pct)
-                    if len(baseline_error_samples) >= 3:
-                        baseline = sum(baseline_error_samples) / len(baseline_error_samples)
-                        if baseline > 0:
-                            error_abort_threshold = baseline * 1.25
-                            logger.info(
-                                "Dynamic ASIC error cap initialised: "
-                                f"baseline={baseline:.3f}%%, cap={error_abort_threshold:.3f}%%"
-                            )
-                elif error_abort_threshold is not None and error_pct > error_abort_threshold:
-                    logger.warning(
-                        f"ASIC error {error_pct:.3f}%% exceeded cap {error_abort_threshold:.3f}%% "
-                        f"at {voltage}mV/{frequency}MHz - aborting test point"
+                error_window.append(error_pct)
+                if len(error_window) > 6:
+                    error_window.pop(0)
+
+                if len(error_window) >= 3:
+                    baseline = statistics.mean(error_window)
+                    stdev = statistics.pstdev(error_window) if len(error_window) > 1 else 0.0
+                    dynamic_cap = max(
+                        error_cap_floor,
+                        baseline * error_cap_multiplier,
+                        baseline + (stdev * 2),
                     )
-                    if self.status_callback:
-                        self.status_callback({
-                            'phase': 'warning',
-                            'message': (
-                                f'⚠️ ASIC error {error_pct:.3f}%% exceeded cap '
-                                f'{error_abort_threshold:.3f}%% at {voltage}mV/{frequency}MHz - aborting point'
-                            )
-                        })
-                    if hasattr(self, '_current_strategy') and self._current_strategy:
-                        self._current_strategy.mark_unstable(voltage, frequency)
-                    return None
+                    if error_abort_threshold is None or abs(dynamic_cap - error_abort_threshold) > 1e-3:
+                        error_abort_threshold = dynamic_cap
+                        logger.info(
+                            "Dynamic ASIC error cap initialised: "
+                            f"baseline={baseline:.3f}%%, std={stdev:.3f}%%, cap={error_abort_threshold:.3f}%%"
+                        )
+
+                if error_abort_threshold is not None and sample_count >= min_samples_before_abort:
+                    cap = error_abort_threshold
+                    spike_cap = cap * spike_cap_multiplier
+
+                    if error_pct > cap:
+                        over_cap_streak += 1
+                        sustained_over_cap += 1
+                        if error_pct >= spike_cap:
+                            severe_spike_seen = True
+                    else:
+                        over_cap_streak = 0
+                        sustained_over_cap = max(0, sustained_over_cap - 1)
+
+                    should_abort = False
+                    if severe_spike_seen and error_pct >= spike_cap:
+                        should_abort = True
+                        reason = f"spike {error_pct:.3f}%% > {spike_cap:.3f}%%"
+                    elif over_cap_streak >= 2:
+                        should_abort = True
+                        reason = f"over-cap streak ({over_cap_streak} samples > {cap:.3f}%%)"
+                    elif sustained_over_cap >= 3:
+                        should_abort = True
+                        reason = f"repeated over-cap ({sustained_over_cap} samples > {cap:.3f}%%)"
+
+                    if should_abort:
+                        logger.warning(
+                            f"ASIC error {error_pct:.3f}%% exceeded cap {cap:.3f}%% "
+                            f"at {voltage}mV/{frequency}MHz - aborting test point ({reason})"
+                        )
+                        if self.status_callback:
+                            self.status_callback({
+                                'phase': 'warning',
+                                'message': (
+                                    f'⚠️ ASIC error {error_pct:.3f}%% exceeded cap '
+                                    f'{cap:.3f}%% at {voltage}mV/{frequency}MHz - aborting point ({reason})'
+                                )
+                            })
+                        if hasattr(self, '_current_strategy') and self._current_strategy:
+                            self._current_strategy.mark_unstable(voltage, frequency)
+                        return None
 
             
             if info.vr_temp:

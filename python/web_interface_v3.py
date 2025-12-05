@@ -30,7 +30,7 @@ import time
 
 __version__ = "2.1.0"
 
-from config import BenchmarkConfig, SafetyLimits, PRESETS, get_device_profile
+from config import BenchmarkConfig, SafetyLimits, PRESETS, get_device_profile, OptimizationGoal
 from device_manager import DeviceManager
 from benchmark_engine import BenchmarkEngine
 from licensing import get_licensing
@@ -1421,19 +1421,41 @@ def start_benchmark():
     device_name = data.get('device')
     preset = data.get('preset')
     run_mode = data.get('mode', 'benchmark')
+    goal_raw = (data.get('goal') or data.get('optimization_goal') or '').lower()
+    goal_alias = {
+        'max': 'max_hashrate',
+        'performance': 'max_hashrate',
+        'hashrate': 'max_hashrate',
+        'efficient': 'efficient',
+        'efficiency': 'efficient',
+        'max_efficiency': 'max_efficiency',
+        'quiet': 'quiet',
+        'balanced': 'balanced',
+        'stable': 'stable',
+    }
+    goal_value = goal_alias.get(goal_raw, goal_raw or 'balanced')
     
     if not device_name:
         return jsonify({'error': 'Device name required'}), 400
     
     # Get configuration
-    if preset and preset in PRESETS:
-        config = PRESETS[preset]
-    else:
-        preset = get_preset_by_id(DEFAULT_PRESET_ID)
+    preset_obj = None
+    if isinstance(preset, dict):
+        preset_obj = preset
+    elif preset:
+        preset_obj = get_preset_by_id(preset)
+    if not preset_obj:
+        preset_obj = get_preset_by_id(DEFAULT_PRESET_ID)
+    preset_id = preset_obj.get('id') if isinstance(preset_obj, dict) else preset
     config = BenchmarkConfig()
-    if preset:
-        for k, v in preset['config'].items():
+    if preset_obj:
+        for k, v in preset_obj['config'].items():
             setattr(config, k, v)
+
+    try:
+        config.optimization_goal = OptimizationGoal(goal_value)
+    except Exception:
+        logger.warning(f"Unknown optimization goal '{goal_value}', defaulting to balanced")
     
     # Apply custom settings from form
     if data.get('voltage_start'):
@@ -1450,20 +1472,32 @@ def start_benchmark():
         config.frequency_step = int(data['frequency_step'])
     if data.get('duration'):
         config.benchmark_duration = int(data['duration'])
+    if data.get('benchmark_duration'):
+        config.benchmark_duration = int(data['benchmark_duration'])
     if data.get('warmup'):
         config.warmup_time = int(data['warmup'])
+    if data.get('warmup_time'):
+        config.warmup_time = int(data['warmup_time'])
     if data.get('cooldown'):
         config.cooldown_time = int(data['cooldown'])
+    if data.get('cooldown_time'):
+        config.cooldown_time = int(data['cooldown_time'])
     if data.get('cycles_per_test'):
         config.cycles_per_test = int(data['cycles_per_test'])
     if data.get('strategy'):
         from config import SearchStrategy
         config.strategy = SearchStrategy(data['strategy'])
+    if 'auto_mode' in data:
+        config.auto_mode = bool(data.get('auto_mode'))
     # goal already resolved via resolve_optimization_mode above
     if 'restart' in data:
         config.restart_between_tests = bool(data['restart'])
+    if 'restart_between_tests' in data:
+        config.restart_between_tests = bool(data['restart_between_tests'])
     if 'enable_plotting' in data:
         config.enable_plotting = bool(data['enable_plotting'])
+    if 'enable_plots' in data:
+        config.enable_plotting = bool(data['enable_plots'])
     if 'export_csv' in data:
         config.export_csv = bool(data['export_csv'])
     if data.get('target_error'):
@@ -1474,6 +1508,8 @@ def start_benchmark():
     # Apply safety limits from form
     if data.get('max_temp'):
         safety.max_chip_temp = float(data['max_temp'])
+    if data.get('max_chip_temp'):
+        safety.max_chip_temp = float(data['max_chip_temp'])
     if data.get('max_power'):
         safety.max_power = float(data['max_power'])
     if data.get('max_vr_temp'):
@@ -1499,7 +1535,7 @@ def start_benchmark():
         from config import BenchmarkConfig as _BenchmarkConfig, OptimizationGoal as _OptimizationGoal, SearchStrategy as _SearchStrategy
         ui_config = {
             'device': device_name,
-            'preset': preset,
+            'preset': preset_id,
             'mode': run_mode,
             'voltage_start': config.voltage_start,
             'voltage_stop': config.voltage_stop,
@@ -1514,6 +1550,7 @@ def start_benchmark():
             'cycles_per_test': config.cycles_per_test,
             'strategy': getattr(config.strategy, 'value', str(config.strategy)),
             'goal': data.get('goal') or getattr(getattr(config, 'optimization_goal', None), 'value', 'balanced'),
+            'optimization_goal': getattr(getattr(config, 'optimization_goal', None), 'value', 'balanced'),
             'max_temp': safety.max_chip_temp,
             'max_vr_temp': safety.max_vr_temp,
             'max_power': safety.max_power,
