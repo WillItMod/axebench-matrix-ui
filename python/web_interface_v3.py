@@ -2294,9 +2294,13 @@ def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyL
         if tests_completed:
             status_dict['tests_completed'] = tests_completed
         # If running and we have a current test but zero completed, count at least one
-        if status_dict.get('running') and (status_dict.get('current_test') or status_dict.get('live_data')) and tests_completed == 0:
-            tests_completed = max(1, len(benchmark_status.get('seen_combos') or []))
-            status_dict['tests_completed'] = tests_completed
+        if status_dict.get('running') and tests_total:
+            if tests_completed == 0:
+                tests_completed = max(1, len(benchmark_status.get('seen_combos') or []), 1)
+                status_dict['tests_completed'] = tests_completed
+            elif (status_dict.get('current_test') or status_dict.get('live_data')):
+                tests_completed = max(tests_completed, len(benchmark_status.get('seen_combos') or []), 1)
+                status_dict['tests_completed'] = tests_completed
 
         if tests_total and tests_completed:
             pct = (tests_completed / tests_total) * 100
@@ -2381,7 +2385,7 @@ def run_auto_tune_sequence(device_name: str, data: dict):
         benchmark_status['running'] = True
         benchmark_status['seen_combos'] = []
         benchmark_status['tests_total'] = est_total or benchmark_status.get('tests_total') or 0
-        benchmark_status['tests_completed'] = 0
+        benchmark_status['tests_completed'] = 1 if benchmark_status['tests_total'] > 0 else 0
         save_benchmark_state()
 
         cfg, safety = build_benchmark_config_from_request(data)
