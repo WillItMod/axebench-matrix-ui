@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/lib/api';
+import { autoTuneTracer } from '@/lib/autoTuneTracer';
 
 interface BenchmarkStatus {
   running: boolean;
@@ -49,6 +50,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
         session_id: data.session_id,
         logs_count: (data.session_logs || data.logs || []).length
       });
+      autoTuneTracer.recordStatus(data);
       setStatus({
         running: data.running || false,
         mode,
@@ -62,6 +64,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
       });
     } catch (error) {
       console.error('Failed to fetch benchmark status:', error);
+      autoTuneTracer.recordError('Status poll failed', { error: String(error) });
       setStatus({ running: false });
     }
   };

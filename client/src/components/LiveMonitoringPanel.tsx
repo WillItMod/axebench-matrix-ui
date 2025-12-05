@@ -42,7 +42,7 @@ interface LiveMonitoringPanelProps {
   colorPalette?: string[];
 }
 
-const MAX_HISTORY = 60; // Keep last 60 readings
+const MAX_HISTORY = 120; // Keep last 120 readings for denser trend lines
 
 const DEFAULT_COLORS = ['#ff0000', '#0000ff', '#ff8800', '#00ff00', '#ffff00', '#0088ff'];
 
@@ -104,7 +104,7 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
     // Initial fetch
     void fetchStats();
 
-    const intervalMs = Math.max(1000, monitoringRefreshMs || 2000);
+    const intervalMs = Math.max(750, monitoringRefreshMs ?? 1000); // allow tighter cadence but avoid overload
     const interval = setInterval(() => void fetchStats(), intervalMs);
     return () => clearInterval(interval);
   }, [deviceName, monitoringRefreshMs]);

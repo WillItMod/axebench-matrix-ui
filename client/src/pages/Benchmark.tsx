@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { autoTuneTracer } from '@/lib/autoTuneTracer';
 
 export default function Benchmark() {
   const { status: benchmarkStatus, refreshStatus } = useBenchmark();
@@ -473,6 +474,15 @@ export default function Benchmark() {
         goalKey === 'quiet' ? 'quiet' :
         'balanced';
 
+      const runId = autoTuneTracer.startRun({
+        device: selectedDevice,
+        nano: nanoPass,
+        goal: goalKey,
+        optimization_goal,
+        preset: presetId,
+        mode: 'auto_tune',
+      });
+
       const autoTuneConfig = {
         device: selectedDevice,
         ...config,
@@ -498,8 +508,37 @@ export default function Benchmark() {
       };
 
       const { config: safeConfig, changed, capped } = applySafetyCaps(autoTuneConfig);
+      autoTuneTracer.recordStartPayload(
+        {
+          device: selectedDevice,
+          nano_after_profiles: nanoPass,
+          goal: goalKey,
+          preset: presetId,
+          capped,
+          changed,
+          payload: {
+            voltage_start: safeConfig.voltage_start,
+            voltage_stop: safeConfig.voltage_stop,
+            frequency_start: safeConfig.frequency_start,
+            frequency_stop: safeConfig.frequency_stop,
+            duration: safeConfig.benchmark_duration,
+            warmup: safeConfig.warmup_time,
+            cooldown: safeConfig.cooldown_time,
+            auto_mode: safeConfig.auto_mode,
+          },
+        },
+        runId
+      );
       localStorage.setItem('axebench:autoTune_stage_hint', 'Full sweep running');
       localStorage.setItem('axebench:autoTune_nano', nanoPass ? 'true' : 'false');
+      autoTuneTracer.recordStatus({
+        mode: 'auto_tune',
+        running: true,
+        device: selectedDevice,
+        progress: 0,
+        phase: 'starting',
+        goal: goalKey,
+      });
       await api.benchmark.start({
         ...safeConfig,
         device: selectedDevice,
@@ -515,6 +554,14 @@ export default function Benchmark() {
         max_temp: safeConfig.max_chip_temp,
       });
       await refreshStatus(); // Update global benchmark state
+      autoTuneTracer.recordStatus({
+        mode: 'auto_tune',
+        running: true,
+        device: selectedDevice,
+        progress: 0,
+        phase: 'started',
+        goal: goalKey,
+      });
       if (!silent) {
         toast.success(
           `AUTOPILOT engaged${nanoPass ? ' with Nano finish' : ''} - Stage 1: Full sweep`
@@ -527,6 +574,7 @@ export default function Benchmark() {
       setShowCelebration(false);
     } catch (error: any) {
       toast.error(error.message || 'Failed to start Auto Tune');
+      autoTuneTracer.recordError('Auto Tune start failed', { error: error?.message });
     } finally {
       setAutoTuneStarting(false);
     }
