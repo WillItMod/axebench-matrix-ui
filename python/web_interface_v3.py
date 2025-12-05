@@ -2364,7 +2364,10 @@ def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyL
 
 def load_session_results(session_id: str):
     """Load a session JSON from disk."""
-    session_file = sessions_dir / f"{session_id}.json"
+    # Sessions are saved as session_<id>.json; fall back to <id>.json for legacy files.
+    primary = sessions_dir / f"session_{session_id}.json"
+    alt = sessions_dir / f"{session_id}.json"
+    session_file = primary if primary.exists() else alt
     if not session_file.exists():
         return None
     with open(session_file, 'r', encoding='utf-8') as f:
