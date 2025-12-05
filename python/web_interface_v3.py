@@ -1636,6 +1636,18 @@ def start_benchmark():
                 # Status callback with failure detection
                 def update_status(status_dict):
                     global benchmark_status
+                    # Derive totals/progress if engine didn't set them
+                    cfg_for_estimate = status_dict.get('config') or benchmark_status.get('config') or {}
+                    est_total = estimate_tests_total(cfg_for_estimate)
+                    tests_total = status_dict.get('tests_total') or benchmark_status.get('tests_total') or est_total
+                    tests_completed = status_dict.get('tests_completed') or status_dict.get('tests_complete') or benchmark_status.get('tests_completed') or 0
+                    if tests_total:
+                        status_dict['tests_total'] = tests_total
+                    if tests_completed:
+                        status_dict['tests_completed'] = tests_completed
+                    if tests_total and tests_completed and not status_dict.get('progress'):
+                        status_dict['progress'] = min(100, max(0, (tests_completed / tests_total) * 100))
+
                     benchmark_status.update(status_dict)
                     save_benchmark_state()
                     
