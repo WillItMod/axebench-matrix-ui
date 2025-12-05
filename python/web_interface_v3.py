@@ -2243,6 +2243,15 @@ def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyL
     asyncio.set_event_loop(loop)
 
     failed_combos = []
+    est_total = estimate_tests_total({
+        'voltage_start': cfg.voltage_start,
+        'voltage_stop': cfg.voltage_stop,
+        'voltage_step': cfg.voltage_step,
+        'frequency_start': cfg.frequency_start,
+        'frequency_stop': cfg.frequency_stop,
+        'frequency_step': cfg.frequency_step,
+        'cycles_per_test': cfg.cycles_per_test,
+    })
 
     def update_status(status_dict):
         global benchmark_status
@@ -2291,6 +2300,9 @@ def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyL
             'max_vr_temp': safety.max_vr_temp,
             'max_power': safety.max_power,
         }
+        benchmark_status['tests_total'] = est_total or benchmark_status.get('tests_total') or 0
+        if benchmark_status['tests_total'] > 0 and benchmark_status.get('tests_completed', 0) == 0:
+            benchmark_status['tests_completed'] = 1  # start from 1 to avoid 0/X display
         save_benchmark_state()
 
         loop.run_until_complete(device_manager.initialize_all())
@@ -2323,11 +2335,15 @@ def run_auto_tune_sequence(device_name: str, data: dict):
     auto_tune_thread = None
 
     try:
+        est_total = estimate_tests_total(data)
         record_status_message('Auto Tune: starting precision sweep', 'info')
         benchmark_status['mode'] = 'auto_tune'
         benchmark_status['phase'] = 'precision'
         benchmark_status['running'] = True
         benchmark_status['seen_combos'] = []
+        benchmark_status['tests_total'] = est_total or benchmark_status.get('tests_total') or 0
+        if benchmark_status['tests_total'] > 0:
+            benchmark_status['tests_completed'] = 1
         save_benchmark_state()
 
         cfg, safety = build_benchmark_config_from_request(data)
