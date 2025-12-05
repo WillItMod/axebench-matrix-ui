@@ -77,6 +77,30 @@ benchmark_status = {
 config_dir = Path.home() / ".bitaxe-benchmark"
 benchmark_state_file = config_dir / "benchmark_state.json"
 
+def _numeric(val, default=0):
+    try:
+        n = float(val)
+        return n if n == n else default  # NaN check
+    except Exception:
+        return default
+
+def estimate_tests_total(cfg: dict) -> int:
+    """Estimate total test count from voltage/frequency ranges and cycles."""
+    if not cfg:
+        return 0
+    v_start = _numeric(cfg.get('voltage_start'))
+    v_stop = _numeric(cfg.get('voltage_stop'))
+    v_step = max(1, _numeric(cfg.get('voltage_step'), 1))
+    f_start = _numeric(cfg.get('frequency_start'))
+    f_stop = _numeric(cfg.get('frequency_stop'))
+    f_step = max(1, _numeric(cfg.get('frequency_step'), 1))
+    cycles = max(1, int(_numeric(cfg.get('cycles_per_test'), 1)))
+
+    v_count = int((v_stop - v_start) / v_step) + 1 if v_stop > v_start else 1
+    f_count = int((f_stop - f_start) / f_step) + 1 if f_stop > f_start else 1
+    total = v_count * f_count * cycles
+    return total if total > 0 else 0
+
 def save_benchmark_state() -> None:
     """Persist benchmark_status to disk so the UI can restore after refresh/restart."""
     try:
@@ -1845,7 +1869,18 @@ def start_benchmark():
 def get_benchmark_status():
     """Get current benchmark status"""
     status = dict(benchmark_status)  # Copy to avoid modifying global
-    
+
+    # Derive tests_total/progress if backend hasn't populated them
+    cfg = status.get('config') or {}
+    est_total = estimate_tests_total(cfg)
+    tests_total = status.get('tests_total') or est_total
+    tests_completed = status.get('tests_completed') or status.get('tests_complete') or 0
+    if tests_total and tests_completed:
+        pct = min(100, max(0, (tests_completed / tests_total) * 100))
+        status['progress'] = status.get('progress') or pct
+    status['tests_total'] = tests_total or 0
+    status['tests_completed'] = tests_completed
+
     # Add session logs if we have an active session
     if current_engine and hasattr(current_engine, 'session') and current_engine.session:
         status['session_logs'] = current_engine.session.logs

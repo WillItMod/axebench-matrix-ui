@@ -303,9 +303,42 @@ export default function Benchmark() {
 
   // Derived engine metrics for visual "stress" panel
   const liveData = status?.live_data || {};
-  const progressVal = status?.progress ?? benchmarkStatus.progress ?? 0;
-  const testsCompleted = status?.tests_completed ?? status?.tests_complete ?? benchmarkStatus.tests_completed ?? 0;
-  const testsTotal = status?.tests_total ?? benchmarkStatus.tests_total ?? 0;
+  const numeric = (v: any) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  // Estimate total tests when backend doesn't provide (or sends bad) counts.
+  const estimateTestsTotal = () => {
+    const src = (status as any)?.config || config;
+    const vStart = numeric(src?.voltage_start);
+    const vStop = numeric(src?.voltage_stop);
+    const vStep = Math.max(1, numeric(src?.voltage_step) || 1);
+    const fStart = numeric(src?.frequency_start);
+    const fStop = numeric(src?.frequency_stop);
+    const fStep = Math.max(1, numeric(src?.frequency_step) || 1);
+    const cycles = Math.max(1, numeric(src?.cycles_per_test) || 1);
+
+    const vCount = vStop > vStart ? Math.floor((vStop - vStart) / vStep) + 1 : 1;
+    const fCount = fStop > fStart ? Math.floor((fStop - fStart) / fStep) + 1 : 1;
+    const total = vCount * fCount * cycles;
+    return Number.isFinite(total) && total > 0 ? total : 0;
+  };
+
+  const rawCompleted = numeric(status?.tests_completed ?? status?.tests_complete ?? benchmarkStatus.tests_completed);
+  const rawTotal = numeric(status?.tests_total ?? benchmarkStatus.tests_total);
+  const derivedTotal = rawTotal > 0 ? rawTotal : estimateTestsTotal();
+  const clampedCompleted = Math.min(rawCompleted, derivedTotal || rawCompleted);
+  const percentFromCounts =
+    derivedTotal > 0 ? Math.min(100, Math.max(0, (clampedCompleted / derivedTotal) * 100)) : null;
+  const progressVal =
+    Number.isFinite(status?.progress) && status?.progress !== null && status?.progress !== undefined
+      ? numeric(status?.progress)
+      : Number.isFinite(benchmarkStatus.progress)
+      ? numeric(benchmarkStatus.progress)
+      : percentFromCounts ?? 0;
+  const testsCompleted = clampedCompleted;
+  const testsTotal = derivedTotal;
   const maxChip = config.max_chip_temp || status?.safety_limits?.max_chip_temp || 70;
   const maxPower = config.max_power || status?.safety_limits?.max_power || 25;
   const maxVoltage = (config as any).max_voltage || 1400;
