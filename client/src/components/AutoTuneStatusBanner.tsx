@@ -70,7 +70,7 @@ export default function AutoTuneStatusBanner() {
     stages.find((s) => s.match.some((m) => phase.toLowerCase().includes(m))) || stages[0];
 
   return (
-    <div className="sticky top-14 sm:top-0 left-0 right-0 z-30 bg-gradient-to-r from-[#6d28d9]/95 via-[#a855f7]/90 to-[#6d28d9]/95 backdrop-blur-sm border-b-2 border-[#a855f7] shadow-lg shadow-[#a855f7]/40">
+    <div className="fixed top-14 sm:top-0 left-0 right-0 z-40 bg-gradient-to-r from-[#6d28d9]/95 via-[#a855f7]/90 to-[#6d28d9]/95 backdrop-blur-sm border-b-2 border-[#a855f7] shadow-lg shadow-[#a855f7]/40">
       <div className="container mx-auto px-4 py-3 space-y-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 flex-wrap">
