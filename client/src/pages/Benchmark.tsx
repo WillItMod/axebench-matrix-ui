@@ -325,6 +325,7 @@ export default function Benchmark() {
     return Number.isFinite(total) && total > 0 ? total : 0;
   };
 
+  const isRunning = status?.running ?? benchmarkStatus.running ?? false;
   const rawCompleted = numeric(status?.tests_completed ?? status?.tests_complete ?? benchmarkStatus.tests_completed);
   const rawTotal = numeric(status?.tests_total ?? benchmarkStatus.tests_total);
   const derivedTotal = rawTotal > 0 ? rawTotal : estimateTestsTotal();
@@ -337,12 +338,13 @@ export default function Benchmark() {
       : Number.isFinite(benchmarkStatus.progress)
       ? numeric(benchmarkStatus.progress)
       : percentFromCounts ?? 0;
-  const progressVal =
-    derivedTotal > 0 && percentFromCounts !== null
-      ? Math.max(0, Math.min(100, percentFromCounts))
-      : Math.max(0, Math.min(100, baseProgress));
-  const testsCompleted = clampedCompleted;
-  const testsTotal = derivedTotal;
+  const progressVal = isRunning
+    ? (derivedTotal > 0 && percentFromCounts !== null
+        ? Math.max(0, Math.min(100, percentFromCounts))
+        : Math.max(0, Math.min(100, baseProgress)))
+    : 0;
+  const testsCompleted = isRunning ? clampedCompleted : 0;
+  const testsTotal = isRunning ? derivedTotal : 0;
   const maxChip = config.max_chip_temp || status?.safety_limits?.max_chip_temp || 70;
   const maxPower = config.max_power || status?.safety_limits?.max_power || 25;
   const maxVoltage = (config as any).max_voltage || 1400;
@@ -1128,24 +1130,24 @@ export default function Benchmark() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Progress & Sweep */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                  <span>SWEEP_PROGRESS</span>
-                  <span className="text-[var(--text-primary)] font-semibold">
-                    {testsCompleted} / {testsTotal || '?'} ({progressVal || 0}%)
-                  </span>
-                </div>
-                <div className="w-full h-2 rounded bg-[var(--grid-gray)] overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#22c55e] via-[#eab308] to-[#ef4444] transition-all"
-                    style={{ width: `${Math.min(100, Math.max(0, progressVal || 0))}%` }}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
-                  <div>Current: {voltage} mV / {frequency} MHz</div>
-                  <div>Goal: {config.goal?.toString().toUpperCase()}</div>
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                      <span>SWEEP_PROGRESS</span>
+                      <span className="text-[var(--text-primary)] font-semibold">
+                    {isRunning ? `${testsCompleted} / ${testsTotal || '?'}` : '--'} ({isRunning ? progressVal || 0 : 0}%)
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded bg-[var(--grid-gray)] overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#22c55e] via-[#eab308] to-[#ef4444] transition-all"
+                        style={{ width: `${isRunning ? Math.min(100, Math.max(0, progressVal || 0)) : 0}%` }}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
+                      <div>Current: {voltage} mV / {frequency} MHz</div>
+                      <div>Goal: {config.goal?.toString().toUpperCase()}</div>
+                    </div>
+                  </div>
 
               {/* Stress trio */}
               <div className="space-y-2">
@@ -1316,28 +1318,28 @@ export default function Benchmark() {
           })()}
 
           {/* Live Status */}
-          {benchmarkStatus.running && status && (
-            <>
-              <div className="matrix-card">
-                <h3 className="text-lg font-bold text-glow-cyan mb-3">PROGRESS</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-[var(--text-secondary)]">Tests</span>
-                    <span className="text-[var(--text-primary)]">
-                      {status.tests_completed || 0} / {status.tests_total || 0}
-                    </span>
-                  </div>
-                  <div className="w-full bg-[var(--grid-gray)] h-2 rounded">
-                    <div
-                      className="bg-[var(--matrix-green)] h-2 rounded transition-all"
-                      style={{ width: `${status.progress || 0}%` }}
-                    />
-                  </div>
-                  <div className="text-center text-[var(--matrix-green)] font-bold">
-                    {status.progress || 0}%
-                  </div>
+        {benchmarkStatus.running && status && (
+          <>
+            <div className="matrix-card">
+              <h3 className="text-lg font-bold text-glow-cyan mb-3">PROGRESS</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[var(--text-secondary)]">Tests</span>
+                  <span className="text-[var(--text-primary)]">
+                    {isRunning ? status.tests_completed || 0 : 0} / {isRunning ? status.tests_total || 0 : 0}
+                  </span>
+                </div>
+                <div className="w-full bg-[var(--grid-gray)] h-2 rounded">
+                  <div
+                    className="bg-[var(--matrix-green)] h-2 rounded transition-all"
+                    style={{ width: `${isRunning ? status.progress || 0 : 0}%` }}
+                  />
+                </div>
+                <div className="text-center text-[var(--matrix-green)] font-bold">
+                  {isRunning ? status.progress || 0 : 0}%
                 </div>
               </div>
+            </div>
 
               {graphsLoading && (
                 <div className="matrix-card flex items-center justify-center text-[var(--text-secondary)]">
