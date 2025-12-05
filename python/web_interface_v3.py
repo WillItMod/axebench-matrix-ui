@@ -52,6 +52,14 @@ device_manager = DeviceManager()
 current_benchmark: Optional[Thread] = None
 current_engine = None  # Reference to current benchmark engine
 current_session_id: Optional[str] = None
+auto_tune_thread: Optional[Thread] = None
+auto_tune_running = False
+AUTO_TUNE_STEPS = [
+    {'goal': 'max_hashrate', 'profile_name': 'MAX_AUTO', 'quiet_target': None},
+    {'goal': 'balanced', 'profile_name': 'BALANCED_AUTO', 'quiet_target': None},
+    {'goal': 'efficient', 'profile_name': 'EFFICIENT_AUTO', 'quiet_target': None},
+    {'goal': 'quiet', 'profile_name': 'QUIET_AUTO', 'quiet_target': 60},
+]
 benchmark_status = {
     'running': False,
     'progress': 0,
@@ -140,6 +148,216 @@ def estimate_tests_total(cfg: dict) -> int:
     f_count = int((f_stop - f_start) / f_step) + 1 if f_stop > f_start else 1
     total = v_count * f_count * cycles
     return total if total > 0 else 0
+
+def record_status_message(message: str, level: str = 'info'):
+    """Push a status/log entry into benchmark_status for UI consumption."""
+    entry = {
+        'time': datetime.now().isoformat(),
+        'message': message,
+        'type': level
+    }
+    benchmark_status.setdefault('session_logs', []).append(entry)
+    benchmark_status.setdefault('message_queue', []).append({'phase': level, 'message': message})
+    save_benchmark_state()
+
+def build_benchmark_config_from_request(data: dict, preset_obj=None):
+    """Build BenchmarkConfig and SafetyLimits from request payload."""
+    cfg = BenchmarkConfig()
+    safety = SafetyLimits()
+
+    preset = preset_obj
+    if not preset and data.get('preset'):
+        preset = get_preset_by_id(data.get('preset'))
+    if preset:
+        for k, v in preset['config'].items():
+            setattr(cfg, k, v)
+
+    def set_if(key, attr=None, cast=int):
+        if key in data and data.get(key) is not None:
+            setattr(cfg, attr or key, cast(data[key]))
+
+    set_if('voltage_start')
+    set_if('voltage_stop')
+    set_if('voltage_step')
+    set_if('frequency_start')
+    set_if('frequency_stop')
+    set_if('frequency_step')
+    set_if('duration', 'benchmark_duration')
+    set_if('benchmark_duration', 'benchmark_duration')
+    set_if('warmup', 'warmup_time')
+    set_if('warmup_time', 'warmup_time')
+    set_if('cooldown', 'cooldown_time')
+    set_if('cooldown_time', 'cooldown_time')
+    set_if('cycles_per_test', 'cycles_per_test')
+    if data.get('strategy'):
+        from config import SearchStrategy
+        cfg.strategy = SearchStrategy(data['strategy'])
+    if 'auto_mode' in data:
+        cfg.auto_mode = bool(data.get('auto_mode'))
+    if 'restart' in data:
+        cfg.restart_between_tests = bool(data['restart'])
+    if 'restart_between_tests' in data:
+        cfg.restart_between_tests = bool(data['restart_between_tests'])
+    if 'enable_plotting' in data:
+        cfg.enable_plotting = bool(data['enable_plotting'])
+    if 'enable_plots' in data:
+        cfg.enable_plotting = bool(data['enable_plots'])
+    if 'export_csv' in data:
+        cfg.export_csv = bool(data['export_csv'])
+    if data.get('target_error') is not None:
+        cfg.target_error = float(data['target_error'])
+    if data.get('optimization_goal'):
+        try:
+            cfg.optimization_goal = OptimizationGoal(data['optimization_goal'])
+        except Exception:
+            pass
+
+    # Safety
+    if data.get('max_temp'):
+        safety.max_chip_temp = float(data['max_temp'])
+    if data.get('max_chip_temp'):
+        safety.max_chip_temp = float(data['max_chip_temp'])
+    if data.get('max_power'):
+        safety.max_power = float(data['max_power'])
+    if data.get('max_vr_temp'):
+        safety.max_vr_temp = float(data['max_vr_temp'])
+
+    return cfg, safety
+
+def select_profile_candidates(results: list):
+    """Helpers to select best results for different goals."""
+    valid = []
+    for r in results:
+        try:
+            v = _numeric(r.get('voltage'))
+            f = _numeric(r.get('frequency'))
+            h = _numeric(r.get('avg_hashrate') or r.get('hashrate') or r.get('hashrate_avg'))
+            p = _numeric(r.get('avg_power') or r.get('power') or r.get('power_avg'))
+            eff = _numeric(r.get('efficiency') or (p / (h / 1000) if h else 0))
+            st = _numeric(r.get('stability_score'), 0)
+            fp = _numeric(r.get('avg_fan_speed') or r.get('fan_speed'))
+            ct = _numeric(r.get('avg_chip_temp') or r.get('temp') or r.get('chip_temp'))
+            vt = _numeric(r.get('avg_vr_temp') or r.get('vr_temp'))
+            valid.append({
+                'voltage': v,
+                'frequency': f,
+                'avg_hashrate': h,
+                'avg_power': p,
+                'efficiency': eff if eff else (p / (h / 1000) if h else 0),
+                'stability_score': st,
+                'avg_fan_speed': fp,
+                'avg_chip_temp': ct,
+                'avg_vr_temp': vt,
+            })
+        except Exception:
+            continue
+    if not valid:
+        return None
+
+    by_hashrate = sorted(valid, key=lambda r: r['avg_hashrate'], reverse=True)
+    by_eff = sorted(valid, key=lambda r: r['efficiency'])
+    by_power = sorted(valid, key=lambda r: r['avg_power'])
+    def balanced_score(r):
+        if not r['avg_power']:
+            return 0
+        return (r['avg_hashrate'] / r['avg_power']) * (r['stability_score'] or 80)
+    balanced = max(valid, key=balanced_score)
+
+    return {
+        'quiet': by_power[0] if by_power else None,
+        'efficient': by_eff[0] if by_eff else None,
+        'max': by_hashrate[0] if by_hashrate else None,
+        'balanced': balanced or (by_hashrate[0] if by_hashrate else None),
+    }
+
+def build_profile_from_result(result: dict, fan_target: int, profile_type: str, session_id: str, bench_cfg: dict):
+    if not result:
+        return None
+    return {
+        'voltage': int(result['voltage']),
+        'frequency': int(result['frequency']),
+        'fan_target': fan_target,
+        'hashrate': result['avg_hashrate'],
+        'expected_hashrate': result['avg_hashrate'],
+        'power': result['avg_power'],
+        'expected_power': result['avg_power'],
+        'efficiency': result.get('efficiency'),
+        'stability_score': result.get('stability_score'),
+        'avg_fan_speed': result.get('avg_fan_speed'),
+        'avg_chip_temp': result.get('avg_chip_temp'),
+        'avg_vr_temp': result.get('avg_vr_temp'),
+        'max_chip_temp': bench_cfg.get('max_chip_temp', 65),
+        'max_vr_temp': bench_cfg.get('max_vr_temp', 85),
+        'max_power': bench_cfg.get('max_power', result.get('avg_power')),
+        'test_duration': bench_cfg.get('benchmark_duration', 120),
+        'warmup_time': bench_cfg.get('warmup_time', 10),
+        'source_session_id': session_id,
+        'tested_at': datetime.now().isoformat(),
+        'notes': f"Auto-generated {profile_type} profile from Precision benchmark",
+    }
+
+def save_profiles(device_name: str, profiles: dict):
+    profiles_dir.mkdir(parents=True, exist_ok=True)
+    profile_file = profiles_dir / f"{device_name}.json"
+    existing = {}
+    if profile_file.exists():
+        try:
+            with open(profile_file, 'r', encoding='utf-8') as f:
+                existing = json.load(f)
+        except Exception:
+            existing = {}
+    merged = existing.get('profiles', {})
+    merged.update({k: v for k, v in profiles.items() if v})
+    payload = {'device': device_name, 'profiles': merged, 'updated': datetime.now().isoformat()}
+    with open(profile_file, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, indent=2)
+
+def select_goal_best(results: list, goal: str):
+    if not results:
+        return None
+    if goal == 'max_hashrate':
+        return max(results, key=lambda r: r.get('avg_hashrate', 0))
+    if goal == 'efficient':
+        return min(results, key=lambda r: r.get('efficiency', float('inf')))
+    if goal == 'quiet':
+        return min(results, key=lambda r: r.get('avg_power', float('inf')))
+    # balanced default
+    def score(r):
+        p = r.get('avg_power') or 0.0001
+        return (r.get('avg_hashrate', 0) / p) * (r.get('stability_score', 80) or 80)
+    return max(results, key=score)
+
+def apply_profile_internal(device_name: str, profile_name: str):
+    """Apply profile without HTTP context; reuse apply_profile logic."""
+    device = device_manager.get_device(device_name)
+    if not device:
+        raise RuntimeError('Device not found')
+    profile_file = profiles_dir / f"{device_name}.json"
+    if not profile_file.exists():
+        raise RuntimeError('No profiles found')
+    with open(profile_file, 'r', encoding='utf-8') as f:
+        profiles_data = json.load(f)
+    profile = profiles_data.get('profiles', {}).get(profile_name)
+    if not profile:
+        raise RuntimeError(f'Profile {profile_name} not found')
+    voltage = profile.get('voltage')
+    frequency = profile.get('frequency')
+    fan_target = profile.get('fan_target')
+    if not voltage or not frequency:
+        raise RuntimeError('Invalid profile data')
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        success = loop.run_until_complete(device.set_voltage_frequency(voltage, frequency))
+        fan_success = True
+        if fan_target and success:
+            fan_success = loop.run_until_complete(device.set_fan_mode(auto_fan=True, target_temp=fan_target))
+            if not fan_success:
+                logger.warning(f"Failed to set fan target for {device_name}, but V/F applied successfully")
+        if not success:
+            raise RuntimeError('Failed to apply profile')
+    finally:
+        loop.close()
 
 def save_benchmark_state() -> None:
     """Persist benchmark_status to disk so the UI can restore after refresh/restart."""
@@ -1499,6 +1717,17 @@ def start_benchmark():
     if not device_name:
         return jsonify({'error': 'Device name required'}), 400
     
+    # Auto Tune orchestrator entrypoint
+    if run_mode == 'auto_tune':
+        if auto_tune_running or benchmark_status.get('running'):
+            return jsonify({'error': 'Auto Tune already running'}), 400
+        # Kick off orchestrator thread
+        def auto_tune_worker():
+            run_auto_tune_sequence(device_name, data)
+        t = Thread(target=auto_tune_worker, daemon=True)
+        t.start()
+        return jsonify({'status': 'auto_tune_started'})
+
     # Get configuration
     preset_obj = None
     if isinstance(preset, dict):
@@ -1998,6 +2227,239 @@ def get_benchmark_status():
                     logger.debug(f"Could not fetch fan speed: {e}")
     
     return jsonify(status)
+
+# ---------------------------------------------------------------------------
+# AUTO TUNE ORCHESTRATOR
+# ---------------------------------------------------------------------------
+
+def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyLimits, phase: str, goal: str = None):
+    """Run a single benchmark synchronously with status callbacks."""
+    global current_engine, current_session_id, benchmark_status
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    failed_combos = []
+
+    def update_status(status_dict):
+        global benchmark_status
+        status_dict['mode'] = 'auto_tune'
+        status_dict['phase'] = phase
+        benchmark_status.update(status_dict)
+        if status_dict.get('message'):
+            benchmark_status.setdefault('message_queue', []).append({
+                'phase': status_dict.get('phase', 'info'),
+                'message': status_dict['message']
+            })
+            benchmark_status.setdefault('session_logs', []).append({
+                'time': datetime.now().isoformat(),
+                'message': status_dict['message'],
+                'type': status_dict.get('phase', 'info')
+            })
+        # Track combos for predictive progress
+        combo = parse_current_combo(status_dict)
+        if combo:
+            seen = benchmark_status.get('seen_combos') or []
+            if combo not in seen:
+                seen.append(combo)
+                if len(seen) > 5000:
+                    seen = seen[-5000:]
+                benchmark_status['seen_combos'] = seen
+        save_benchmark_state()
+
+    try:
+        benchmark_status['running'] = True
+        benchmark_status['mode'] = 'auto_tune'
+        benchmark_status['phase'] = phase
+        benchmark_status['device'] = device_name
+        benchmark_status['config'] = {
+            'voltage_start': cfg.voltage_start,
+            'voltage_stop': cfg.voltage_stop,
+            'voltage_step': cfg.voltage_step,
+            'frequency_start': cfg.frequency_start,
+            'frequency_stop': cfg.frequency_stop,
+            'frequency_step': cfg.frequency_step,
+            'benchmark_duration': cfg.benchmark_duration,
+            'warmup_time': cfg.warmup_time,
+            'cooldown_time': cfg.cooldown_time,
+            'cycles_per_test': cfg.cycles_per_test,
+            'goal': goal or getattr(cfg, 'optimization_goal', None),
+            'max_chip_temp': safety.max_chip_temp,
+            'max_vr_temp': safety.max_vr_temp,
+            'max_power': safety.max_power,
+        }
+        save_benchmark_state()
+
+        loop.run_until_complete(device_manager.initialize_all())
+        engine = BenchmarkEngine(cfg, safety, device_manager, sessions_dir, status_callback=update_status)
+        current_engine = engine
+        session = loop.run_until_complete(engine.run_benchmark(device_name))
+        current_session_id = session.session_id
+        current_engine = None
+        benchmark_status['phase'] = 'complete'
+        save_benchmark_state()
+        return session
+    finally:
+        loop.close()
+
+def load_session_results(session_id: str):
+    """Load a session JSON from disk."""
+    session_file = sessions_dir / f"{session_id}.json"
+    if not session_file.exists():
+        return None
+    with open(session_file, 'r', encoding='utf-8') as f:
+        try:
+            return json.load(f)
+        except Exception:
+            return None
+
+def run_auto_tune_sequence(device_name: str, data: dict):
+    """Precision sweep -> generate AUTO profiles -> Nano tune each -> apply EFFICIENT_AUTO."""
+    global auto_tune_running, benchmark_status, auto_tune_thread
+    auto_tune_running = True
+    auto_tune_thread = None
+
+    try:
+        record_status_message('Auto Tune: starting precision sweep', 'info')
+        benchmark_status['mode'] = 'auto_tune'
+        benchmark_status['phase'] = 'precision'
+        benchmark_status['running'] = True
+        benchmark_status['seen_combos'] = []
+        save_benchmark_state()
+
+        cfg, safety = build_benchmark_config_from_request(data)
+        precision_session = run_single_benchmark(device_name, cfg, safety, phase='precision', goal='balanced')
+
+        if not precision_session or not getattr(precision_session, 'session_id', None):
+            record_status_message('Auto Tune failed: precision session missing', 'error')
+            benchmark_status['error'] = 'Auto Tune failed: no precision session'
+            benchmark_status['running'] = False
+            benchmark_status['phase'] = 'error'
+            save_benchmark_state()
+            return
+
+        record_status_message(f'Auto Tune: precision session {precision_session.session_id} complete. Generating AUTO profiles...', 'info')
+        session_data = load_session_results(precision_session.session_id)
+        if not session_data or not session_data.get('results'):
+            record_status_message('Auto Tune: no results to generate profiles', 'error')
+            benchmark_status['error'] = 'Auto Tune: no results to generate profiles'
+            benchmark_status['running'] = False
+            benchmark_status['phase'] = 'error'
+            save_benchmark_state()
+            return
+
+        candidates = select_profile_candidates(session_data.get('results', []))
+        if not candidates:
+            record_status_message('Auto Tune: failed to compute profile candidates', 'error')
+            benchmark_status['error'] = 'Auto Tune: failed to compute profiles'
+            benchmark_status['running'] = False
+            benchmark_status['phase'] = 'error'
+            save_benchmark_state()
+            return
+
+        bench_cfg = session_data.get('benchmark_config', {})
+        auto_profiles = {
+            'QUIET_AUTO': build_profile_from_result(candidates.get('quiet'), 68, 'quiet', precision_session.session_id, bench_cfg),
+            'EFFICIENT_AUTO': build_profile_from_result(candidates.get('efficient'), 65, 'efficient', precision_session.session_id, bench_cfg),
+            'BALANCED_AUTO': build_profile_from_result(candidates.get('balanced'), 62, 'balanced', precision_session.session_id, bench_cfg),
+            'MAX_AUTO': build_profile_from_result(candidates.get('max'), 60, 'max', precision_session.session_id, bench_cfg),
+        }
+        save_profiles(device_name, {k: v for k, v in auto_profiles.items() if v})
+        record_status_message('Auto Tune: AUTO profiles saved. Starting Nano tune sequence...', 'success')
+
+        # Nano sequence
+        step_index = 0
+        for step in AUTO_TUNE_STEPS:
+            step_index += 1
+            profile_key = step['profile_name']
+            base_profile = auto_profiles.get(profile_key)
+            if not base_profile:
+                record_status_message(f'Auto Tune: profile {profile_key} missing, skipping', 'warning')
+                continue
+
+            benchmark_status['phase'] = 'nano_sequence'
+            benchmark_status['message'] = f'Nano {step["goal"]} {step_index}/{len(AUTO_TUNE_STEPS)}'
+            save_benchmark_state()
+
+            # Build nano config around base profile
+            n_cfg = BenchmarkConfig()
+            v = base_profile['voltage']
+            f = base_profile['frequency']
+            n_cfg.voltage_start = max(900, v - 25)
+            n_cfg.voltage_stop = v + 25
+            n_cfg.voltage_step = 5
+            n_cfg.frequency_start = max(300, f - 25)
+            n_cfg.frequency_stop = f + 25
+            n_cfg.frequency_step = 5
+            n_cfg.benchmark_duration = cfg.benchmark_duration
+            n_cfg.warmup_time = cfg.warmup_time
+            n_cfg.cooldown_time = cfg.cooldown_time
+            n_cfg.cycles_per_test = max(1, cfg.cycles_per_test)
+            n_cfg.auto_mode = True
+            n_cfg.enable_plotting = cfg.enable_plotting
+            n_cfg.export_csv = cfg.export_csv
+            try:
+                n_cfg.optimization_goal = OptimizationGoal(step['goal'])
+            except Exception:
+                pass
+
+            n_safety = SafetyLimits()
+            n_safety.max_chip_temp = safety.max_chip_temp
+            n_safety.max_vr_temp = safety.max_vr_temp
+            n_safety.max_power = safety.max_power
+
+            record_status_message(f'Auto Tune: Nano {step["goal"]} starting ({step_index}/{len(AUTO_TUNE_STEPS)})', 'info')
+            nano_session = run_single_benchmark(device_name, n_cfg, n_safety, phase='nano_sequence', goal=step['goal'])
+            if not nano_session or not getattr(nano_session, 'session_id', None):
+                record_status_message(f'Auto Tune: Nano {step["goal"]} failed (no session)', 'warning')
+                continue
+            nano_data = load_session_results(nano_session.session_id) or {}
+            nano_results = nano_data.get('results', [])
+            best = select_goal_best(
+                [
+                    {
+                        'voltage': _numeric(r.get('voltage')),
+                        'frequency': _numeric(r.get('frequency')),
+                        'avg_hashrate': _numeric(r.get('avg_hashrate') or r.get('hashrate') or r.get('hashrate_avg')),
+                        'avg_power': _numeric(r.get('avg_power') or r.get('power') or r.get('power_avg')),
+                        'efficiency': _numeric(r.get('efficiency') or (_numeric(r.get('avg_power')) / (_numeric(r.get('avg_hashrate')) / 1000) if _numeric(r.get('avg_hashrate')) else None)),
+                        'stability_score': _numeric(r.get('stability_score')),
+                        'avg_fan_speed': _numeric(r.get('avg_fan_speed')),
+                        'avg_chip_temp': _numeric(r.get('avg_chip_temp') or r.get('temp') or r.get('chip_temp')),
+                        'avg_vr_temp': _numeric(r.get('avg_vr_temp') or r.get('vr_temp')),
+                    }
+                    for r in nano_results
+                ],
+                step['goal']
+            )
+            if best:
+                updated_profile = build_profile_from_result(best, step['quiet_target'] or base_profile.get('fan_target', 65), step['goal'], nano_session.session_id, bench_cfg)
+                auto_profiles[profile_key] = updated_profile
+                save_profiles(device_name, {k: v for k, v in auto_profiles.items() if v})
+                record_status_message(f'Auto Tune: Nano {step["goal"]} updated {profile_key}', 'success')
+            else:
+                record_status_message(f'Auto Tune: Nano {step["goal"]} found no valid result', 'warning')
+
+        # Apply EFFICIENT_AUTO
+        try:
+            apply_profile_internal(device_name, 'EFFICIENT_AUTO')
+            record_status_message(f'Auto Tune: applied EFFICIENT_AUTO to {device_name}', 'success')
+        except Exception as e:
+            record_status_message(f'Auto Tune complete, but failed to auto-apply EFFICIENT_AUTO: {e}', 'warning')
+
+        benchmark_status['running'] = False
+        benchmark_status['phase'] = 'complete'
+        benchmark_status['message'] = 'Auto Tune complete'
+        benchmark_status['progress'] = 100
+        save_benchmark_state()
+    except Exception as e:
+        logger.error(f'Auto Tune orchestrator error: {e}', exc_info=True)
+        benchmark_status['error'] = f'Auto Tune error: {e}'
+        benchmark_status['running'] = False
+        benchmark_status['phase'] = 'error'
+        save_benchmark_state()
+    finally:
+        auto_tune_running = False
 
 
 @app.route('/api/benchmark/clear_queue', methods=['POST'])
