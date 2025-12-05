@@ -121,9 +121,6 @@ def load_benchmark_state() -> None:
             data = json.load(f)
         if isinstance(data, dict):
             benchmark_status.update(data)
-            # Never report a running benchmark on fresh process start
-            if benchmark_status.get("running") and "live_data" not in benchmark_status:
-                benchmark_status["running"] = False
     except Exception as e:
         logger.warning(f"Could not load benchmark state: {e}")
 
