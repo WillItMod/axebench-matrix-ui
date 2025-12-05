@@ -332,24 +332,6 @@ export default function Benchmark() {
   const instability = clamp01(errRatio + (stabilityStress / 100) * 0.3);
   const balanceDelta = Math.max(-1, Math.min(1, push - instability));
   const efficiencyJth = hashrateGh > 0 ? power / (hashrateGh / 1000) : 0;
-  const bestEff = status?.best_efficiency?.efficiency ?? null;
-  const bestHash = status?.best_hashrate?.avg_hashrate ?? null;
-  const deltaEff = bestEff ? efficiencyJth - bestEff : null;
-  const deltaHash = bestHash ? hashrateGh - bestHash : null;
-  const perTestSeconds = (config.benchmark_duration || 0) + (config.warmup_time || 0) + (config.cooldown_time || 0);
-  const remainingTests = Math.max(0, (testsTotal || 0) - (testsCompleted || 0));
-  const etaSeconds = perTestSeconds > 0 ? remainingTests * perTestSeconds : 0;
-  const formatEta = (secs: number) => {
-    if (!secs || secs < 1) return '�';
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    if (m > 59) {
-      const h = Math.floor(m / 60);
-      const mrem = m % 60;
-      return `${h}h ${mrem}m`;
-    }
-    return `${m}m ${s}s`;
-  };
 
   const StressBar = ({
     label,
@@ -400,218 +382,6 @@ export default function Benchmark() {
     </Tooltip>
   );
 
-  const DialGauge = ({
-    label,
-    value,
-    subtitle,
-    tooltip,
-    accent,
-  }: {
-    label: string;
-    value: number;
-    subtitle?: string;
-    tooltip?: string;
-    accent?: string;
-  }) => {
-    const clamped = Math.min(100, Math.max(0, value || 0));
-    const size = 96;
-    const stroke = 8;
-    const r = (size - stroke) / 2;
-    const c = 2 * Math.PI * r;
-    const dash = (clamped / 100) * c;
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex flex-col items-center justify-center gap-1 cursor-help">
-            <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-              <defs>
-                <linearGradient id={`${label}-dial-grad`} x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#22c55e" />
-                  <stop offset="50%" stopColor="#eab308" />
-                  <stop offset="100%" stopColor="#ef4444" />
-                </linearGradient>
-              </defs>
-              <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={r}
-                stroke="rgba(255,255,255,0.08)"
-                strokeWidth={stroke}
-                fill="none"
-              />
-              <circle
-                cx={size / 2}
-                cy={size / 2}
-                r={r}
-                stroke={accent || `url(#${label}-dial-grad)`}
-                strokeWidth={stroke}
-                fill="none"
-                strokeDasharray={`${dash} ${c}`}
-                strokeDashoffset={c * 0.25}
-                strokeLinecap="round"
-                style={{ transition: 'stroke-dasharray 0.4s ease' }}
-              />
-              <text
-                x="50%"
-                y="50%"
-                dominantBaseline="middle"
-                textAnchor="middle"
-                fill="white"
-                fontSize="13"
-                fontWeight="700"
-              >
-                {clamped.toFixed(0)}%
-              </text>
-            </svg>
-            <div className="text-[11px] text-[var(--text-secondary)] text-center leading-tight">
-              <div className="font-semibold text-[var(--text-primary)]">{label}</div>
-              {subtitle && <div>{subtitle}</div>}
-            </div>
-          </div>
-        </TooltipTrigger>
-        {tooltip && (
-          <TooltipContent side="top">
-            <div className="max-w-xs text-xs space-y-1">{tooltip}</div>
-          </TooltipContent>
-        )}
-      </Tooltip>
-    );
-  };
-
-  const ArcGauge = ({
-    label,
-    value,
-    text,
-    footer,
-  }: {
-    label: string;
-    value: number;
-    text: string;
-    footer?: string;
-  }) => {
-    const clamped = Math.min(100, Math.max(0, value || 0));
-    const size = 120;
-    const stroke = 10;
-    const r = (size - stroke) / 2;
-    const c = 2 * Math.PI * r;
-    const dash = (clamped / 100) * c;
-    return (
-      <div className="flex flex-col items-center justify-center gap-2">
-        <div className="text-[11px] text-[var(--text-secondary)]">{label}</div>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <defs>
-            <linearGradient id={`${label}-arc-grad`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#22c55e" />
-              <stop offset="50%" stopColor="#eab308" />
-              <stop offset="100%" stopColor="#ef4444" />
-            </linearGradient>
-          </defs>
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth={stroke}
-            fill="none"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            stroke={`url(#${label}-arc-grad)`}
-            strokeWidth={stroke}
-            fill="none"
-            strokeDasharray={`${dash} ${c}`}
-            strokeDashoffset={c * 0.25}
-            strokeLinecap="round"
-            style={{ transition: 'stroke-dasharray 0.4s ease' }}
-          />
-          <text
-            x="50%"
-            y="50%"
-            dominantBaseline="middle"
-            textAnchor="middle"
-            fill="white"
-            fontSize="14"
-            fontWeight="700"
-          >
-            {clamped.toFixed(0)}%
-          </text>
-        </svg>
-        <div className="text-[11px] text-[var(--text-primary)] font-semibold">{text}</div>
-        {footer && <div className="text-[10px] text-[var(--text-muted)]">{footer}</div>}
-      </div>
-    );
-  };
-
-  const BalanceGauge = ({
-    value,
-    tooltip,
-  }: {
-    value: number; // -1..1
-    tooltip?: string;
-  }) => {
-    const clamped = Math.max(-1, Math.min(1, value));
-    const angle = 180 * ((clamped + 1) / 2) - 90; // -90 to 90
-    const needleLength = 70;
-    const centerX = 90;
-    const centerY = 80;
-    const rad = (angle * Math.PI) / 180;
-    const x2 = centerX + needleLength * Math.cos(rad);
-    const y2 = centerY + needleLength * Math.sin(rad);
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="space-y-1 cursor-help">
-            <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-              <span>BALANCE</span>
-              <span className="text-[var(--text-primary)] font-semibold">
-                {clamped >= 0 ? 'PUSH' : 'RISK'}
-              </span>
-            </div>
-            <svg width="180" height="90" viewBox="0 0 180 90">
-              <defs>
-                <linearGradient id="balanceGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#ef4444" />
-                  <stop offset="50%" stopColor="#eab308" />
-                  <stop offset="100%" stopColor="#22c55e" />
-                </linearGradient>
-              </defs>
-              <path
-                d="M10 80 A80 80 0 0 1 170 80"
-                stroke="rgba(255,255,255,0.08)"
-                strokeWidth="10"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d="M10 80 A80 80 0 0 1 170 80"
-                stroke="url(#balanceGradient)"
-                strokeWidth="10"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <line
-                x1={centerX}
-                y1={centerY}
-                x2={x2}
-                y2={y2}
-                stroke="white"
-                strokeWidth="3"
-                strokeLinecap="round"
-              />
-              <circle cx={centerX} cy={centerY} r="4" fill="white" />
-            </svg>
-          </div>
-        </TooltipTrigger>
-        {tooltip && (
-          <TooltipContent side="top">
-            <div className="max-w-xs text-xs space-y-1">{tooltip}</div>
-          </TooltipContent>
-        )}
-      </Tooltip>
-    );
-  };
   const MiniSlider = ({
     label,
     ratio,
@@ -1202,7 +972,7 @@ export default function Benchmark() {
 
           {/* Engine Panel */}
           <div className="matrix-card">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-lg font-bold text-glow-cyan">ENGINE_PANEL</h3>
                 <p className="text-[var(--text-muted)] text-xs">
@@ -1214,80 +984,174 @@ export default function Benchmark() {
               </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="flex h-full items-center justify-center">
-                <ArcGauge
-                  label="SWEEP PROGRESS"
-                  value={progressVal || 0}
-                  text={`${testsCompleted} / ${testsTotal || '?'}`}
-                  footer={`ETA ${formatEta(etaSeconds)} | Per test ${perTestSeconds || '?'}s`}
-                />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Progress & Sweep */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                  <span>SWEEP_PROGRESS</span>
+                  <span className="text-[var(--text-primary)] font-semibold">
+                    {testsCompleted} / {testsTotal || '?'} ({progressVal || 0}%)
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded bg-[var(--grid-gray)] overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#22c55e] via-[#eab308] to-[#ef4444] transition-all"
+                    style={{ width: `${Math.min(100, Math.max(0, progressVal || 0))}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
+                  <div>Current: {voltage} mV / {frequency} MHz</div>
+                  <div>Goal: {config.goal?.toString().toUpperCase()}</div>
+                </div>
               </div>
 
-              <div className="flex h-full items-center justify-center">
-                <div className="grid w-full max-w-2xl grid-cols-3 gap-4">
-                  <div className="flex items-center justify-center">
-                    <DialGauge
-                      label="THERMAL"
-                      value={thermalStress}
-                      subtitle={`${temp.toFixed(1)} / ${maxChip}�C`}
-                      tooltip={`Headroom ${tempHeadroom.toFixed(1)}�C. Temp ratio ${(tempRatio * 100).toFixed(1)}%. Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}.`}
-                    />
+              {/* Stress trio */}
+              <div className="space-y-2">
+                <StressBar
+                  label="THERMAL STRESS"
+                  value={thermalStress}
+                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
+                  tooltip={`Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C). Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}. Higher when near cap or climbing fast.`}
+                  onClick={() =>
+                    setEngineDetail({
+                      open: true,
+                      title: 'Thermal Stress',
+                      lines: [
+                        `Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C)`,
+                        `Temp ratio ${(tempRatio * 100).toFixed(1)}%`,
+                        `Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}`,
+                        'Score = temp_ratio*70 + proximity/fan boosts',
+                      ],
+                    })
+                  }
+                />
+                <StressBar
+                  label="POWER STRESS"
+                  value={powerStress}
+                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
+                  tooltip={`Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W), Voltage ${voltage} / ${maxVoltage}mV. Higher when near power/volt limits.`}
+                  onClick={() =>
+                    setEngineDetail({
+                      open: true,
+                      title: 'Power Stress',
+                      lines: [
+                        `Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W)`,
+                        `Voltage ${voltage} / ${maxVoltage}mV`,
+                        `Ratios: power ${(powerRatio * 100).toFixed(1)}%, voltage ${(voltageRatio * 100).toFixed(1)}%`,
+                        'Score = max(power, voltage) ratio * 80 (+limit boosts)',
+                      ],
+                    })
+                  }
+                />
+                <StressBar
+                  label="STABILITY STRESS"
+                  value={stabilityStress}
+                  color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
+                  tooltip={`ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%). Recovery and failed combos add stress.`}
+                  onClick={() =>
+                    setEngineDetail({
+                      open: true,
+                      title: 'Stability Stress',
+                      lines: [
+                        `ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%)`,
+                        `Error ratio ${(errRatio * 100).toFixed(1)}%`,
+                        `Recoveries ${status?.recovery_attempts || 0}, failed combos ${(status?.failed_combos || []).length}`,
+                        'Score = err_ratio*80 + recovery/failed boosts',
+                      ],
+                    })
+                  }
+                />
+
+                <div className="grid grid-cols-3 gap-2 text-[11px] text-[var(--text-secondary)]">
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
+                    Headroom: {tempHeadroom.toFixed(1)}°C
                   </div>
-                  <div className="flex items-center justify-center">
-                    <DialGauge
-                      label="POWER"
-                      value={powerStress}
-                      subtitle={`${power.toFixed(1)}W / ${maxPower}W`}
-                      tooltip={`Headroom ${powerHeadroom.toFixed(1)}W. Power ratio ${(powerRatio * 100).toFixed(1)}%. Voltage ${(voltageRatio * 100).toFixed(1)}%.`}
-                    />
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
+                    Power: {powerHeadroom.toFixed(1)} W
                   </div>
-                  <div className="flex items-center justify-center">
-                    <DialGauge
-                      label="STABILITY"
-                      value={stabilityStress}
-                      subtitle={`${errorPct.toFixed(2)}% err`}
-                      tooltip={`Error margin ${errorMargin.toFixed(2)}%. Recoveries ${status?.recovery_attempts || 0}. Failed combos ${(status?.failed_combos || []).length}.`}
-                    />
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 px-2 py-1">
+                    Error margin: {errorMargin.toFixed(2)}%
                   </div>
                 </div>
               </div>
 
-              <div className="flex h-full flex-col gap-3">
-                <BalanceGauge
-                  value={balanceDelta}
-                  tooltip={`Push avg(V/F/power): ${push.toFixed(2)}. Instability: ${instability.toFixed(2)}. Right = headroom, Left = instability/overdrive.`}
+              {/* Balance & V/F sliders */}
+              <div className="space-y-3">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="space-y-1 cursor-help"
+                      onClick={() =>
+                        setEngineDetail({
+                          open: true,
+                          title: 'Balance',
+                          lines: [
+                            `Push (avg V/F/power ratios): ${push.toFixed(2)}`,
+                            `Instability (error/recovery): ${instability.toFixed(2)}`,
+                            'Right = more headroom, Left = instability/overdrive.',
+                          ],
+                        })
+                      }
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setEngineDetail({
+                            open: true,
+                            title: 'Balance',
+                            lines: [
+                              `Push (avg V/F/power ratios): ${push.toFixed(2)}`,
+                              `Instability (error/recovery): ${instability.toFixed(2)}`,
+                              'Right = more headroom, Left = instability/overdrive.',
+                            ],
+                          });
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                        <span>BALANCE</span>
+                        <span className="text-[var(--text-primary)] font-semibold">
+                          {balanceDelta >= 0 ? 'PUSH' : 'RISK'}
+                        </span>
+                      </div>
+                      <div className="w-full h-3 rounded bg-[var(--grid-gray)] relative overflow-hidden">
+                        <div className="absolute left-1/2 top-0 bottom-0 w-[1px] bg-[var(--text-muted)]" />
+                        <div
+                          className="absolute top-0 bottom-0 w-1.5 rounded bg-gradient-to-r from-[#ef4444] via-[#eab308] to-[#22c55e] transition-transform"
+                          style={{ transform: `translateX(${balanceDelta * 50}%)` }}
+                        />
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <div className="max-w-xs text-xs space-y-1">
+                      <div>Push: avg(V/F/power ratios) = {push.toFixed(2)}</div>
+                      <div>Instability: error/recovery weighting = {instability.toFixed(2)}</div>
+                      <div>Right = headroom, Left = instability/overdrive.</div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+
+                <MiniSlider
+                  label="VOLTAGE POSITION"
+                  ratio={vNorm}
+                  display={`${voltage} mV`}
                 />
-                <div className="space-y-2">
-                  <MiniSlider
-                    label="VOLTAGE POSITION"
-                    ratio={vNorm}
-                    display={`${voltage} mV`}
-                  />
-                  <MiniSlider
-                    label="FREQUENCY POSITION"
-                    ratio={fNorm}
-                    display={`${frequency} MHz`}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
+                <MiniSlider
+                  label="FREQUENCY POSITION"
+                  ratio={fNorm}
+                  display={`${frequency} MHz`}
+                />
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
                     <div className="text-[var(--text-secondary)]">EFFICIENCY</div>
-                    <div className="text-[var(--success-green)] font-semibold">
-                      {efficiencyJth > 0 ? `${efficiencyJth.toFixed(2)} J/TH` : '?'}
-                    </div>
-                    <div className="text-[10px] text-[var(--text-muted)]">
-                      {bestEff ? `vs best: ${(efficiencyJth - bestEff).toFixed(2)} J/TH` : 'No best yet'}
-                    </div>
+                    <div className="text-[var(--success-green)] font-semibold">{efficiencyJth > 0 ? `${efficiencyJth.toFixed(2)} J/TH` : '—'}</div>
                   </div>
-                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-3">
+                  <div className="rounded border border-[var(--grid-gray)] bg-[var(--dark-gray)]/60 p-2">
                     <div className="text-[var(--text-secondary)]">HASHRATE</div>
-                    <div className="text-[var(--neon-cyan)] font-semibold">
-                      {hashrateGh ? `${hashrateGh.toFixed(1)} GH/s` : '?'}
-                    </div>
-                    <div className="text-[10px] text-[var(--text-muted)]">
-                      {bestHash ? `vs best: ${(hashrateGh - bestHash).toFixed(1)} GH/s` : 'No best yet'}
-                    </div>
+                    <div className="text-[var(--neon-cyan)] font-semibold">{hashrateGh ? `${hashrateGh.toFixed(1)} GH/s` : '—'}</div>
                   </div>
                 </div>
               </div>
@@ -1549,8 +1413,6 @@ export default function Benchmark() {
     </>
   );
 }
-
-
 
 
 
