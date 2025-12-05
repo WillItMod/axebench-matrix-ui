@@ -23,7 +23,11 @@ export default function NanoTuneStatusBanner() {
       (fStop > fStart ? Math.floor((fStop - fStart) / fStep) + 1 : 1) *
       cycles;
     const reported = toNumber(status.testsTotal);
-    return Math.max(plannedByConfig, reported, 0);
+    const base = Math.max(plannedByConfig, reported, 0);
+    const needsCushion = status.running && status.phase !== 'complete' && toNumber(status.testsCompleted) >= base && base > 0;
+    return needsCushion
+      ? toNumber(status.testsCompleted) + Math.max(1, Math.round(base * 0.25))
+      : base;
   })();
   const completedTests = Math.min(toNumber(status.testsCompleted), plannedTests || Number.POSITIVE_INFINITY);
   const fallbackPct = Math.min(100, Math.max(0, Math.round(toNumber(status.progress))));

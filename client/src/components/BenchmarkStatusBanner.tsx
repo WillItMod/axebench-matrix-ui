@@ -30,8 +30,13 @@ export default function BenchmarkStatusBanner() {
     return Math.max(plannedByConfig, reported, 0);
   };
 
-  const plannedTests = derivePlannedTests();
-  const completedTests = Math.min(toNumber(status.testsCompleted), plannedTests || Number.POSITIVE_INFINITY);
+  const basePlanned = derivePlannedTests();
+  const completedRaw = toNumber(status.testsCompleted);
+  const needsCushion = status.running && status.phase !== 'complete' && completedRaw >= basePlanned && basePlanned > 0;
+  const plannedTests = needsCushion
+    ? completedRaw + Math.max(1, Math.round(basePlanned * 0.25))
+    : basePlanned;
+  const completedTests = Math.min(completedRaw, plannedTests || Number.POSITIVE_INFINITY);
   const fallbackPct = Math.min(100, Math.max(0, Math.round(toNumber(status.progress))));
   const progressPct = plannedTests > 0
     ? Math.min(100, Math.round((completedTests / plannedTests) * 100))
