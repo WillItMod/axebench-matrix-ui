@@ -66,7 +66,7 @@ const defaultState: SettingsState = {
   hashrateDisplay: 'auto',
   timeFormat: '24h',
   dashboardRefreshMs: 5000,
-  monitoringRefreshMs: 2000,
+  monitoringRefreshMs: 1000,
   reduceMotion: false,
   pauseMatrix: false,
   alertChipTemp: 70,

@@ -86,7 +86,7 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
       if (status.running) {
         refreshStatus();
       }
-    }, 2000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [status.running, refreshStatus]);

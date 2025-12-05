@@ -104,7 +104,7 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
     // Initial fetch
     void fetchStats();
 
-    const intervalMs = Math.max(750, monitoringRefreshMs ?? 1000); // allow tighter cadence but avoid overload
+    const intervalMs = Math.max(500, monitoringRefreshMs ?? 1000); // allow tighter cadence but avoid overload
     const interval = setInterval(() => void fetchStats(), intervalMs);
     return () => clearInterval(interval);
   }, [deviceName, monitoringRefreshMs]);
@@ -410,7 +410,7 @@ export default function LiveMonitoringPanel({ deviceName, colorPalette = DEFAULT
       )}
 
       <div className="text-xs text-[var(--text-muted)] text-center mt-4">
-        Updates every {(Math.max(1000, monitoringRefreshMs || 2000) / 1000).toFixed(1)}s · Showing last {history.length} readings
+        Updates every {(Math.max(500, monitoringRefreshMs || 1000) / 1000).toFixed(1)}s · Showing last {history.length} readings
       </div>
     </div>
   );
