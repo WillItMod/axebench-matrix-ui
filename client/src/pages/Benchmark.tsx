@@ -125,7 +125,6 @@ export default function Benchmark() {
   });
   const [graphsLoading, setGraphsLoading] = useState(false);
   const settingsLocked = benchmarkStatus.running;
-  const sweepCombosRef = useRef<Set<string>>(new Set());
 
   // Utility helpers for derived gauges
   const clamp01 = (v: number) => Math.min(1, Math.max(0, v || 0));
@@ -308,9 +307,9 @@ export default function Benchmark() {
 
   // Derived engine metrics for visual "stress" panel
   const liveData = status?.live_data || {};
-  // Predictive sweep progress (client-side reset)
   const isRunning = status?.running ?? benchmarkStatus.running ?? false;
-  const estimateTestsTotal = () => {
+  // Sweep progress: prefer backend totals, fall back to planned test count for the active configuration.
+  const derivePlannedTests = () => {
     const src = (status as any)?.config || config;
     const vStart = numeric(src?.voltage_start);
     const vStop = numeric(src?.voltage_stop);
@@ -321,55 +320,31 @@ export default function Benchmark() {
     const cycles = Math.max(1, numeric(src?.cycles_per_test) || 1);
     const vCount = vStop > vStart ? Math.floor((vStop - vStart) / vStep) + 1 : 1;
     const fCount = fStop > fStart ? Math.floor((fStop - fStart) / fStep) + 1 : 1;
-    const total = vCount * fCount * cycles;
-    return Number.isFinite(total) && total > 0 ? total : 0;
+    const plannedByConfig = vCount * fCount * cycles;
+    const reportedTotal = numeric(
+      (status as any)?.tests_total ??
+      (status as any)?.total_tests ??
+      (status as any)?.planned_tests ??
+      benchmarkStatus.testsTotal
+    );
+    const total = reportedTotal > 0 ? reportedTotal : plannedByConfig;
+    return total > 0 ? total : 0;
   };
-  useEffect(() => {
-    if (!isRunning) sweepCombosRef.current = new Set();
-  }, [isRunning]);
-  useEffect(() => {
-    if (!isRunning) return;
-    const ld = status?.live_data || {};
-    const vLive = numeric(ld.voltage);
-    const fLive = numeric(ld.frequency);
-    let combo: string | null = null;
-    if (vLive && fLive) {
-      combo = `${Math.round(vLive)}-${Math.round(fLive)}`;
-    } else {
-      const testText = status?.current_test || status?.currentTest || '';
-      if (testText && testText.includes('@')) {
-        const cleaned = testText.replace(/[,]/g, '');
-        const parts = cleaned.split('@');
-        const vPart = parts[0].replace(/[^\d.]/g, '');
-        const fPart = parts[1].replace(/[^\d.]/g, '');
-        const v = numeric(vPart);
-        const f = numeric(fPart);
-        if (v && f) combo = `${Math.round(v)}-${Math.round(f)}`;
-      }
-    }
-    if (combo) {
-      const next = new Set(sweepCombosRef.current);
-      next.add(combo);
-      sweepCombosRef.current = next;
-    }
-  }, [isRunning, status?.current_test, status?.currentTest, status?.live_data]);
-
-  const backendCompleted = numeric(status?.tests_completed ?? status?.tests_complete ?? benchmarkStatus.tests_completed);
-  const backendTotal = numeric(status?.tests_total ?? benchmarkStatus.tests_total);
-  const estimatedTotal = estimateTestsTotal();
-  const total = isRunning ? (backendTotal > 0 ? backendTotal : estimatedTotal) : 0;
-  const seenCount = sweepCombosRef.current.size;
-  const completed = isRunning
-    ? (backendCompleted > 0
-        ? backendCompleted
-        : (total > 0 ? Math.max(seenCount, 1) : seenCount))
+  const plannedTestsTotal = isRunning ? derivePlannedTests() : 0;
+  const reportedCompleted = numeric(
+    (status as any)?.tests_completed ??
+    (status as any)?.tests_complete ??
+    benchmarkStatus.testsCompleted
+  );
+  const testsCompleted = isRunning
+    ? Math.max(0, plannedTestsTotal > 0 ? Math.min(reportedCompleted, plannedTestsTotal) : reportedCompleted)
     : 0;
-  const clampedCompleted = total > 0 ? Math.min(completed, total) : completed;
-  const sweepProgressDisplay = isRunning && total > 0 && clampedCompleted > 0
-    ? Math.min(100, Math.max(0, (clampedCompleted / total) * 100))
-    : 0;
-  const sweepProgressDisplayRounded = isRunning ? Math.round(sweepProgressDisplay) : 0;
-  const sweepCountsDisplay = isRunning && total > 0 && clampedCompleted > 0 ? `${clampedCompleted} / ${total}` : '--';
+  const fallbackProgress = isRunning ? numeric((status as any)?.progress ?? benchmarkStatus.progress) : 0;
+  const sweepProgressDisplayRounded = plannedTestsTotal > 0
+    ? Math.min(100, Math.round((testsCompleted / plannedTestsTotal) * 100))
+    : Math.min(100, Math.max(0, Math.round(fallbackProgress)));
+  const hasCounts = isRunning && plannedTestsTotal > 0;
+  const sweepCountsDisplay = hasCounts ? `${testsCompleted} / ${plannedTestsTotal}` : isRunning ? 'Calculating...' : '--';
   const maxChip = config.max_chip_temp || status?.safety_limits?.max_chip_temp || 70;
   const maxPower = config.max_power || status?.safety_limits?.max_power || 25;
   const maxVoltage = (config as any).max_voltage || 1400;

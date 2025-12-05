@@ -6,7 +6,12 @@ export default function AutoTuneStatusBanner() {
   // Only show when auto_tune is running
   if (!status.running || status.mode !== 'auto_tune') return null;
 
-  const progress = status.progress || 0;
+  const plannedTests = status.testsTotal || 0;
+  const completedTests = Math.min(status.testsCompleted || 0, plannedTests || Number.POSITIVE_INFINITY);
+  const progress = plannedTests > 0
+    ? Math.min(100, Math.round((completedTests / plannedTests) * 100))
+    : Math.min(100, Math.max(0, Math.round(status.progress || 0)));
+  const testsLabel = plannedTests > 0 ? `${completedTests}/${plannedTests}` : null;
   const device = status.device || 'Unknown';
   const currentTest = status.currentTest || '';
   const storedStage =
@@ -56,6 +61,12 @@ export default function AutoTuneStatusBanner() {
             {currentTest && (
               <div className="text-white text-sm flex items-center gap-1">
                 <span className="text-pink-200">Test:</span> <span className="font-mono text-xs">{currentTest}</span>
+              </div>
+            )}
+
+            {testsLabel && (
+              <div className="text-white text-sm flex items-center gap-1">
+                <span className="text-pink-200">Tests:</span> <span className="font-mono">{testsLabel}</span>
               </div>
             )}
 

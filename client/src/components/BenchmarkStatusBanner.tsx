@@ -10,6 +10,15 @@ export default function BenchmarkStatusBanner() {
   const [stopping, setStopping] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  const plannedTests = status.testsTotal || 0;
+  const completedTests = Math.min(status.testsCompleted || 0, plannedTests || Number.POSITIVE_INFINITY);
+  const progressPct = plannedTests > 0
+    ? Math.min(100, Math.round((completedTests / plannedTests) * 100))
+    : Math.min(100, Math.max(0, Math.round(status.progress || 0)));
+  const progressText = plannedTests > 0
+    ? `${completedTests} / ${plannedTests} (${progressPct}%)`
+    : `${progressPct}%`;
+
   // Debug logging
   console.log('[BenchmarkStatusBanner] status:', {
     running: status.running,
@@ -51,22 +60,22 @@ export default function BenchmarkStatusBanner() {
 
             {/* Device name */}
             {status.device && (
-              <div className="text-[var(--text-secondary)]">
-                Device: <span className="text-[var(--neon-cyan)]">{status.device}</span>
-              </div>
-            )}
+            <div className="text-[var(--text-secondary)]">
+              Device: <span className="text-[var(--neon-cyan)]">{status.device}</span>
+            </div>
+          )}
 
-            {/* Progress */}
-            {status.progress !== undefined && (
-              <div className="text-[var(--text-secondary)]">
-                Progress: <span className="text-[var(--neon-cyan)]">{status.progress}%</span>
-              </div>
-            )}
+          {/* Progress */}
+          {progressPct !== undefined && (
+            <div className="text-[var(--text-secondary)]">
+              Progress: <span className="text-[var(--neon-cyan)]">{progressText}</span>
+            </div>
+          )}
 
-            {/* Current test */}
-            {status.currentTest && (
-              <div className="text-[var(--text-secondary)] text-sm">
-                {status.currentTest}
+          {/* Current test */}
+          {status.currentTest && (
+            <div className="text-[var(--text-secondary)] text-sm">
+              {status.currentTest}
               </div>
             )}
           </div>

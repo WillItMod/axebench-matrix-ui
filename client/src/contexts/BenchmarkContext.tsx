@@ -7,6 +7,8 @@ interface BenchmarkStatus {
   mode?: string; // 'benchmark', 'auto_tune', 'nano_tune'
   device?: string;
   progress?: number;
+  testsTotal?: number;
+  testsCompleted?: number;
   currentTest?: string;
   phase?: string; // For auto_tune: 'Precision Benchmark', 'Profile Generation', etc.
   goal?: string; // For nano_tune: 'quiet', 'balanced', 'performance', 'max'
@@ -23,7 +25,7 @@ interface BenchmarkContextType {
 const BenchmarkContext = createContext<BenchmarkContextType | undefined>(undefined);
 
 export function BenchmarkProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<BenchmarkStatus>({ running: false });
+  const [status, setStatus] = useState<BenchmarkStatus>({ running: false, testsTotal: 0, testsCompleted: 0 });
 
   const normalizeMode = (rawMode?: string, autoMode?: boolean) => {
     const mode = (rawMode || '').toLowerCase();
@@ -41,11 +43,19 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
     try {
       const data = await api.benchmark.status();
       const mode = normalizeMode((data as any)?.mode || (data as any)?.tune_type, (data as any)?.auto_mode);
+      const toNumber = (value: any) => {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+      };
+      const testsTotal = toNumber((data as any)?.tests_total ?? (data as any)?.total_tests ?? (data as any)?.planned_tests);
+      const testsCompleted = toNumber((data as any)?.tests_completed ?? (data as any)?.tests_complete);
       console.log('[BenchmarkContext] Status poll result:', {
         running: data.running,
         mode,
         device: data.device_name || data.device,
         progress: data.progress,
+        tests_total: testsTotal,
+        tests_completed: testsCompleted,
         phase: data.phase,
         session_id: data.session_id,
         logs_count: (data.session_logs || data.logs || []).length
@@ -56,6 +66,8 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
         mode,
         device: data.device_name || data.device,
         progress: data.progress,
+        testsTotal,
+        testsCompleted,
         currentTest: data.current_test,
         phase: data.phase,
         goal: data.goal,
