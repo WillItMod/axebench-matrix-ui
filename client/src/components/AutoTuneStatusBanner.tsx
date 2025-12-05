@@ -128,7 +128,10 @@ export default function AutoTuneStatusBanner() {
               />
             </div>
 
-            <div className="w-6 h-6 border-2 border-white/60 border-t-transparent rounded-full animate-spin" aria-label="Auto tune spinning indicator" />
+            <div
+              className="w-6 h-6 border-2 border-white/60 border-t-transparent rounded-full animate-spin"
+              aria-label="Auto tune spinning indicator"
+            />
           </div>
         </div>
 
