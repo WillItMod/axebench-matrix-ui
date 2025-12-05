@@ -188,6 +188,9 @@ class BenchmarkSession:
     best_efficiency: Optional[Dict[str, Any]]
     best_balanced: Optional[Dict[str, Any]]
     status: str  # running, completed, interrupted
+    mode: str = "benchmark"  # benchmark, auto_tune, etc.
+    tune_type: Optional[str] = None
+    auto_mode: Optional[bool] = None  # true for auto_tune runs
     logs: List[Dict[str, Any]] = None  # Event logs from benchmark
     stop_reason: Optional[str] = None  # Why benchmark stopped
     

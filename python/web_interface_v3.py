@@ -1996,6 +1996,7 @@ def start_benchmark():
                 
                 current_session_id = session.session_id
                 current_engine = None
+                persist_session_mode(session.session_id, run_mode or 'benchmark')
                 
                 # Mark successful completion
                 benchmark_status['phase'] = 'complete'
@@ -2247,7 +2248,7 @@ def get_benchmark_status():
 # AUTO TUNE ORCHESTRATOR
 # ---------------------------------------------------------------------------
 
-def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyLimits, phase: str, goal: str = None):
+def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyLimits, phase: str, goal: str = None, run_mode: str = 'benchmark'):
     """Run a single benchmark synchronously with status callbacks."""
     global current_engine, current_session_id, benchmark_status
 
@@ -2356,6 +2357,7 @@ def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyL
         current_engine = None
         benchmark_status['phase'] = 'complete'
         save_benchmark_state()
+        persist_session_mode(session.session_id, run_mode or 'benchmark')
         return session
     finally:
         loop.close()
@@ -2370,6 +2372,37 @@ def load_session_results(session_id: str):
             return json.load(f)
         except Exception:
             return None
+
+
+def persist_session_mode(session_id: str, mode: str):
+    """Persist the run mode onto the saved session file for UI filtering."""
+    try:
+        target = sessions_dir / f"session_{session_id}.json"
+        if not target.exists():
+            alt = sessions_dir / f"{session_id}.json"
+            if not alt.exists():
+                return
+            target = alt
+        with open(target, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        normalized_mode = mode or data.get('mode') or 'benchmark'
+        changed = False
+        if data.get('mode') != normalized_mode:
+            data['mode'] = normalized_mode
+            changed = True
+        if data.get('tune_type') != normalized_mode:
+            data['tune_type'] = normalized_mode
+            changed = True
+        if normalized_mode.startswith('auto') and not data.get('auto_mode'):
+            data['auto_mode'] = True
+            changed = True
+
+        if changed:
+            with open(target, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Could not persist session mode for {session_id}: {e}")
 
 def run_auto_tune_sequence(device_name: str, data: dict):
     """Precision sweep -> generate AUTO profiles -> Nano tune each -> apply EFFICIENT_AUTO."""
@@ -2389,7 +2422,7 @@ def run_auto_tune_sequence(device_name: str, data: dict):
         save_benchmark_state()
 
         cfg, safety = build_benchmark_config_from_request(data)
-        precision_session = run_single_benchmark(device_name, cfg, safety, phase='precision', goal='balanced')
+        precision_session = run_single_benchmark(device_name, cfg, safety, phase='precision', goal='balanced', run_mode='auto_tune')
 
         if not precision_session or not getattr(precision_session, 'session_id', None):
             record_status_message('Auto Tune failed: precision session missing', 'error')
@@ -2470,7 +2503,7 @@ def run_auto_tune_sequence(device_name: str, data: dict):
             n_safety.max_power = safety.max_power
 
             record_status_message(f'Auto Tune: Nano {step["goal"]} starting ({step_index}/{len(AUTO_TUNE_STEPS)})', 'info')
-            nano_session = run_single_benchmark(device_name, n_cfg, n_safety, phase='nano_sequence', goal=step['goal'])
+            nano_session = run_single_benchmark(device_name, n_cfg, n_safety, phase='nano_sequence', goal=step['goal'], run_mode='auto_tune')
             if not nano_session or not getattr(nano_session, 'session_id', None):
                 record_status_message(f'Auto Tune: Nano {step["goal"]} failed (no session)', 'warning')
                 continue
@@ -2663,6 +2696,11 @@ def get_sessions():
             device_name = 'Unknown'
             if session_data.get('device_configs'):
                 device_name = session_data['device_configs'][0].get('name', 'Unknown')
+
+            mode = session_data.get('mode') or session_data.get('tune_type') or 'benchmark'
+            auto_flag = session_data.get('auto_mode')
+            if auto_flag is None and isinstance(mode, str) and mode.startswith('auto'):
+                auto_flag = True
             
             sessions.append({
                 'id': session_data['session_id'],
@@ -2672,7 +2710,10 @@ def get_sessions():
                 'status': session_data['status'],
                 'tests': len(session_data.get('results', [])),
                 'stop_reason': session_data.get('stop_reason'),
-                'has_logs': bool(session_data.get('logs'))
+                'has_logs': bool(session_data.get('logs')),
+                'mode': mode,
+                'tune_type': session_data.get('tune_type', mode),
+                'auto_mode': auto_flag
             })
         except Exception as e:
             logger.error(f"Error loading session {session_file}: {e}")
