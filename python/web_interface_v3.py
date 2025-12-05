@@ -1922,23 +1922,23 @@ def start_benchmark():
                         if not status_dict.get('tests_completed') and not status_dict.get('tests_complete'):
                             tests_completed = max(tests_completed, len(benchmark_status['seen_combos']))
 
-                    if tests_total:
-                        status_dict['tests_total'] = tests_total
-                        if tests_completed > tests_total:
-                            tests_completed = tests_total
-                    if tests_completed:
-                        status_dict['tests_completed'] = tests_completed
-                    # If running and we have a current test but zero completed, count at least one
-                    if status_dict.get('running') and (status_dict.get('current_test') or status_dict.get('live_data')) and tests_completed == 0:
-                        tests_completed = max(1, len(benchmark_status.get('seen_combos') or []))
-                        status_dict['tests_completed'] = tests_completed
+                if tests_total:
+                    status_dict['tests_total'] = tests_total
+                    if tests_completed > tests_total:
+                        tests_completed = tests_total
+                if tests_completed:
+                    status_dict['tests_completed'] = tests_completed
+                # If running and we have a current test but zero completed, count at least one
+                if status_dict.get('running') and (status_dict.get('current_test') or status_dict.get('live_data')) and tests_completed == 0:
+                    tests_completed = max(1, len(benchmark_status.get('seen_combos') or []))
+                    status_dict['tests_completed'] = tests_completed
 
-                    if tests_total and tests_completed:
-                        pct = (tests_completed / tests_total) * 100
-                        status_dict['progress'] = min(100, max(0, pct))
-                    elif status_dict.get('progress') is not None:
-                        # Clamp any provided progress
-                        status_dict['progress'] = min(100, max(0, status_dict.get('progress', 0)))
+                if tests_total and tests_completed:
+                    pct = (tests_completed / tests_total) * 100
+                    status_dict['progress'] = min(100, max(0, pct))
+                elif status_dict.get('progress') is not None:
+                    # Clamp any provided progress
+                    status_dict['progress'] = min(100, max(0, status_dict.get('progress', 0)))
 
                     benchmark_status.update(status_dict)
                     save_benchmark_state()
@@ -2193,6 +2193,9 @@ def get_benchmark_status():
         status['progress'] = min(100, max(0, status.get('progress', 0)))
     status['tests_total'] = tests_total or 0
     status['tests_completed'] = tests_completed
+    # Persist clamped values back into global so subsequent polls keep the floor
+    benchmark_status['tests_total'] = status['tests_total']
+    benchmark_status['tests_completed'] = status['tests_completed']
 
     # Add session logs if we have an active session
     if current_engine and hasattr(current_engine, 'session') and current_engine.session:
