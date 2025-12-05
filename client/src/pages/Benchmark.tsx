@@ -308,25 +308,8 @@ export default function Benchmark() {
 
   // Derived engine metrics for visual "stress" panel
   const liveData = status?.live_data || {};
-  // Predictive sweep progress (client-side, independent of backend inconsistencies)
-  const parseCombo = () => {
-    const ld = status?.live_data || {};
-    const vLive = numeric(ld.voltage);
-    const fLive = numeric(ld.frequency);
-    if (vLive && fLive) return `${Math.round(vLive)}-${Math.round(fLive)}`;
-    const testText = status?.current_test || status?.currentTest || '';
-    if (testText && testText.includes('@')) {
-      const cleaned = testText.replace(/[,]/g, '');
-      const parts = cleaned.split('@');
-      const vPart = parts[0].replace(/[^\d.]/g, '');
-      const fPart = parts[1].replace(/[^\d.]/g, '');
-      const v = numeric(vPart);
-      const f = numeric(fPart);
-      if (v && f) return `${Math.round(v)}-${Math.round(f)}`;
-    }
-    return null;
-  };
-
+  // Predictive sweep progress (client-side reset)
+  const isRunning = status?.running ?? benchmarkStatus.running ?? false;
   const estimateTestsTotal = () => {
     const src = (status as any)?.config || config;
     const vStart = numeric(src?.voltage_start);
@@ -336,22 +319,34 @@ export default function Benchmark() {
     const fStop = numeric(src?.frequency_stop);
     const fStep = Math.max(1, numeric(src?.frequency_step) || 1);
     const cycles = Math.max(1, numeric(src?.cycles_per_test) || 1);
-
     const vCount = vStop > vStart ? Math.floor((vStop - vStart) / vStep) + 1 : 1;
     const fCount = fStop > fStart ? Math.floor((fStop - fStart) / fStep) + 1 : 1;
     const total = vCount * fCount * cycles;
     return Number.isFinite(total) && total > 0 ? total : 0;
   };
-
-  const isRunning = status?.running ?? benchmarkStatus.running ?? false;
-
-  // Track seen combos while running to derive a floor for completed tests
   useEffect(() => {
-    if (!isRunning) {
-      sweepCombosRef.current = new Set();
-      return;
+    if (!isRunning) sweepCombosRef.current = new Set();
+  }, [isRunning]);
+  useEffect(() => {
+    if (!isRunning) return;
+    const ld = status?.live_data || {};
+    const vLive = numeric(ld.voltage);
+    const fLive = numeric(ld.frequency);
+    let combo: string | null = null;
+    if (vLive && fLive) {
+      combo = `${Math.round(vLive)}-${Math.round(fLive)}`;
+    } else {
+      const testText = status?.current_test || status?.currentTest || '';
+      if (testText && testText.includes('@')) {
+        const cleaned = testText.replace(/[,]/g, '');
+        const parts = cleaned.split('@');
+        const vPart = parts[0].replace(/[^\d.]/g, '');
+        const fPart = parts[1].replace(/[^\d.]/g, '');
+        const v = numeric(vPart);
+        const f = numeric(fPart);
+        if (v && f) combo = `${Math.round(v)}-${Math.round(f)}`;
+      }
     }
-    const combo = parseCombo();
     if (combo) {
       const next = new Set(sweepCombosRef.current);
       next.add(combo);
@@ -359,30 +354,21 @@ export default function Benchmark() {
     }
   }, [isRunning, status?.current_test, status?.currentTest, status?.live_data]);
 
-  const rawCompleted = numeric(status?.tests_completed ?? status?.tests_complete ?? benchmarkStatus.tests_completed);
-  const rawTotal = numeric(status?.tests_total ?? benchmarkStatus.tests_total);
-  const derivedTotal = rawTotal > 0 ? rawTotal : estimateTestsTotal();
+  const backendCompleted = numeric(status?.tests_completed ?? status?.tests_complete ?? benchmarkStatus.tests_completed);
+  const backendTotal = numeric(status?.tests_total ?? benchmarkStatus.tests_total);
+  const derivedTotal = backendTotal > 0 ? backendTotal : estimateTestsTotal();
   const seenCount = sweepCombosRef.current.size;
-  const completedFloor = isRunning ? Math.max(rawCompleted, seenCount, derivedTotal > 0 ? 1 : 0) : 0;
-  const clampedCompleted = derivedTotal > 0 ? Math.min(completedFloor, derivedTotal) : completedFloor;
-  const percentFromCounts =
-    isRunning && derivedTotal > 0
-      ? Math.min(100, Math.max(0, (clampedCompleted / derivedTotal) * 100))
-      : null;
-  const baseProgress =
-    Number.isFinite(status?.progress) && status?.progress !== null && status?.progress !== undefined
-      ? numeric(status?.progress)
-      : Number.isFinite(benchmarkStatus.progress)
-      ? numeric(benchmarkStatus.progress)
+  const completed = isRunning
+    ? (backendCompleted > 0 ? backendCompleted : (derivedTotal > 0 ? Math.max(seenCount, 1) : seenCount))
+    : 0;
+  const total = isRunning ? derivedTotal : 0;
+  const clampedCompleted = total > 0 ? Math.min(completed, total) : completed;
+  const progressFromCounts =
+    isRunning && total > 0 && clampedCompleted > 0
+      ? Math.min(100, Math.max(0, (clampedCompleted / total) * 100))
       : 0;
-  const progressVal =
-    isRunning && percentFromCounts !== null
-      ? percentFromCounts
-      : isRunning
-      ? Math.max(0, Math.min(100, baseProgress))
-      : 0;
-  const testsCompleted = isRunning ? clampedCompleted : 0;
-  const testsTotal = isRunning ? derivedTotal : 0;
+  const sweepCountsDisplay = isRunning && total > 0 && clampedCompleted > 0 ? `${clampedCompleted} / ${total}` : '--';
+  const sweepProgressDisplay = isRunning ? progressFromCounts : 0;
   const maxChip = config.max_chip_temp || status?.safety_limits?.max_chip_temp || 70;
   const maxPower = config.max_power || status?.safety_limits?.max_power || 25;
   const maxVoltage = (config as any).max_voltage || 1400;
@@ -1169,18 +1155,18 @@ export default function Benchmark() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Progress & Sweep */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
-                      <span>SWEEP_PROGRESS</span>
-                      <span className="text-[var(--text-primary)] font-semibold">
-                    {isRunning ? `${testsCompleted} / ${testsTotal || '?'}` : '--'} ({isRunning ? progressVal || 0 : 0}%)
-                      </span>
-                    </div>
-                    <div className="w-full h-2 rounded bg-[var(--grid-gray)] overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#22c55e] via-[#eab308] to-[#ef4444] transition-all"
-                        style={{ width: `${isRunning ? Math.min(100, Math.max(0, progressVal || 0)) : 0}%` }}
-                      />
-                    </div>
+                <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
+                  <span>SWEEP_PROGRESS</span>
+                  <span className="text-[var(--text-primary)] font-semibold">
+                    {sweepCountsDisplay} ({isRunning ? sweepProgressDisplay : 0}%)
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded bg-[var(--grid-gray)] overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#22c55e] via-[#eab308] to-[#ef4444] transition-all"
+                    style={{ width: `${isRunning ? Math.min(100, Math.max(0, sweepProgressDisplay || 0)) : 0}%` }}
+                  />
+                </div>
                     <div className="grid grid-cols-2 gap-2 text-[11px] text-[var(--text-secondary)]">
                       <div>Current: {voltage} mV / {frequency} MHz</div>
                       <div>Goal: {config.goal?.toString().toUpperCase()}</div>
