@@ -105,6 +105,23 @@ def parse_current_combo(status_dict: dict):
                 return (int(v), int(f))
         except Exception:
             return None
+    # Fallback: grab first two numeric tokens as v/f (best effort)
+    nums = []
+    buf = []
+    for ch in text:
+        if ch.isdigit() or ch == '.':
+            buf.append(ch)
+        else:
+            if buf:
+                nums.append(''.join(buf))
+                buf = []
+    if buf:
+        nums.append(''.join(buf))
+    if len(nums) >= 2:
+        v = _numeric(nums[0])
+        f = _numeric(nums[1])
+        if v and f:
+            return (int(v), int(f))
     return None
 
 def estimate_tests_total(cfg: dict) -> int:
@@ -1682,6 +1699,11 @@ def start_benchmark():
                             tests_completed = tests_total
                     if tests_completed:
                         status_dict['tests_completed'] = tests_completed
+                    # If running and we have a current test but zero completed, count at least one
+                    if status_dict.get('running') and (status_dict.get('current_test') or status_dict.get('live_data')) and tests_completed == 0:
+                        tests_completed = max(1, len(benchmark_status.get('seen_combos') or []))
+                        status_dict['tests_completed'] = tests_completed
+
                     if tests_total and tests_completed:
                         pct = (tests_completed / tests_total) * 100
                         status_dict['progress'] = min(100, max(0, pct))
@@ -1928,6 +1950,8 @@ def get_benchmark_status():
     est_total = estimate_tests_total(cfg)
     tests_total = status.get('tests_total') or est_total
     tests_completed = status.get('tests_completed') or status.get('tests_complete') or len(status.get('seen_combos') or []) or 0
+    if status.get('running') and (status.get('current_test') or status.get('live_data')) and tests_completed == 0:
+        tests_completed = max(1, len(status.get('seen_combos') or []))
     if tests_total and tests_completed > tests_total:
         tests_completed = tests_total
     if tests_total and tests_completed:
