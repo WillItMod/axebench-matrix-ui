@@ -331,12 +331,16 @@ export default function Benchmark() {
   const clampedCompleted = Math.min(rawCompleted, derivedTotal || rawCompleted);
   const percentFromCounts =
     derivedTotal > 0 ? Math.min(100, Math.max(0, (clampedCompleted / derivedTotal) * 100)) : null;
-  const progressVal =
+  const baseProgress =
     Number.isFinite(status?.progress) && status?.progress !== null && status?.progress !== undefined
       ? numeric(status?.progress)
       : Number.isFinite(benchmarkStatus.progress)
       ? numeric(benchmarkStatus.progress)
       : percentFromCounts ?? 0;
+  const progressVal =
+    derivedTotal > 0 && percentFromCounts !== null
+      ? Math.max(0, Math.min(100, percentFromCounts))
+      : Math.max(0, Math.min(100, baseProgress));
   const testsCompleted = clampedCompleted;
   const testsTotal = derivedTotal;
   const maxChip = config.max_chip_temp || status?.safety_limits?.max_chip_temp || 70;

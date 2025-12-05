@@ -69,6 +69,7 @@ benchmark_status = {
     'last_safe_settings': None,  # Last known good V/F for recovery
     'config': None,      # Last benchmark config used
     'safety_limits': None,  # Safety limits used for this run
+    'seen_combos': [],   # Lightweight tracking of unique V/F combos tested
 }
 
 
@@ -83,6 +84,28 @@ def _numeric(val, default=0):
         return n if n == n else default  # NaN check
     except Exception:
         return default
+
+def parse_current_combo(status_dict: dict):
+    """Try to extract voltage/frequency combo from status or current_test text."""
+    ld = status_dict.get('live_data') or {}
+    v = _numeric(ld.get('voltage'))
+    f = _numeric(ld.get('frequency'))
+    if v and f:
+        return (int(v), int(f))
+    text = status_dict.get('current_test') or ''
+    # Expect patterns like "1150mV @ 575MHz"
+    if '@' in text and ('mV' in text or 'mv' in text):
+        try:
+            parts = text.replace('MHz', '').replace('mhz', '').replace('mV', '').replace('mv', '').split('@')
+            v_part = ''.join(ch for ch in parts[0] if (ch.isdigit() or ch == '.')).strip()
+            f_part = ''.join(ch for ch in parts[1] if (ch.isdigit() or ch == '.')).strip()
+            v = _numeric(v_part)
+            f = _numeric(f_part)
+            if v and f:
+                return (int(v), int(f))
+        except Exception:
+            return None
+    return None
 
 def estimate_tests_total(cfg: dict) -> int:
     """Estimate total test count from voltage/frequency ranges and cycles."""
@@ -1638,12 +1661,33 @@ def start_benchmark():
                     est_total = estimate_tests_total(cfg_for_estimate)
                     tests_total = status_dict.get('tests_total') or benchmark_status.get('tests_total') or est_total
                     tests_completed = status_dict.get('tests_completed') or status_dict.get('tests_complete') or benchmark_status.get('tests_completed') or 0
+
+                    # Track unique combos as a predictive hint
+                    combo = parse_current_combo(status_dict)
+                    if combo:
+                        seen = benchmark_status.get('seen_combos') or []
+                        if combo not in seen:
+                            seen.append(combo)
+                            # cap growth to avoid memory bloat
+                            if len(seen) > 5000:
+                                seen = seen[-5000:]
+                            benchmark_status['seen_combos'] = seen
+                        # Use seen combos as a floor for tests_completed when engine doesn't increment
+                        if not status_dict.get('tests_completed') and not status_dict.get('tests_complete'):
+                            tests_completed = max(tests_completed, len(benchmark_status['seen_combos']))
+
                     if tests_total:
                         status_dict['tests_total'] = tests_total
+                        if tests_completed > tests_total:
+                            tests_completed = tests_total
                     if tests_completed:
                         status_dict['tests_completed'] = tests_completed
-                    if tests_total and tests_completed and not status_dict.get('progress'):
-                        status_dict['progress'] = min(100, max(0, (tests_completed / tests_total) * 100))
+                    if tests_total and tests_completed:
+                        pct = (tests_completed / tests_total) * 100
+                        status_dict['progress'] = min(100, max(0, pct))
+                    elif status_dict.get('progress') is not None:
+                        # Clamp any provided progress
+                        status_dict['progress'] = min(100, max(0, status_dict.get('progress', 0)))
 
                     benchmark_status.update(status_dict)
                     save_benchmark_state()
@@ -1883,10 +1927,14 @@ def get_benchmark_status():
     cfg = status.get('config') or {}
     est_total = estimate_tests_total(cfg)
     tests_total = status.get('tests_total') or est_total
-    tests_completed = status.get('tests_completed') or status.get('tests_complete') or 0
+    tests_completed = status.get('tests_completed') or status.get('tests_complete') or len(status.get('seen_combos') or []) or 0
+    if tests_total and tests_completed > tests_total:
+        tests_completed = tests_total
     if tests_total and tests_completed:
         pct = min(100, max(0, (tests_completed / tests_total) * 100))
-        status['progress'] = status.get('progress') or pct
+        status['progress'] = min(100, max(0, status.get('progress') or pct))
+    elif status.get('progress') is not None:
+        status['progress'] = min(100, max(0, status.get('progress', 0)))
     status['tests_total'] = tests_total or 0
     status['tests_completed'] = tests_completed
 

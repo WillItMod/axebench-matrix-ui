@@ -4,7 +4,7 @@ REM Prerequisites: Python 3.11+, npm (for frontend build), venv tools
 
 setlocal
 set OUTPUT_NAME=AxeBench_v3.0.0_BETA
-set OUTPUT_DIR=build-win-noconsole
+set OUTPUT_DIR=build-win-console
 cd /d "%~dp0"
 
 REM Build frontend (served from dist/public)
@@ -20,7 +20,7 @@ pip install nuitka || goto :error
 
 python -m nuitka ^
   --onefile ^
-  --windows-console-mode=disable ^
+  --windows-console-mode=force ^
   --follow-imports ^
   --output-filename=%OUTPUT_NAME% ^
   --include-data-dir=dist\public=dist\public ^
