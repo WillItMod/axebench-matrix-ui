@@ -274,11 +274,21 @@ export default function Benchmark() {
       const effectiveFreqStop = toplessEnabled && toplessUnlocks.frequency && !toplessFreqCustom
         ? 9999
         : config.frequency_stop;
+      const effectiveVoltageStop = toplessEnabled && toplessUnlocks.voltage && !toplessVoltageCustom
+        ? 9999
+        : config.voltage_stop;
+      const effectiveFreqStop = toplessEnabled && toplessUnlocks.frequency && !toplessFreqCustom
+        ? 9999
+        : config.frequency_stop;
+      const effectiveMaxPower = toplessEnabled && toplessUnlocks.power
+        ? 1_000_000
+        : config.max_power;
       const benchmarkConfig = {
         device: selectedDevice,
         ...config,
         voltage_stop: effectiveVoltageStop,
         frequency_stop: effectiveFreqStop,
+        max_power: effectiveMaxPower,
         strategy: 'adaptive_progression',
         preset: presetId,
         goal: goalKey,
@@ -599,11 +609,15 @@ export default function Benchmark() {
       const effectiveFreqStop = toplessEnabled && toplessUnlocks.frequency && !toplessFreqCustom
         ? 9999
         : config.frequency_stop;
+      const effectiveMaxPower = toplessEnabled && toplessUnlocks.power
+        ? 1_000_000
+        : config.max_power;
       const autoTuneConfig = {
         device: selectedDevice,
         ...config,
         voltage_stop: effectiveVoltageStop,
         frequency_stop: effectiveFreqStop,
+        max_power: effectiveMaxPower,
         auto_mode: true,
         goal: goalKey,
         optimization_goal,
