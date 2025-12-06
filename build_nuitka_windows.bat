@@ -4,7 +4,7 @@ REM Prerequisites: Python 3.11+, npm (for frontend build), venv tools
 
 setlocal
 set OUTPUT_NAME=AxeBench_v3.0.0_BETA_2
-set OUTPUT_DIR=build-win-noconsole-new4
+set OUTPUT_DIR=build-win-noconsole-new5
 cd /d "%~dp0"
 
 REM Build frontend (served from dist/public)

@@ -2488,11 +2488,14 @@ def run_auto_tune_sequence(device_name: str, data: dict):
             n_cfg = BenchmarkConfig()
             v = base_profile['voltage']
             f = base_profile['frequency']
-            n_cfg.voltage_start = max(900, v - 25)
-            n_cfg.voltage_stop = v + 25
+            # Float around the base point in both directions so we don’t bias upward/downward
+            v_delta = 30
+            f_delta = 35
+            n_cfg.voltage_start = max(900, v - v_delta)
+            n_cfg.voltage_stop = v + v_delta
             n_cfg.voltage_step = 5
-            n_cfg.frequency_start = max(300, f - 25)
-            n_cfg.frequency_stop = f + 25
+            n_cfg.frequency_start = max(300, f - f_delta)
+            n_cfg.frequency_stop = f + f_delta
             n_cfg.frequency_step = 5
             n_cfg.benchmark_duration = cfg.benchmark_duration
             n_cfg.warmup_time = cfg.warmup_time
@@ -2542,6 +2545,19 @@ def run_auto_tune_sequence(device_name: str, data: dict):
                 record_status_message(f'Auto Tune: Nano {step["goal"]} updated {profile_key}', 'success')
             else:
                 record_status_message(f'Auto Tune: Nano {step["goal"]} found no valid result', 'warning')
+
+        # Ensure MAX_AUTO captures the highest hashrate seen across profiles
+        try:
+          def _hashrate(p):
+              return _numeric(p.get('hashrate') or p.get('expected_hashrate') or 0)
+          best_profile = max([p for p in auto_profiles.values() if p], key=_hashrate)
+          current_max = _hashrate(auto_profiles.get('MAX_AUTO') or {})
+          if _hashrate(best_profile) > current_max:
+              auto_profiles['MAX_AUTO'] = best_profile
+              save_profiles(device_name, {k: v for k, v in auto_profiles.items() if v})
+              record_status_message('Auto Tune: MAX_AUTO refreshed to highest hashrate found.', 'info')
+        except Exception as e:
+          record_status_message(f'Auto Tune: failed to refresh MAX_AUTO ({e})', 'warning')
 
         # Apply EFFICIENT_AUTO
         try:
