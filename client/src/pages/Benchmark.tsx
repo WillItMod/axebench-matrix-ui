@@ -278,12 +278,16 @@ export default function Benchmark() {
       const effectiveMaxPower = toplessEnabled && toplessUnlocks.power
         ? 1_000_000
         : config.max_power;
+      const effectiveMaxTemp = toplessEnabled
+        ? Math.max(config.max_chip_temp || 0, 70)
+        : config.max_chip_temp;
       const benchmarkConfig = {
         device: selectedDevice,
         ...config,
         voltage_stop: effectiveVoltageStop,
         frequency_stop: effectiveFreqStop,
         max_power: effectiveMaxPower,
+        max_chip_temp: effectiveMaxTemp,
         strategy: 'adaptive_progression',
         preset: presetId,
         goal: goalKey,
@@ -607,12 +611,16 @@ export default function Benchmark() {
       const effectiveMaxPower = toplessEnabled && toplessUnlocks.power
         ? 1_000_000
         : config.max_power;
+      const effectiveMaxTemp = toplessEnabled
+        ? Math.max(config.max_chip_temp || 0, 70)
+        : config.max_chip_temp;
       const autoTuneConfig = {
         device: selectedDevice,
         ...config,
         voltage_stop: effectiveVoltageStop,
         frequency_stop: effectiveFreqStop,
         max_power: effectiveMaxPower,
+        max_chip_temp: effectiveMaxTemp,
         auto_mode: true,
         goal: goalKey,
         optimization_goal,

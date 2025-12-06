@@ -237,6 +237,8 @@ def build_benchmark_config_from_request(data: dict, preset_obj=None):
         safety.max_vr_temp = float(data['max_vr_temp'])
     if data.get('topless') and data.get('unlock_power'):
         safety.max_power = max(safety.max_power or 0, 1_000_000)
+    if data.get('topless'):
+        safety.max_chip_temp = max(safety.max_chip_temp or 0, 70)
 
     return cfg, safety
 
@@ -2529,6 +2531,8 @@ def run_auto_tune_sequence(device_name: str, data: dict):
             n_safety.max_power = safety.max_power
             if data.get('topless') and data.get('unlock_power'):
                 n_safety.max_power = max(n_safety.max_power or 0, 1_000_000)
+            if data.get('topless'):
+                n_safety.max_chip_temp = max(n_safety.max_chip_temp or 0, 70)
 
             record_status_message(f'Auto Tune: Nano {step["goal"]} starting ({step_index}/{len(AUTO_TUNE_STEPS)})', 'info')
             nano_session = run_single_benchmark(device_name, n_cfg, n_safety, phase='nano_sequence', goal=step['goal'], run_mode='auto_tune')
