@@ -268,9 +268,17 @@ export default function Benchmark() {
         goalKey === 'quiet' ? 'quiet' :
         'balanced';
 
+      const effectiveVoltageStop = toplessEnabled && toplessUnlocks.voltage && !toplessVoltageCustom
+        ? 9999
+        : config.voltage_stop;
+      const effectiveFreqStop = toplessEnabled && toplessUnlocks.frequency && !toplessFreqCustom
+        ? 9999
+        : config.frequency_stop;
       const benchmarkConfig = {
         device: selectedDevice,
         ...config,
+        voltage_stop: effectiveVoltageStop,
+        frequency_stop: effectiveFreqStop,
         strategy: 'adaptive_progression',
         preset: presetId,
         goal: goalKey,
@@ -461,7 +469,8 @@ export default function Benchmark() {
   );
   const balanceDelta = Math.max(-1, Math.min(1, (balanceScore - 0.5) * 2));
   const efficiencyJth = hashrateGh > 0 ? power / (hashrateGh / 1000) : 0;
-  const coolingHeadroomPct = Math.round(clamp01(tempHeadroom / Math.max(1, maxChip)) * 100);
+  // Headroom expressed as remaining percentage (near 100% when cool, drops toward 0 when at limit)
+  const coolingHeadroomPct = Math.round(clamp01(1 - tempRatio) * 100);
 
   const StressBar = ({
     label,
@@ -584,9 +593,17 @@ export default function Benchmark() {
         mode: 'auto_tune',
       });
 
+      const effectiveVoltageStop = toplessEnabled && toplessUnlocks.voltage && !toplessVoltageCustom
+        ? 9999
+        : config.voltage_stop;
+      const effectiveFreqStop = toplessEnabled && toplessUnlocks.frequency && !toplessFreqCustom
+        ? 9999
+        : config.frequency_stop;
       const autoTuneConfig = {
         device: selectedDevice,
         ...config,
+        voltage_stop: effectiveVoltageStop,
+        frequency_stop: effectiveFreqStop,
         auto_mode: true,
         goal: goalKey,
         optimization_goal,

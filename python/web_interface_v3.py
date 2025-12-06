@@ -219,6 +219,13 @@ def build_benchmark_config_from_request(data: dict, preset_obj=None):
         except Exception:
             pass
 
+    # Topless unlocks (no ceilings) if requested
+    if data.get('topless'):
+        if data.get('unlock_voltage'):
+            cfg.voltage_stop = max(cfg.voltage_stop or 0, 9999)
+        if data.get('unlock_frequency'):
+            cfg.frequency_stop = max(cfg.frequency_stop or 0, 9999)
+
     # Safety
     if data.get('max_temp'):
         safety.max_chip_temp = float(data['max_temp'])
@@ -228,6 +235,8 @@ def build_benchmark_config_from_request(data: dict, preset_obj=None):
         safety.max_power = float(data['max_power'])
     if data.get('max_vr_temp'):
         safety.max_vr_temp = float(data['max_vr_temp'])
+    if data.get('topless') and data.get('unlock_power'):
+        safety.max_power = max(safety.max_power or 0, 1_000_000)
 
     return cfg, safety
 
@@ -2504,6 +2513,11 @@ def run_auto_tune_sequence(device_name: str, data: dict):
             n_cfg.auto_mode = True
             n_cfg.enable_plotting = cfg.enable_plotting
             n_cfg.export_csv = cfg.export_csv
+            if data.get('topless'):
+                if data.get('unlock_voltage'):
+                    n_cfg.voltage_stop = max(n_cfg.voltage_stop or 0, 9999)
+                if data.get('unlock_frequency'):
+                    n_cfg.frequency_stop = max(n_cfg.frequency_stop or 0, 9999)
             try:
                 n_cfg.optimization_goal = OptimizationGoal(step['goal'])
             except Exception:
@@ -2513,6 +2527,8 @@ def run_auto_tune_sequence(device_name: str, data: dict):
             n_safety.max_chip_temp = safety.max_chip_temp
             n_safety.max_vr_temp = safety.max_vr_temp
             n_safety.max_power = safety.max_power
+            if data.get('topless') and data.get('unlock_power'):
+                n_safety.max_power = max(n_safety.max_power or 0, 1_000_000)
 
             record_status_message(f'Auto Tune: Nano {step["goal"]} starting ({step_index}/{len(AUTO_TUNE_STEPS)})', 'info')
             nano_session = run_single_benchmark(device_name, n_cfg, n_safety, phase='nano_sequence', goal=step['goal'], run_mode='auto_tune')
