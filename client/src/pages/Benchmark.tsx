@@ -58,7 +58,7 @@ export default function Benchmark() {
   const [toplessEnabled, setToplessEnabled] = useState(false);
   const [toplessDialogOpen, setToplessDialogOpen] = useState(false);
   const [toplessAck, setToplessAck] = useState(false);
-  const [toplessUnlocks, setToplessUnlocks] = useState({ voltage: true, frequency: true, power: false });
+  const [toplessUnlocks, setToplessUnlocks] = useState({ voltage: false, frequency: false, power: false });
   const [toplessVoltageCustom, setToplessVoltageCustom] = useState(false);
   const [toplessFreqCustom, setToplessFreqCustom] = useState(false);
   const [engineDetail, setEngineDetail] = useState<{ open: boolean; title: string; lines: string[] }>({
