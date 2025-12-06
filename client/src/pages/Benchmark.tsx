@@ -59,6 +59,8 @@ export default function Benchmark() {
   const [toplessDialogOpen, setToplessDialogOpen] = useState(false);
   const [toplessAck, setToplessAck] = useState(false);
   const [toplessUnlocks, setToplessUnlocks] = useState({ voltage: true, frequency: true, power: false });
+  const [toplessVoltageCustom, setToplessVoltageCustom] = useState(false);
+  const [toplessFreqCustom, setToplessFreqCustom] = useState(false);
   const [engineDetail, setEngineDetail] = useState<{ open: boolean; title: string; lines: string[] }>({
     open: false,
     title: '',
@@ -614,6 +616,10 @@ export default function Benchmark() {
             warmup: safeConfig.warmup_time,
             cooldown: safeConfig.cooldown_time,
             auto_mode: safeConfig.auto_mode,
+            topless: toplessEnabled,
+            unlock_voltage: toplessUnlocks.voltage,
+            unlock_frequency: toplessUnlocks.frequency,
+            unlock_power: toplessUnlocks.power,
           },
         },
         runId
@@ -831,8 +837,16 @@ export default function Benchmark() {
                 <Label className="text-[var(--text-secondary)]">Voltage Stop (mV)</Label>
                 <Input
                   type="number"
-                  value={config.voltage_stop}
-                  onChange={(e) => setConfig({...config, voltage_stop: parseInt(e.target.value)})}
+                  value={
+                    toplessEnabled && toplessUnlocks.voltage && !toplessVoltageCustom
+                      ? ''
+                      : config.voltage_stop
+                  }
+                  placeholder={toplessEnabled && toplessUnlocks.voltage ? '∞ (unlocked)' : undefined}
+                  onChange={(e) => {
+                    setToplessVoltageCustom(true);
+                    setConfig({ ...config, voltage_stop: parseInt(e.target.value) });
+                  }}
                   disabled={settingsLocked}
                   className="mt-1"
                 />
@@ -863,8 +877,16 @@ export default function Benchmark() {
                 <Label className="text-[var(--text-secondary)]">Frequency Stop (MHz)</Label>
                 <Input
                   type="number"
-                  value={config.frequency_stop}
-                  onChange={(e) => setConfig({...config, frequency_stop: parseInt(e.target.value)})}
+                  value={
+                    toplessEnabled && toplessUnlocks.frequency && !toplessFreqCustom
+                      ? ''
+                      : config.frequency_stop
+                  }
+                  placeholder={toplessEnabled && toplessUnlocks.frequency ? '∞ (unlocked)' : undefined}
+                  onChange={(e) => {
+                    setToplessFreqCustom(true);
+                    setConfig({ ...config, frequency_stop: parseInt(e.target.value) });
+                  }}
                   disabled={settingsLocked}
                   className="mt-1"
                 />
@@ -1209,6 +1231,8 @@ export default function Benchmark() {
                   size="sm"
                   onClick={() => {
                     setToplessEnabled(false);
+                    setToplessVoltageCustom(false);
+                    setToplessFreqCustom(false);
                     toast.success('Topless mode disabled');
                   }}
                   className="uppercase tracking-wide"
@@ -1749,6 +1773,8 @@ export default function Benchmark() {
                     return;
                   }
                   setToplessEnabled(true);
+                  setToplessVoltageCustom(false);
+                  setToplessFreqCustom(false);
                   setToplessDialogOpen(false);
                   toast.warning('Topless mode armed: safety caps disabled for selected elements');
                 }}
