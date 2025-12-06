@@ -28,6 +28,16 @@ const BenchmarkContext = createContext<BenchmarkContextType | undefined>(undefin
 export function BenchmarkProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<BenchmarkStatus>({ running: false, testsTotal: 0, testsCompleted: 0 });
 
+  const clearAutoTuneHints = () => {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      localStorage.removeItem('axebench:autoTune_stage_hint');
+      localStorage.removeItem('axebench:autoTune_nano');
+    } catch {
+      /* ignore */
+    }
+  };
+
   const normalizeMode = (rawMode?: string, autoMode?: boolean) => {
     const mode = (rawMode || '').toLowerCase();
     if (mode.includes('nano')) return 'nano_tune';
@@ -63,6 +73,9 @@ export function BenchmarkProvider({ children }: { children: ReactNode }) {
         logs_count: (data.session_logs || data.logs || []).length
       });
       autoTuneTracer.recordStatus(data);
+      if (!data.running || mode !== 'auto_tune') {
+        clearAutoTuneHints();
+      }
       setStatus({
         running: data.running || false,
         mode,

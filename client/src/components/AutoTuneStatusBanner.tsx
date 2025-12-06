@@ -1,9 +1,15 @@
 import { useState } from 'react';
 import { useBenchmark } from '@/contexts/BenchmarkContext';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function AutoTuneStatusBanner() {
-  const { status } = useBenchmark();
+  const { status, refreshStatus } = useBenchmark();
   const [collapsed, setCollapsed] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [stopping, setStopping] = useState(false);
 
   // Only show when auto_tune is running
   if (!status.running || status.mode !== 'auto_tune') return null;
@@ -69,6 +75,20 @@ export default function AutoTuneStatusBanner() {
   const activeStage =
     stages.find((s) => s.match.some((m) => phase.toLowerCase().includes(m))) || stages[0];
 
+  const handleStop = async () => {
+    if (stopping) return;
+    try {
+      setStopping(true);
+      await api.benchmark.stop();
+      toast.success('Auto Tune stop requested');
+      await refreshStatus();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to stop Auto Tune');
+    } finally {
+      setStopping(false);
+    }
+  };
+
   return (
     <div className="relative z-20 bg-gradient-to-r from-[#6d28d9]/95 via-[#a855f7]/90 to-[#6d28d9]/95 backdrop-blur-sm border-b-2 border-[#a855f7] shadow-lg shadow-[#a855f7]/40 rounded-xl">
       <div className="container mx-auto px-4 py-3 space-y-2">
@@ -132,6 +152,15 @@ export default function AutoTuneStatusBanner() {
               className="w-6 h-6 border-2 border-white/60 border-t-transparent rounded-full animate-spin"
               aria-label="Auto tune spinning indicator"
             />
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setConfirmOpen(true)}
+              disabled={stopping}
+              className="bg-red-600 text-white border-red-500 hover:bg-red-500"
+            >
+              {stopping ? 'Stopping...' : 'Stop Autopilot'}
+            </Button>
           </div>
         </div>
 
@@ -170,6 +199,18 @@ export default function AutoTuneStatusBanner() {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Stop Autopilot?"
+        description="This will stop the running Auto Tune sequence. Current test may take a moment to exit."
+        tone="danger"
+        confirmLabel={stopping ? 'Stopping...' : 'Stop Autopilot'}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleStop();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }

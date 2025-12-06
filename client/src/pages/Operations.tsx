@@ -119,10 +119,21 @@ export default function Operations() {
   const loadDevices = async () => {
     try {
       const data = await api.devices.list();
-      setDevices(data || []);
-      if (data?.length) {
-        setSelectedDevices([data[0].name]);
-      }
+      const list = data || [];
+      setDevices(list);
+
+      // Respect any persisted selection; only default if nothing valid is selected.
+      setSelectedDevices((prev) => {
+        const availableNames = list.map((d) => d.name);
+        const stillValid = prev.filter((name) => availableNames.includes(name));
+
+        if (stillValid.length) {
+          // Preserve previous selection if it still exists
+          return stillValid.length === prev.length ? prev : stillValid;
+        }
+        // Nothing selected or all invalid: pick the first device if available
+        return availableNames.length ? [availableNames[0]] : [];
+      });
     } catch {
       toast.error('Failed to load devices');
     } finally {
