@@ -264,10 +264,16 @@ def select_profile_candidates(results: list):
     by_hashrate = sorted(valid, key=lambda r: r['avg_hashrate'], reverse=True)
     by_eff = sorted(valid, key=lambda r: r['efficiency'])
     by_power = sorted(valid, key=lambda r: r['avg_power'])
+
+    # Balanced: weighted blend of throughput + efficiency + stability, anchored between max and efficient
+    max_hash = by_hashrate[0]['avg_hashrate'] if by_hashrate else 0
+    best_eff = by_eff[0]['efficiency'] if by_eff else None
     def balanced_score(r):
-        if not r['avg_power']:
-            return 0
-        return (r['avg_hashrate'] / r['avg_power']) * (r['stability_score'] or 80)
+        h_norm = (r['avg_hashrate'] / max_hash) if max_hash else 0
+        eff_norm = (best_eff / r['efficiency']) if (best_eff and r.get('efficiency')) else 0
+        stability_norm = (r.get('stability_score') or 80) / 100.0
+        # Emphasize being between efficient and max while staying efficient and stable
+        return (0.55 * h_norm) + (0.3 * eff_norm) + (0.15 * stability_norm)
     balanced = max(valid, key=balanced_score)
 
     return {
