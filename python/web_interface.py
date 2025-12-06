@@ -79,6 +79,7 @@ benchmark_status = {
     'last_safe_settings': None,  # Last known good V/F for recovery
     'config': None,      # Last benchmark config used
     'safety_limits': None,  # Safety limits used for this run
+    'seen_combos': [],   # Lightweight tracking of unique V/F combos tested
 }
 
 process_start_time = time.time()
@@ -124,6 +125,30 @@ def _numeric(val, default=0):
         return n if n == n else default  # NaN check
     except Exception:
         return default
+
+# Normalize incoming goal strings to canonical values for OptimizationGoal
+def _normalize_goal(goal_raw: str) -> str:
+    if not goal_raw:
+        return 'balanced'
+    goal = str(goal_raw).lower()
+    goal_alias = {
+        'max': 'max_hashrate',
+        'performance': 'max_hashrate',
+        'hashrate': 'max_hashrate',
+        'nuclear': 'max_hashrate',
+        'turbo': 'max_hashrate',
+        'efficient': 'efficient',
+        'efficiency': 'efficient',
+        'max_efficiency': 'max_efficiency',
+        'balanced': 'balanced',
+        'normal': 'balanced',
+        'default': 'balanced',
+        'quiet': 'quiet',
+        'silent': 'quiet',
+        'eco': 'quiet',
+        'stable': 'stable',
+    }
+    return goal_alias.get(goal, goal)
 
 
 def estimate_tests_total(cfg: dict) -> int:
@@ -315,16 +340,23 @@ def select_profile_candidates(results: list):
                 return r
         return by_power[0] if by_power else None
 
-    def pick_balanced():
-        for r in by_hashrate:
-            if (r.get('hashrate_variance') or 0) < 5 and (r.get('stability_score') or 0) > 80:
-                return r
-        return by_hashrate[0] if by_hashrate else None
+    # Balanced: weighted blend of throughput + efficiency + stability, anchored between max and efficient
+    max_hash = by_hashrate[0]['avg_hashrate'] if by_hashrate else 0
+    best_eff = by_eff[0]['efficiency'] if by_eff else None
+
+    def balanced_score(r):
+        h_norm = (r['avg_hashrate'] / max_hash) if max_hash else 0
+        eff_norm = (best_eff / r['efficiency']) if (best_eff and r.get('efficiency')) else 0
+        stability_norm = (r.get('stability_score') or 80) / 100.0
+        # Emphasize being between efficient and max while staying efficient and stable
+        return (0.55 * h_norm) + (0.30 * eff_norm) + (0.15 * stability_norm)
+
+    balanced = max(valid, key=balanced_score)
 
     return {
         'quiet': pick_quiet(),
         'efficient': by_eff[0] if by_eff else None,
-        'balanced': pick_balanced(),
+        'balanced': balanced or (by_hashrate[0] if by_hashrate else None),
         'max': by_hashrate[0] if by_hashrate else None
     }
 
@@ -433,6 +465,12 @@ def build_benchmark_config_from_request(data: dict, preset_obj=None):
         cfg.export_csv = bool(data.get('export_csv'))
     if data.get('target_error') is not None:
         cfg.target_error = float(data.get('target_error'))
+    if data.get('optimization_goal') or data.get('goal'):
+        goal_value = _normalize_goal(data.get('optimization_goal') or data.get('goal'))
+        try:
+            cfg.optimization_goal = OptimizationGoal(goal_value)
+        except Exception:
+            pass
 
     if data.get('max_temp') is not None:
         safety.max_chip_temp = float(data['max_temp'])
@@ -1956,6 +1994,7 @@ def start_benchmark():
     device_name = data.get('device')
     preset = data.get('preset')
     run_mode = data.get('mode', 'benchmark')
+    goal_value = _normalize_goal(data.get('goal') or data.get('optimization_goal'))
 
     if not device_name:
         return jsonify({'error': 'Device name required'}), 400
@@ -1980,6 +2019,10 @@ def start_benchmark():
     if preset:
         for k, v in preset['config'].items():
             setattr(config, k, v)
+    try:
+        config.optimization_goal = OptimizationGoal(goal_value)
+    except Exception:
+        pass
     
     # Apply custom settings from form
     if data.get('voltage_start'):
@@ -2005,7 +2048,6 @@ def start_benchmark():
     if data.get('strategy'):
         from config import SearchStrategy
         config.strategy = SearchStrategy(data['strategy'])
-    # goal already resolved via resolve_optimization_mode above
     if 'restart' in data:
         config.restart_between_tests = bool(data['restart'])
     if 'enable_plotting' in data:
@@ -2345,11 +2387,38 @@ def start_benchmark():
 def get_benchmark_status():
     """Get current benchmark status"""
     status = dict(benchmark_status)  # Copy to avoid modifying global
+
+    # Derive tests_total/progress if backend hasn't populated them
+    cfg = status.get('config') or {}
+    est_total = estimate_tests_total(cfg)
+    tests_total = status.get('tests_total') or est_total
+    tests_completed = status.get('tests_completed') or status.get('tests_complete') or len(status.get('seen_combos') or []) or 0
+    if status.get('running') and tests_total:
+        if tests_completed == 0:
+            tests_completed = max(1, len(status.get('seen_combos') or []), 1)
+        if status.get('current_test') or status.get('live_data'):
+            tests_completed = max(tests_completed, len(status.get('seen_combos') or []), 1)
+    if tests_total and tests_completed > tests_total:
+        tests_completed = tests_total
+    if status.get('running') and tests_total:
+        pct = min(100, max(0, (tests_completed / tests_total) * 100))
+        status['progress'] = min(100, max(0, status.get('progress') or pct))
+    else:
+        status['progress'] = 0
+        tests_total = 0
+        tests_completed = 0
+    status['tests_total'] = tests_total or 0
+    status['tests_completed'] = tests_completed
+    # Persist clamped values back into global so subsequent polls keep the floor
+    benchmark_status['tests_total'] = status['tests_total']
+    benchmark_status['tests_completed'] = status['tests_completed']
     
     # Add session logs if we have an active session
     if current_engine and hasattr(current_engine, 'session') and current_engine.session:
         status['session_logs'] = current_engine.session.logs
         status['session_id'] = current_engine.session.session_id
+    elif 'session_logs' in benchmark_status:
+        status['session_logs'] = benchmark_status.get('session_logs', [])
     
     # If running and we have live_data, try to add fan speed if missing
     if status.get('running') and status.get('live_data') and status.get('device'):
