@@ -58,6 +58,7 @@ export default function Benchmark() {
   const [toplessEnabled, setToplessEnabled] = useState(false);
   const [toplessDialogOpen, setToplessDialogOpen] = useState(false);
   const [toplessAck, setToplessAck] = useState(false);
+  const [toplessTempAck, setToplessTempAck] = useState(false);
   const [toplessUnlocks, setToplessUnlocks] = useState({ voltage: false, frequency: false, power: false });
   const [toplessVoltageCustom, setToplessVoltageCustom] = useState(false);
   const [toplessFreqCustom, setToplessFreqCustom] = useState(false);
@@ -1247,11 +1248,11 @@ export default function Benchmark() {
             <div className="flex flex-wrap gap-2">
               {toplessUnlocks.voltage && <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-primary)] text-[10px] tracking-wide">VOLTAGE UNLOCKED</span>}
               {toplessUnlocks.frequency && <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-primary)] text-[10px] tracking-wide">CLOCK UNLOCKED</span>}
-              {toplessUnlocks.power && <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-primary)] text-[10px] tracking-wide">PSU/POWER UNLOCKED</span>}
-              {!toplessUnlocks.voltage && !toplessUnlocks.frequency && !toplessUnlocks.power && (
-                <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-muted)] text-[10px] tracking-wide">NO UNLOCKS SELECTED</span>
-              )}
-            </div>
+                  {toplessUnlocks.power && <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-primary)] text-[10px] tracking-wide">PSU/POWER UNLOCKED</span>}
+                  {!toplessUnlocks.voltage && !toplessUnlocks.frequency && !toplessUnlocks.power && (
+                    <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-muted)] text-[10px] tracking-wide">NO UNLOCKS SELECTED</span>
+                  )}
+                </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="destructive"
@@ -1728,6 +1729,7 @@ export default function Benchmark() {
           if (!open) {
             setToplessDialogOpen(false);
             setToplessAck(false);
+            setToplessTempAck(false);
           } else {
             setToplessDialogOpen(true);
           }
@@ -1788,6 +1790,10 @@ export default function Benchmark() {
               <Checkbox checked={toplessAck} onCheckedChange={(checked) => setToplessAck(Boolean(checked))} />
               <span>I accept that running topless can cause hardware failure, fire risk, or permanent damage.</span>
             </label>
+            <label className="flex items-start gap-2 text-[var(--text-primary)] text-xs font-semibold">
+              <Checkbox checked={toplessTempAck} onCheckedChange={(checked) => setToplessTempAck(Boolean(checked))} />
+              <span>I will keep ASIC temps at or below 70°C (recommended ceiling).</span>
+            </label>
 
             <div className="flex items-center justify-end gap-2">
               <Button variant="outline" onClick={() => setToplessDialogOpen(false)}>
@@ -1795,7 +1801,7 @@ export default function Benchmark() {
               </Button>
               <Button
                 variant="destructive"
-                disabled={!toplessAck || !Object.values(toplessUnlocks).some(Boolean) || settingsLocked}
+                disabled={!toplessAck || !toplessTempAck || !Object.values(toplessUnlocks).some(Boolean) || settingsLocked}
                 onClick={() => {
                   if (settingsLocked) {
                     toast.error('Stop the running benchmark before toggling topless mode');
@@ -1805,8 +1811,8 @@ export default function Benchmark() {
                     toast.error('Select at least one element to unlock');
                     return;
                   }
-                  if (!toplessAck) {
-                    toast.error('Acknowledge the risk to proceed');
+                  if (!toplessAck || !toplessTempAck) {
+                    toast.error('Acknowledge the risks to proceed');
                     return;
                   }
                   setToplessEnabled(true);
