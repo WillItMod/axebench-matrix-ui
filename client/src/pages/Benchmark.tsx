@@ -274,12 +274,6 @@ export default function Benchmark() {
       const effectiveFreqStop = toplessEnabled && toplessUnlocks.frequency && !toplessFreqCustom
         ? 9999
         : config.frequency_stop;
-      const effectiveVoltageStop = toplessEnabled && toplessUnlocks.voltage && !toplessVoltageCustom
-        ? 9999
-        : config.voltage_stop;
-      const effectiveFreqStop = toplessEnabled && toplessUnlocks.frequency && !toplessFreqCustom
-        ? 9999
-        : config.frequency_stop;
       const effectiveMaxPower = toplessEnabled && toplessUnlocks.power
         ? 1_000_000
         : config.max_power;
