@@ -62,6 +62,8 @@ export default function Benchmark() {
   const [toplessUnlocks, setToplessUnlocks] = useState({ voltage: false, frequency: false, power: false });
   const [toplessVoltageCustom, setToplessVoltageCustom] = useState(false);
   const [toplessFreqCustom, setToplessFreqCustom] = useState(false);
+  const [toplessPowerCustom, setToplessPowerCustom] = useState(false);
+  const [toplessTempCustom, setToplessTempCustom] = useState(false);
   const [engineDetail, setEngineDetail] = useState<{ open: boolean; title: string; lines: string[] }>({
     open: false,
     title: '',
@@ -279,7 +281,10 @@ export default function Benchmark() {
         ? 1_000_000
         : config.max_power;
       const effectiveMaxTemp = toplessEnabled
-        ? Math.max(config.max_chip_temp || 0, 70)
+        ? Math.max(
+            toplessTempCustom ? config.max_chip_temp || 0 : 70,
+            70
+          )
         : config.max_chip_temp;
       const benchmarkConfig = {
         device: selectedDevice,
@@ -612,7 +617,10 @@ export default function Benchmark() {
         ? 1_000_000
         : config.max_power;
       const effectiveMaxTemp = toplessEnabled
-        ? Math.max(config.max_chip_temp || 0, 70)
+        ? Math.max(
+            toplessTempCustom ? config.max_chip_temp || 0 : 70,
+            70
+          )
         : config.max_chip_temp;
       const autoTuneConfig = {
         device: selectedDevice,
@@ -1041,8 +1049,15 @@ export default function Benchmark() {
                 <Label className="text-[var(--text-secondary)]">Max Chip Temp (°C)</Label>
                 <Input
                   type="number"
-                  value={config.max_chip_temp}
-                  onChange={(e) => setConfig({...config, max_chip_temp: parseInt(e.target.value)})}
+                  value={
+                    toplessEnabled && !toplessTempCustom
+                      ? 70
+                      : config.max_chip_temp
+                  }
+                  onChange={(e) => {
+                    setToplessTempCustom(true);
+                    setConfig({...config, max_chip_temp: parseInt(e.target.value)});
+                  }}
                   disabled={settingsLocked}
                   className="mt-1"
                 />
@@ -1061,8 +1076,16 @@ export default function Benchmark() {
                 <Label className="text-[var(--text-secondary)]">Max Power (W)</Label>
                 <Input
                   type="number"
-                  value={config.max_power}
-                  onChange={(e) => setConfig({...config, max_power: parseInt(e.target.value)})}
+                  value={
+                    toplessEnabled && toplessUnlocks.power && !toplessPowerCustom
+                      ? ''
+                      : config.max_power
+                  }
+                  placeholder={toplessEnabled && toplessUnlocks.power ? '∞ (unlocked)' : undefined}
+                  onChange={(e) => {
+                    setToplessPowerCustom(true);
+                    setConfig({...config, max_power: parseInt(e.target.value)});
+                  }}
                   disabled={settingsLocked}
                   className="mt-1"
                 />
