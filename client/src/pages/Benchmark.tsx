@@ -407,28 +407,34 @@ export default function Benchmark() {
   const powerHeadroom = maxPower - power;
   const errorMargin = targetError - errorPct;
   const psuRatio = psuCapacity > 0 ? clamp01(power / psuCapacity) : (psuUtilPct > 0 ? clamp01(psuUtilPct / 100) : powerRatio);
+  const idealTemp = Math.max(45, maxChip - 5); // bitaxes tend to be happy a few deg under limit
+  const coldBandStart = Math.max(35, idealTemp - 12);
+  const overTemp = Math.max(0, temp - idealTemp);
+  const overTempRatio = clamp01(overTemp / Math.max(1, maxChip - idealTemp));
+  const coldPenalty = temp < coldBandStart ? clamp01((coldBandStart - temp) / coldBandStart) * 0.3 : 0;
   const thermalStress = Math.round(
     clamp01(
-      tempRatio * 0.8 +
-      (tempRatio > 0.9 ? 0.15 : tempRatio > 0.8 ? 0.05 : 0) +
-      (fanSpeed > 90 ? 0.1 : fanSpeed > 80 ? 0.05 : 0) +
-      (tempHeadroom >= 15 ? -0.2 : tempHeadroom >= 10 ? -0.1 : 0)
+      0.5 * tempRatio +
+      0.35 * overTempRatio +
+      coldPenalty +
+      (fanSpeed > 90 ? 0.06 : fanSpeed > 80 ? 0.03 : 0) -
+      (tempHeadroom >= 12 ? 0.28 : tempHeadroom >= 8 ? 0.18 : tempHeadroom >= 5 ? 0.1 : 0)
     ) * 100
   );
   const powerStress = Math.round(
     clamp01(
-      0.65 * Math.max(powerRatio, voltageRatio) +
+      0.45 * Math.max(powerRatio, voltageRatio) +
       0.25 * psuRatio +
-      (powerHeadroom <= 2 ? 0.15 : powerHeadroom <= 5 ? 0.08 : 0) -
-      (powerHeadroom >= 8 ? 0.08 : 0)
+      (Math.max(powerRatio, voltageRatio, psuRatio) > 0.9 ? 0.15 : Math.max(powerRatio, voltageRatio, psuRatio) > 0.8 ? 0.08 : 0) -
+      (powerHeadroom >= 12 ? 0.3 : powerHeadroom >= 8 ? 0.22 : powerHeadroom >= 5 ? 0.12 : 0)
     ) * 100
   );
   const errRatio = targetError ? clamp01(errorPct / targetError) : 0;
   const stabilityStress = Math.round(
     clamp01(
-      errRatio * 0.85 +
-      ((status?.failed_combos?.length || 0) * 0.02) +
-      ((status?.recovery_attempts || 0) * 0.05)
+      errRatio * 0.7 +
+      ((status?.failed_combos?.length || 0) * 0.01) +
+      ((status?.recovery_attempts || 0) * 0.03)
     ) * 100
   );
   const vNorm = clamp01(
@@ -443,10 +449,16 @@ export default function Benchmark() {
       Math.max(1, config.frequency_stop - config.frequency_start)
     )
   );
-  const push = (vNorm + fNorm + Math.max(powerRatio, voltageRatio)) / 3;
+  const push = (vNorm + fNorm + Math.max(powerRatio, voltageRatio, psuRatio)) / 3;
   const instability = clamp01(errRatio + (stabilityStress / 100) * 0.3);
   const headroomScore = clamp01(1 - Math.max(tempRatio, powerRatio, psuRatio));
-  const balanceScore = clamp01(0.5 + (push - instability) * 0.35 + headroomScore * 0.2);
+  const balanceScore = clamp01(
+    0.5 +
+    (push - instability) * 0.35 +
+    headroomScore * 0.2 -
+    (thermalStress / 100) * 0.1 -
+    (powerStress / 100) * 0.1
+  );
   const balanceDelta = Math.max(-1, Math.min(1, (balanceScore - 0.5) * 2));
   const efficiencyJth = hashrateGh > 0 ? power / (hashrateGh / 1000) : 0;
   const coolingHeadroomPct = Math.round(clamp01(tempHeadroom / Math.max(1, maxChip)) * 100);
