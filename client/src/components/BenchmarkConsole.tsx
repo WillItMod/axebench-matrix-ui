@@ -7,10 +7,23 @@ export default function BenchmarkConsole() {
   const { status, clearLogs } = useBenchmark();
   const logs = status.logs || [];
   const consoleRef = useRef<HTMLDivElement>(null);
+  const autoFollowRef = useRef(true);
 
-  // Auto-scroll to bottom when new logs appear
+  // Keep follow-on-bottom unless the user scrolls away.
   useEffect(() => {
-    if (consoleRef.current) {
+    const el = consoleRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      autoFollowRef.current = distanceFromBottom < 40; // re-enable when user is near bottom
+    };
+    el.addEventListener('scroll', handleScroll);
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-scroll to bottom when new logs appear if the user is near the bottom.
+  useEffect(() => {
+    if (consoleRef.current && autoFollowRef.current) {
       consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
     }
   }, [logs]);

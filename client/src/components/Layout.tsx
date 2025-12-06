@@ -12,6 +12,7 @@ import BitcoinCelebrationOverlay from './BitcoinCelebrationOverlay';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import DarkModeChallengeHub from './secret/DarkModeChallengeHub';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useBenchmark } from '@/contexts/BenchmarkContext';
 import { cn } from '@/lib/utils';
 import EasterEggLaunchers from './secret/EasterEggLaunchers';
 import BitcoinLoreModal from './secret/BitcoinLoreModal';
@@ -23,6 +24,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { secretUnlocked, setSecretUnlocked, setTheme, theme, setMatrixRainbow } = useTheme();
+  const { status: benchmarkStatus } = useBenchmark();
   const [location, setLocation] = useLocation();
   const [uptimeSeconds, setUptimeSeconds] = useState<number | null>(null);
   const [licenseTier, setLicenseTier] = useState<'free' | 'premium' | 'ultimate'>('free');
@@ -41,6 +43,8 @@ export default function Layout({ children }: LayoutProps) {
   const SATOSHI_UNLOCK_TAPS = 30;
   const SATOSHI_LOCK_TAPS = 5;
   const BANNER_FLAG_KEY = 'axebench_banner_flag';
+  const hasFixedStatusBanner =
+    benchmarkStatus.running && (benchmarkStatus.mode === 'nano_tune' || benchmarkStatus.mode === 'auto_tune');
 
   // Fetch uptime from backend and keep it ticking between polls
   useEffect(() => {
@@ -431,7 +435,7 @@ export default function Layout({ children }: LayoutProps) {
       <EasterEggLaunchers />
 
       {/* Status Banners - Show across all pages when operations are running */}
-      <div className="relative z-30 space-y-2 px-3">
+      <div className={`relative z-30 space-y-2 px-3 ${hasFixedStatusBanner ? 'pt-[72px]' : ''}`}>
         <BenchmarkStatusBanner />
         <NanoTuneStatusBanner />
         <AutoTuneStatusBanner />

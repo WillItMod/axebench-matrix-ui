@@ -877,14 +877,14 @@ function SessionCard({
           )}
         </div>
 
-        <div className="flex gap-2 ml-4">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 ml-0 sm:ml-4 mt-3 sm:mt-0">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 size="sm"
                 onClick={onView}
                 variant="secondary"
-                className="text-xs uppercase tracking-wide"
+                className="text-xs uppercase tracking-wide w-full sm:w-auto"
               >
                 VIEW
               </Button>
@@ -899,7 +899,7 @@ function SessionCard({
                   onClick={onGenerateProfiles}
                   disabled={generating}
                   variant="accent"
-                  className="text-xs uppercase tracking-wide disabled:opacity-70 shadow-[0_0_14px_hsla(var(--accent),0.35)]"
+                  className="text-xs uppercase tracking-wide disabled:opacity-70 shadow-[0_0_14px_hsla(var(--accent),0.35)] w-full sm:w-auto"
                 >
                   {generating ? 'GENERATING...' : 'GENERATE_PROFILES'}
                 </Button>
@@ -915,7 +915,7 @@ function SessionCard({
                 size="sm"
                 onClick={onDownloadJson}
                 variant="outline"
-                className="text-xs uppercase tracking-wide"
+                className="text-xs uppercase tracking-wide w-full sm:w-auto"
               >
                 JSON
               </Button>
@@ -928,7 +928,7 @@ function SessionCard({
                 size="sm"
                 onClick={onDelete}
                 variant="destructive"
-                className="text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
+                className="text-xs uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)] w-full sm:w-auto"
               >
                 DELETE
               </Button>
@@ -960,13 +960,24 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
   const loadLogs = async () => {
     if (!session?.id) return;
 
+    const fallbackLogs = normalizeLogs(
+      session?.logs ??
+      session?.log ??
+      (session as any)?.console_logs ??
+      (session as any)?.console_log ??
+      (session as any)?.console ??
+      (session as any)?.log_data ??
+      ''
+    );
+
     try {
       setLoadingLogs(true);
       const logData = await api.sessions.getLogs(session.id);
-      setLogs(normalizeLogs(logData));
+      const normalized = normalizeLogs(logData);
+      setLogs(normalized || fallbackLogs || 'No logs available');
     } catch (error) {
       console.error('Failed to load logs:', error);
-      setLogs('Failed to load logs');
+      setLogs(fallbackLogs || 'Failed to load logs');
     } finally {
       setLoadingLogs(false);
     }
@@ -976,7 +987,7 @@ function SessionDetailsModal({ open, onClose, session }: SessionDetailsModalProp
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] text-[var(--text-primary)] max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] text-[var(--text-primary)] w-[min(96vw,1100px)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-glow-green">
             SESSION_DETAILS
@@ -1207,7 +1218,7 @@ function ProfilePreviewDialog({ state, onOpenChange, onSave, onToggleOverwrite, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] text-[var(--text-primary)] max-w-3xl">
+      <DialogContent className="bg-[var(--dark-gray)] border-2 border-[var(--matrix-green)] text-[var(--text-primary)] w-[min(96vw,1000px)] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-glow-green flex items-center gap-2">
             Save Profiles

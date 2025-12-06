@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -53,6 +54,11 @@ export default function Benchmark() {
   const [tuningMode, setTuningMode] = useState<'auto' | 'manual'>('auto'); // EASY vs ADVANCED
   const [preset, setPreset] = useState('standard'); // For EASY mode
   const [stopConfirmOpen, setStopConfirmOpen] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [toplessEnabled, setToplessEnabled] = useState(false);
+  const [toplessDialogOpen, setToplessDialogOpen] = useState(false);
+  const [toplessAck, setToplessAck] = useState(false);
+  const [toplessUnlocks, setToplessUnlocks] = useState({ voltage: true, frequency: true, power: false });
   const [engineDetail, setEngineDetail] = useState<{ open: boolean; title: string; lines: string[] }>({
     open: false,
     title: '',
@@ -269,7 +275,9 @@ export default function Benchmark() {
         optimization_goal,
       };
 
-      const { config: safeConfig, changed, capped } = applySafetyCaps(benchmarkConfig);
+      const { config: safeConfig, changed, capped } = toplessEnabled
+        ? { config: { ...benchmarkConfig }, changed: false, capped: [] }
+        : applySafetyCaps(benchmarkConfig);
       const payload = {
         ...safeConfig,
         device: selectedDevice,
@@ -277,6 +285,10 @@ export default function Benchmark() {
         preset: presetId,
         goal: goalKey,
         optimization_goal,
+        topless: toplessEnabled,
+        unlock_voltage: toplessUnlocks.voltage,
+        unlock_frequency: toplessUnlocks.frequency,
+        unlock_power: toplessUnlocks.power,
         duration: safeConfig.benchmark_duration,
         warmup: safeConfig.warmup_time,
         cooldown: safeConfig.cooldown_time,
@@ -287,8 +299,11 @@ export default function Benchmark() {
       await api.benchmark.start(payload);
       await refreshStatus(); // Update global benchmark state
       toast.success('Benchmark started');
-      if (changed) {
+      if (!toplessEnabled && changed) {
         toast.info(`Safety caps enforced (${capped.join(', ')})`);
+      }
+      if (toplessEnabled) {
+        toast.warning('Topless mode: safety caps disabled for this run');
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to start benchmark');
@@ -296,12 +311,16 @@ export default function Benchmark() {
   };
 
   const handleStop = async () => {
+    if (stopping) return;
     try {
+      setStopping(true);
       await api.benchmark.stop();
       await refreshStatus(); // Update global benchmark state
       toast.success('Benchmark stopped');
     } catch (error: any) {
       toast.error(error.message || 'Failed to stop benchmark');
+    } finally {
+      setStopping(false);
     }
   };
 
@@ -365,6 +384,8 @@ export default function Benchmark() {
   const maxPower = config.max_power || status?.safety_limits?.max_power || 25;
   const maxVoltage = (config as any).max_voltage || 1400;
   const targetError = config.target_error || status?.config?.target_error || 0.25;
+  const psuCapacity = numeric(status?.psu_capacity ?? (status as any)?.psu_max ?? liveData.psu_capacity);
+  const psuUtilPct = numeric(liveData.psu_utilization ?? liveData.psu_load ?? liveData.psu);
   const temp = Number(liveData.temp ?? liveData.temperature ?? 0);
   const power = Number(liveData.power ?? 0);
   const voltage = Number(liveData.voltage ?? config.voltage_start ?? 0);
@@ -383,22 +404,30 @@ export default function Benchmark() {
   const tempHeadroom = maxChip - temp;
   const powerHeadroom = maxPower - power;
   const errorMargin = targetError - errorPct;
-  const thermalStress = Math.min(
-    100,
-    tempRatio * 70 +
-      (tempRatio > 0.85 ? 15 : 0) +
-      (fanSpeed > 85 ? 10 : 0)
+  const psuRatio = psuCapacity > 0 ? clamp01(power / psuCapacity) : (psuUtilPct > 0 ? clamp01(psuUtilPct / 100) : powerRatio);
+  const thermalStress = Math.round(
+    clamp01(
+      tempRatio * 0.8 +
+      (tempRatio > 0.9 ? 0.15 : tempRatio > 0.8 ? 0.05 : 0) +
+      (fanSpeed > 90 ? 0.1 : fanSpeed > 80 ? 0.05 : 0) +
+      (tempHeadroom >= 15 ? -0.2 : tempHeadroom >= 10 ? -0.1 : 0)
+    ) * 100
   );
-  const powerStress = Math.min(
-    100,
-    Math.max(powerRatio, voltageRatio) * 80 + (powerRatio > 0.95 ? 10 : 0)
+  const powerStress = Math.round(
+    clamp01(
+      0.65 * Math.max(powerRatio, voltageRatio) +
+      0.25 * psuRatio +
+      (powerHeadroom <= 2 ? 0.15 : powerHeadroom <= 5 ? 0.08 : 0) -
+      (powerHeadroom >= 8 ? 0.08 : 0)
+    ) * 100
   );
   const errRatio = targetError ? clamp01(errorPct / targetError) : 0;
-  const stabilityStress = Math.min(
-    100,
-    errRatio * 80 +
-      ((status?.failed_combos?.length || 0) * 2) +
-      ((status?.recovery_attempts || 0) * 5)
+  const stabilityStress = Math.round(
+    clamp01(
+      errRatio * 0.85 +
+      ((status?.failed_combos?.length || 0) * 0.02) +
+      ((status?.recovery_attempts || 0) * 0.05)
+    ) * 100
   );
   const vNorm = clamp01(
     safeDiv(
@@ -414,8 +443,11 @@ export default function Benchmark() {
   );
   const push = (vNorm + fNorm + Math.max(powerRatio, voltageRatio)) / 3;
   const instability = clamp01(errRatio + (stabilityStress / 100) * 0.3);
-  const balanceDelta = Math.max(-1, Math.min(1, push - instability));
+  const headroomScore = clamp01(1 - Math.max(tempRatio, powerRatio, psuRatio));
+  const balanceScore = clamp01(0.5 + (push - instability) * 0.35 + headroomScore * 0.2);
+  const balanceDelta = Math.max(-1, Math.min(1, (balanceScore - 0.5) * 2));
   const efficiencyJth = hashrateGh > 0 ? power / (hashrateGh / 1000) : 0;
+  const coolingHeadroomPct = Math.round(clamp01(tempHeadroom / Math.max(1, maxChip)) * 100);
 
   const StressBar = ({
     label,
@@ -562,7 +594,9 @@ export default function Benchmark() {
         max_temp: config.max_chip_temp,
       };
 
-      const { config: safeConfig, changed, capped } = applySafetyCaps(autoTuneConfig);
+      const { config: safeConfig, changed, capped } = toplessEnabled
+        ? { config: { ...autoTuneConfig }, changed: false, capped: [] }
+        : applySafetyCaps(autoTuneConfig);
       autoTuneTracer.recordStartPayload(
         {
           device: selectedDevice,
@@ -607,6 +641,10 @@ export default function Benchmark() {
         restart: safeConfig.restart_between_tests,
         enable_plotting: safeConfig.enable_plots,
         max_temp: safeConfig.max_chip_temp,
+        topless: toplessEnabled,
+        unlock_voltage: toplessUnlocks.voltage,
+        unlock_frequency: toplessUnlocks.frequency,
+        unlock_power: toplessUnlocks.power,
       });
       await refreshStatus(); // Update global benchmark state
       autoTuneTracer.recordStatus({
@@ -621,8 +659,11 @@ export default function Benchmark() {
         toast.success(
           `AUTOPILOT engaged${nanoPass ? ' with Nano finish' : ''} - Stage 1: Full sweep`
         );
-        if (changed) {
+        if (!toplessEnabled && changed) {
           toast.info(`Safety caps enforced (${capped.join(', ')})`);
+        }
+        if (toplessEnabled) {
+          toast.warning('Topless mode: safety caps disabled for this run');
         }
       }
       setAutoTuneDialogOpen(false);
@@ -1105,9 +1146,10 @@ export default function Benchmark() {
                   <Button
                     onClick={() => setStopConfirmOpen(true)}
                     variant="destructive"
-                    className="w-full text-lg py-6 bg-[#ef4444] hover:bg-[#dc2626] border border-[#ef4444] text-white shadow-[0_0_26px_rgba(239,68,68,0.6)]"
+                    disabled={stopping}
+                    className="w-full text-lg py-6 bg-[#ef4444] hover:bg-[#dc2626] border border-[#ef4444] text-white shadow-[0_0_26px_rgba(239,68,68,0.6)] disabled:opacity-70"
                   >
-                    ■ STOP_BENCHMARK
+                    {stopping ? '■ STOPPING...' : '■ STOP_BENCHMARK'}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top">
@@ -1119,7 +1161,7 @@ export default function Benchmark() {
                 title="Stop running benchmark?"
                 description="Stopping now will end the current run and discard any partially collected samples."
                 tone="danger"
-                confirmLabel="Stop benchmark"
+                confirmLabel={stopping ? 'Stopping...' : 'Stop benchmark'}
                 onConfirm={() => {
                   setStopConfirmOpen(false);
                   handleStop();
@@ -1128,6 +1170,57 @@ export default function Benchmark() {
               />
               </>
             )}
+          </div>
+
+          {/* Topless mode danger toggle */}
+          <div className="matrix-card border-[var(--error-red)]/60 bg-[var(--error-red)]/10 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h4 className="text-lg font-bold text-[var(--error-red)]">TOPLESS MODE (NO CEILINGS)</h4>
+                <p className="text-[var(--text-secondary)] text-xs">
+                  Disables safety caps for selected elements. Only enable if you fully understand the risks.
+                </p>
+              </div>
+              <div className="text-xs text-[var(--text-secondary)]">
+                Status: <span className={toplessEnabled ? 'text-[var(--error-red)] font-bold' : 'text-[var(--text-muted)]'}>{toplessEnabled ? 'ARMED' : 'OFF'}</span>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {toplessUnlocks.voltage && <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-primary)] text-[10px] tracking-wide">VOLTAGE UNLOCKED</span>}
+              {toplessUnlocks.frequency && <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-primary)] text-[10px] tracking-wide">CLOCK UNLOCKED</span>}
+              {toplessUnlocks.power && <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-primary)] text-[10px] tracking-wide">PSU/POWER UNLOCKED</span>}
+              {!toplessUnlocks.voltage && !toplessUnlocks.frequency && !toplessUnlocks.power && (
+                <span className="px-2 py-1 rounded bg-[var(--grid-gray)] text-[var(--text-muted)] text-[10px] tracking-wide">NO UNLOCKS SELECTED</span>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={settingsLocked}
+                onClick={() => setToplessDialogOpen(true)}
+                className="uppercase tracking-wide shadow-[0_0_14px_rgba(239,68,68,0.35)]"
+              >
+                Configure Topless Mode
+              </Button>
+              {toplessEnabled && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setToplessEnabled(false);
+                    toast.success('Topless mode disabled');
+                  }}
+                  className="uppercase tracking-wide"
+                  disabled={settingsLocked}
+                >
+                  Disable
+                </Button>
+              )}
+            </div>
+            <div className="text-[var(--text-secondary)] text-xs">
+              Warning: unlocking PSU on a stock supply can damage it. Voltage/frequency unlocks remove guard rails and can cook ASICs if misused.
+            </div>
           </div>
 
           {/* Engine Panel */}
@@ -1171,7 +1264,7 @@ export default function Benchmark() {
                   label="THERMAL STRESS"
                   value={thermalStress}
                   color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
-                  tooltip={`Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C). Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}. Higher when near cap or climbing fast.`}
+                  tooltip={`Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C). Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}. Lower when headroom is high; rises near cap or when fans already high.`}
                   onClick={() =>
                     setEngineDetail({
                       open: true,
@@ -1180,7 +1273,7 @@ export default function Benchmark() {
                         `Temp ${temp.toFixed(1)} / ${maxChip}°C (headroom ${tempHeadroom.toFixed(1)}°C)`,
                         `Temp ratio ${(tempRatio * 100).toFixed(1)}%`,
                         `Fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}`,
-                        'Score = temp_ratio*70 + proximity/fan boosts',
+                        'Score weighs temp ratio + small penalty if fans are already high; headroom gives relief.',
                       ],
                     })
                   }
@@ -1189,7 +1282,7 @@ export default function Benchmark() {
                   label="POWER STRESS"
                   value={powerStress}
                   color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
-                  tooltip={`Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W), Voltage ${voltage} / ${maxVoltage}mV. Higher when near power/volt limits.`}
+                  tooltip={`Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W), Voltage ${voltage} / ${maxVoltage}mV. Uses PSU load when available so ~60% PSU stays low.`}
                   onClick={() =>
                     setEngineDetail({
                       open: true,
@@ -1198,7 +1291,10 @@ export default function Benchmark() {
                         `Power ${power.toFixed(1)} / ${maxPower}W (headroom ${powerHeadroom.toFixed(1)}W)`,
                         `Voltage ${voltage} / ${maxVoltage}mV`,
                         `Ratios: power ${(powerRatio * 100).toFixed(1)}%, voltage ${(voltageRatio * 100).toFixed(1)}%`,
-                        'Score = max(power, voltage) ratio * 80 (+limit boosts)',
+                        psuCapacity
+                          ? `PSU load ${Math.round(psuRatio * 100)}% of ${psuCapacity}W capacity`
+                          : `PSU load ${(psuRatio * 100).toFixed(1)}% (live data)`,
+                        'Score blends power/voltage + PSU ratio; extra penalty only near cap.',
                       ],
                     })
                   }
@@ -1207,7 +1303,7 @@ export default function Benchmark() {
                   label="STABILITY STRESS"
                   value={stabilityStress}
                   color="linear-gradient(90deg, #22c55e, #eab308, #ef4444)"
-                  tooltip={`ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%). Recovery and failed combos add stress.`}
+                  tooltip={`ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%). Recovery and failed combos add small stress.`}
                   onClick={() =>
                     setEngineDetail({
                       open: true,
@@ -1216,7 +1312,25 @@ export default function Benchmark() {
                         `ASIC error ${errorPct.toFixed(2)}% vs target ${targetError}% (margin ${errorMargin.toFixed(2)}%)`,
                         `Error ratio ${(errRatio * 100).toFixed(1)}%`,
                         `Recoveries ${status?.recovery_attempts || 0}, failed combos ${(status?.failed_combos || []).length}`,
-                        'Score = err_ratio*80 + recovery/failed boosts',
+                        'Score = err ratio + tiny boosts for recoveries/failures.',
+                      ],
+                    })
+                  }
+                />
+
+                <StressBar
+                  label="COOLING HEADROOM"
+                  value={coolingHeadroomPct}
+                  color="linear-gradient(90deg, #0ea5e9, #22c55e)"
+                  tooltip={`Higher is better: ${coolingHeadroomPct.toFixed(0)}% thermal margin left based on chip headroom and fan state.`}
+                  onClick={() =>
+                    setEngineDetail({
+                      open: true,
+                      title: 'Cooling Headroom',
+                      lines: [
+                        `Headroom ${coolingHeadroomPct.toFixed(0)}% of max temp`,
+                        `Temp headroom ${tempHeadroom.toFixed(1)}°C, fan ${fanSpeed ? `${fanSpeed.toFixed(0)}%` : 'n/a'}`,
+                        'Shows remaining cooling margin; higher is safer.',
                       ],
                     })
                   }
@@ -1248,7 +1362,7 @@ export default function Benchmark() {
                           lines: [
                             `Push (avg V/F/power ratios): ${push.toFixed(2)}`,
                             `Instability (error/recovery): ${instability.toFixed(2)}`,
-                            'Right = more headroom, Left = instability/overdrive.',
+                            'Includes headroom boost; Right = headroom/push, Left = instability.',
                           ],
                         })
                       }
@@ -1263,7 +1377,7 @@ export default function Benchmark() {
                             lines: [
                               `Push (avg V/F/power ratios): ${push.toFixed(2)}`,
                               `Instability (error/recovery): ${instability.toFixed(2)}`,
-                              'Right = more headroom, Left = instability/overdrive.',
+                              'Includes headroom boost; Right = headroom/push, Left = instability.',
                             ],
                           });
                         }
@@ -1288,7 +1402,7 @@ export default function Benchmark() {
                     <div className="max-w-xs text-xs space-y-1">
                       <div>Push: avg(V/F/power ratios) = {push.toFixed(2)}</div>
                       <div>Instability: error/recovery weighting = {instability.toFixed(2)}</div>
-                      <div>Right = headroom, Left = instability/overdrive.</div>
+                      <div>Includes headroom boost; Right = headroom/push, Left = instability.</div>
                     </div>
                   </TooltipContent>
                 </Tooltip>
@@ -1545,6 +1659,107 @@ export default function Benchmark() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Topless mode dialog */}
+      <Dialog
+        open={toplessDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setToplessDialogOpen(false);
+            setToplessAck(false);
+          } else {
+            setToplessDialogOpen(true);
+          }
+        }}
+      >
+        <DialogContent className="w-[min(95vw,900px)] bg-[var(--bg-primary)] border-[var(--error-red)]/60 shadow-[0_0_30px_rgba(239,68,68,0.35)]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-[var(--error-red)]">RUN TOPLESS (NO CEILINGS)</DialogTitle>
+            <DialogDescription className="text-[var(--text-secondary)]">
+              Disables safety caps for selected elements. If you don&apos;t know exactly what you are doing, hardware damage is likely.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 text-sm">
+            <div className="rounded-lg border border-[var(--error-red)]/60 bg-[var(--error-red)]/10 p-3 space-y-1">
+              <div className="font-semibold text-[var(--error-red)]">Warnings</div>
+              <ul className="list-disc list-inside text-[var(--text-secondary)] text-xs space-y-1">
+                <li>Unlocking voltage/clock removes guard rails — overheating and ASIC damage are possible.</li>
+                <li>Unlocking PSU/power on a stock supply is dangerous; only do this with an overrated, quality PSU.</li>
+                <li>No automatic caps will be applied while topless is armed.</li>
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <label className="flex items-start gap-2">
+                <Checkbox
+                  checked={toplessUnlocks.voltage}
+                  onCheckedChange={(checked) => setToplessUnlocks((prev) => ({ ...prev, voltage: Boolean(checked) }))}
+                />
+                <div>
+                  <div className="font-semibold text-[var(--text-primary)]">Unlock voltage range</div>
+                  <div className="text-[var(--text-secondary)] text-xs">No ceiling on voltage tuning; exceeds device defaults.</div>
+                </div>
+              </label>
+              <label className="flex items-start gap-2">
+                <Checkbox
+                  checked={toplessUnlocks.frequency}
+                  onCheckedChange={(checked) => setToplessUnlocks((prev) => ({ ...prev, frequency: Boolean(checked) }))}
+                />
+                <div>
+                  <div className="font-semibold text-[var(--text-primary)]">Unlock clock range</div>
+                  <div className="text-[var(--text-secondary)] text-xs">No ceiling on frequency tuning; allows extreme clocks.</div>
+                </div>
+              </label>
+              <label className="flex items-start gap-2">
+                <Checkbox
+                  checked={toplessUnlocks.power}
+                  onCheckedChange={(checked) => setToplessUnlocks((prev) => ({ ...prev, power: Boolean(checked) }))}
+                />
+                <div>
+                  <div className="font-semibold text-[var(--text-primary)]">Unlock PSU / power caps</div>
+                  <div className="text-[var(--text-secondary)] text-xs">Do NOT enable on a stock PSU. Over-current/over-temp risk.</div>
+                </div>
+              </label>
+            </div>
+
+            <label className="flex items-start gap-2 text-[var(--error-red)] text-xs font-semibold">
+              <Checkbox checked={toplessAck} onCheckedChange={(checked) => setToplessAck(Boolean(checked))} />
+              <span>I accept that running topless can cause hardware failure, fire risk, or permanent damage.</span>
+            </label>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => setToplessDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={!toplessAck || !Object.values(toplessUnlocks).some(Boolean) || settingsLocked}
+                onClick={() => {
+                  if (settingsLocked) {
+                    toast.error('Stop the running benchmark before toggling topless mode');
+                    return;
+                  }
+                  if (!Object.values(toplessUnlocks).some(Boolean)) {
+                    toast.error('Select at least one element to unlock');
+                    return;
+                  }
+                  if (!toplessAck) {
+                    toast.error('Acknowledge the risk to proceed');
+                    return;
+                  }
+                  setToplessEnabled(true);
+                  setToplessDialogOpen(false);
+                  toast.warning('Topless mode armed: safety caps disabled for selected elements');
+                }}
+              >
+                Enable topless mode
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Engine detail modal */}
       <Dialog
         open={engineDetail.open}
