@@ -52,7 +52,8 @@ def start_unified(port: int):
     from unified_app import create_unified_app
 
     app = create_unified_app()
-    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
+    # Bind on IPv6 unspecified to support dual-stack (IPv6 + IPv4)
+    app.run(host="::", port=port, debug=False, threaded=True)
 
 
 def wait_for_server(url: str, timeout: int = 15) -> bool:

@@ -156,17 +156,44 @@ const getPsuMetrics = (psu: any, assignedDevices: Device[]) => {
     (sum, d) => sum + (normalizeNumber(d?.status?.power, 0) ?? 0),
     0
   );
-  const wattage = wattageFromPsu ?? (wattageFromDevices > 0 ? wattageFromDevices : 0);
+  let wattage = wattageFromPsu ?? (wattageFromDevices > 0 ? wattageFromDevices : 0);
 
   // Voltage/amps are optional; provide hints if present, otherwise omit.
   let voltage =
     normalizeNumber(psu?.voltage, null) ??
+    normalizeNumber(psu?.voltage_v, null) ??
+    normalizeNumber(psu?.volts, null) ??
+    normalizeNumber(psu?.v, null) ??
     normalizeNumber(psu?.input_voltage, null) ??
     null;
   let amperage =
     normalizeNumber(psu?.amperage, null) ??
+    normalizeNumber(psu?.amps, null) ??
+    normalizeNumber(psu?.current, null) ??
+    normalizeNumber(psu?.current_a, null) ??
     normalizeNumber(psu?.input_amperage, null) ??
     null;
+
+  // If wattage missing but both V/A are present, compute it.
+  if (!wattage && voltage && amperage) {
+    const computedW = voltage * amperage;
+    if (Number.isFinite(computedW) && computedW > 0) {
+      wattage = Number(computedW.toFixed(1));
+    }
+  }
+
+  // If wattage and one of voltage/amps are provided, derive the missing dimension
+  if (wattage && !amperage && voltage) {
+    const derivedA = wattage / voltage;
+    if (Number.isFinite(derivedA) && derivedA > 0) {
+      amperage = Number(derivedA.toFixed(1));
+    }
+  } else if (wattage && !voltage && amperage) {
+    const derivedV = wattage / amperage;
+    if (Number.isFinite(derivedV) && derivedV > 0) {
+      voltage = Number(derivedV.toFixed(1));
+    }
+  }
 
   let hint: { voltage?: number; amperage?: number; note?: string } | undefined;
   if (voltage === null || amperage === null) {
