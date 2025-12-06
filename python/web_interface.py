@@ -55,6 +55,7 @@ current_engine = None  # Reference to current benchmark engine
 current_session_id: Optional[str] = None
 auto_tune_thread: Optional[Thread] = None
 auto_tune_running = False
+auto_tune_stop_requested = False
 AUTO_TUNE_STEPS = [
     {'goal': 'max_hashrate', 'profile_name': 'MAX_AUTO', 'quiet_target': None},
     {'goal': 'balanced', 'profile_name': 'BALANCED_AUTO', 'quiet_target': None},
@@ -558,9 +559,21 @@ def run_single_benchmark(device_name: str, cfg: BenchmarkConfig, safety: SafetyL
 
 def run_auto_tune_sequence(device_name: str, data: dict):
     """Precision sweep -> generate AUTO profiles -> Nano tune each -> apply EFFICIENT_AUTO."""
-    global auto_tune_running, benchmark_status, auto_tune_thread
+    global auto_tune_running, benchmark_status, auto_tune_thread, auto_tune_stop_requested
     auto_tune_running = True
-    auto_tune_thread = None
+    auto_tune_thread = auto_tune_thread or None
+
+    def stop_requested(reason: str = 'Auto Tune stopped by user') -> bool:
+        """Check for user stop requests and persist a stopped state."""
+        if not auto_tune_stop_requested:
+            return False
+        record_status_message(reason, 'warning')
+        benchmark_status['running'] = False
+        benchmark_status['phase'] = 'stopped'
+        benchmark_status['message'] = reason
+        benchmark_status['warning'] = reason
+        save_benchmark_state()
+        return True
 
     try:
         est_total = estimate_tests_total(data)
@@ -572,9 +585,13 @@ def run_auto_tune_sequence(device_name: str, data: dict):
         benchmark_status['tests_total'] = est_total or benchmark_status.get('tests_total') or 0
         benchmark_status['tests_completed'] = 1 if benchmark_status['tests_total'] > 0 else 0
         save_benchmark_state()
+        if stop_requested():
+            return
 
         cfg, safety = build_benchmark_config_from_request(data)
         precision_session = run_single_benchmark(device_name, cfg, safety, phase='precision', goal='balanced', run_mode='auto_tune')
+        if stop_requested():
+            return
 
         if not precision_session or not getattr(precision_session, 'session_id', None):
             record_status_message('Auto Tune failed: precision session missing', 'error')
@@ -612,9 +629,13 @@ def run_auto_tune_sequence(device_name: str, data: dict):
         }
         save_profiles(device_name, {k: v for k, v in auto_profiles.items() if v})
         record_status_message('Auto Tune: AUTO profiles saved. Starting Nano tune sequence...', 'success')
+        if stop_requested():
+            return
 
         step_index = 0
         for step in AUTO_TUNE_STEPS:
+            if stop_requested():
+                return
             step_index += 1
             profile_key = step['profile_name']
             base_profile = auto_profiles.get(profile_key)
@@ -654,6 +675,8 @@ def run_auto_tune_sequence(device_name: str, data: dict):
 
             record_status_message(f"Auto Tune: Nano {step['goal']} starting ({step_index}/{len(AUTO_TUNE_STEPS)})", 'info')
             nano_session = run_single_benchmark(device_name, n_cfg, n_safety, phase='nano_sequence', goal=step['goal'], run_mode='auto_tune')
+            if stop_requested(f"Auto Tune stopped during Nano {step['goal']}"):
+                return
             if not nano_session or not getattr(nano_session, 'session_id', None):
                 record_status_message(f"Auto Tune: Nano {step['goal']} failed (no session)", 'warning')
                 continue
@@ -685,6 +708,8 @@ def run_auto_tune_sequence(device_name: str, data: dict):
                 record_status_message(f"Auto Tune: Nano {step['goal']} found no valid result", 'warning')
 
         try:
+            if stop_requested():
+                return
             apply_profile_internal(device_name, 'EFFICIENT_AUTO')
             record_status_message(f'Auto Tune: applied EFFICIENT_AUTO to {device_name}', 'success')
         except Exception as e:
@@ -703,6 +728,8 @@ def run_auto_tune_sequence(device_name: str, data: dict):
         save_benchmark_state()
     finally:
         auto_tune_running = False
+        auto_tune_stop_requested = False
+        auto_tune_thread = None
 
 
 
@@ -1920,7 +1947,7 @@ def get_device_profile_route(device_model):
 @require_patreon_auth
 def start_benchmark():
     """Start a benchmark"""
-    global current_benchmark, current_session_id, benchmark_status
+    global current_benchmark, current_session_id, benchmark_status, auto_tune_thread, auto_tune_running, auto_tune_stop_requested
     
     if benchmark_status['running']:
         return jsonify({'error': 'Benchmark already running'}), 400
@@ -1935,11 +1962,11 @@ def start_benchmark():
 
     # Auto Tune orchestrator entrypoint
     if run_mode == 'auto_tune':
-        global auto_tune_thread, auto_tune_running
         if auto_tune_running or benchmark_status.get('running'):
             return jsonify({'error': 'Auto Tune already running'}), 400
         def auto_tune_worker():
             run_auto_tune_sequence(device_name, data)
+        auto_tune_stop_requested = False
         auto_tune_thread = Thread(target=auto_tune_worker, daemon=True)
         auto_tune_thread.start()
         return jsonify({'status': 'auto_tune_started'})
@@ -2369,8 +2396,21 @@ def clear_message_queue():
 @require_patreon_auth
 def stop_benchmark():
     """Stop current benchmark"""
-    global current_benchmark, current_engine, benchmark_status
-    
+    global current_benchmark, current_engine, benchmark_status, auto_tune_running, auto_tune_thread, auto_tune_stop_requested
+
+    auto_tune_active = auto_tune_running or (auto_tune_thread and auto_tune_thread.is_alive()) or (benchmark_status.get('mode') == 'auto_tune' and benchmark_status.get('running'))
+    if auto_tune_active:
+        auto_tune_stop_requested = True
+        if current_engine:
+            current_engine.interrupted = True
+        benchmark_status['running'] = True
+        benchmark_status['phase'] = 'stopping'
+        benchmark_status['message'] = 'Auto Tune stop requested by user'
+        benchmark_status['warning'] = 'Auto Tune stop requested by user'
+        save_benchmark_state()
+        logger.info("Auto Tune stop requested")
+        return jsonify({'status': 'auto_tune_stop_requested'})
+
     if current_engine and current_benchmark and current_benchmark.is_alive():
         # Signal the benchmark engine to stop
         current_engine.interrupted = True
@@ -2381,8 +2421,8 @@ def stop_benchmark():
         save_benchmark_state()
         logger.info("Benchmark stop requested")
         return jsonify({'status': 'stop_requested'})
-    else:
-        return jsonify({'status': 'no_benchmark_running'}), 400
+
+    return jsonify({'status': 'no_benchmark_running'}), 400
 
 
 @app.route('/api/benchmark/preset/<device>/<preset>')
